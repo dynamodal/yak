@@ -73,7 +73,7 @@ for (const scheme of ['light', 'dark']) {
   page.on('pageerror', (e) => console.error('pageerror:', e.message));
   page.on('console', (m) => { if (/Content Security Policy|Refused to/i.test(m.text())) console.error('CSP:', m.text().slice(0, 200)); });
   await page.clock.setFixedTime(NOW);
-  await page.goto(`${BASE}?test#/timer/reports`);
+  await page.goto(`${BASE}?test#/time/reports`);
   await page.waitForFunction(() => window.__reports);
   await page.evaluate(([p, w]) => { window.__reports.seed('personal', p); window.__reports.seed('work', w); }, [PERSONAL, WORK]);
   // Let IndexedDB store the seed before the first reload, or the reload loses part of it.
@@ -81,7 +81,7 @@ for (const scheme of ['light', 'dark']) {
   const sizes = scheme === 'light' ? SIZES : SIZES.filter((s) => s.name === '1280' || s.name.startsWith('mini'));
   for (const size of sizes) {
     await page.setViewportSize({ width: size.width, height: size.height });
-    await page.goto(`${BASE}?test#/timer`);
+    await page.goto(`${BASE}?test#/time`);
     // A fresh page per size, so an expanded group or open editor from the last size is gone.
     await page.reload();
     await page.locator('.page').first().waitFor();
@@ -126,7 +126,7 @@ for (const scheme of ['light', 'dark']) {
     await page.locator('.timer-bar').getByRole('button', { name: 'Stop', exact: true }).click();
     for (const size of SIZES.filter((s) => s.name === '1280' || s.name.startsWith('mini'))) {
       await page.setViewportSize({ width: size.width, height: size.height });
-      await page.goto(`${BASE}?test#/timer`);
+      await page.goto(`${BASE}?test#/time`);
       await page.locator('.page').first().waitFor();
       await page.waitForTimeout(300);
       const file = (extra) => join(outDir, `${prefix}-${size.name}${extra}.png`);

@@ -11,7 +11,7 @@
 
 .fields { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .fields .description { flex: 1 1 14rem; min-width: 0; }
-.clock { font-family: var(--font-serif); font-variant-numeric: tabular-nums; font-size: var(--text-2xl); font-weight: var(--weight-semibold); }
+.clock { font-variant-numeric: tabular-nums; font-size: var(--text-2xl); font-weight: var(--weight-semibold); }
 
 /* Timer bar: one row on a wide screen; description and start/stop, then the fields, when narrow. */
 .tb { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'else else else' 'desc fields go' 'note note note'; align-items: center; gap: var(--space-1) var(--space-2); margin: 0 0 var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3); }
@@ -71,7 +71,7 @@
 .tl-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr)); gap: var(--space-3); margin: var(--space-3) 0; }
 .tl-stat { display: flex; flex-direction: column; gap: 0.1rem; padding: var(--space-2) var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .tl-stat-label { color: var(--muted); font-size: var(--text-sm); }
-.tl-stat .total { font-family: var(--font-serif); font-size: var(--text-2xl); line-height: 1.2; }
+.tl-stat .total { font-variant-numeric: tabular-nums; font-size: var(--text-2xl); line-height: 1.2; }
 .tl-more { justify-content: center; }
 
 /* Days: one card per day with its total; rows inside. */

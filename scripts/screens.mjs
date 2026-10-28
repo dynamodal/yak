@@ -50,8 +50,8 @@ const SHOTS = [
   'timer-editing', 'timer-forced', 'tasks-forced',
 ];
 const ROUTES = {
-  timer: 'timer/list', week: 'timer/week', reports: 'timer/reports', 'reports/detailed': 'timer/reports/detailed', 'reports/weekly': 'timer/reports/weekly',
-  'notes-open': 'notes', 'tasks-board': 'tasks/board', 'tasks-table': 'tasks/table', 'timer-editing': 'timer/list', 'timer-forced': 'timer/list', 'tasks-forced': 'tasks',
+  timer: 'time/list', week: 'time/week', reports: 'time/reports', 'reports/detailed': 'time/reports/detailed', 'reports/weekly': 'time/reports/weekly',
+  'notes-open': 'notes', 'tasks-board': 'tasks/board', 'tasks-table': 'tasks/table', 'timer-editing': 'time/list', 'timer-forced': 'time/list', 'tasks-forced': 'tasks',
 };
 
 /** A fresh profile starts on Welcome: name the first space and start with everything on. Skipped when Welcome is absent. */
@@ -71,7 +71,7 @@ async function shoot(outDir) {
     const page = await ctx.newPage();
     page.on('pageerror', (e) => console.error('pageerror:', e.message));
     await page.clock.setFixedTime(NOW);
-    await page.goto(`${BASE}?test#/timer/reports`);
+    await page.goto(`${BASE}?test#/time/reports`);
     await firstRun(page);
     await page.waitForFunction(() => window.__reports, null, { timeout: 15000 });
     await page.evaluate((s) => window.__reports.seed('personal', s), SEED);

@@ -58,8 +58,6 @@
 
   /* Type. */
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  /* Headings and big numbers: a system serif; no web font (CSP). */
-  --font-serif: Georgia, 'Times New Roman', serif;
   --font-mono: ui-monospace, monospace;
   --font-size: 15px;
   --line-height: 1.5;

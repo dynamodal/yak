@@ -4,6 +4,7 @@ import './time.css';
 import { registerCommand } from '../app/commands';
 import { useEffect } from 'preact/hooks';
 import { registerGlobal, registerHeaderItem, registerView } from '../app/registry';
+import { IconClock } from '../app/ui';
 import { TimeController } from './controller';
 import { compareRunning, findRunning } from './entries';
 import { HeaderTimer } from './HeaderTimer';
@@ -14,8 +15,9 @@ import { TimerView } from './TimerView';
 
 registerView({
   id: 'timer',
-  title: 'Timer',
-  path: 'timer',
+  title: 'Time',
+  path: 'time',
+  icon: IconClock,
   order: 10,
   // The List | Week switch; views that join the page (Reports) add their own segments after these.
   modes: [
@@ -24,13 +26,13 @@ registerView({
   ],
   component: TimerView,
 });
-// The old Entries page is the Week view of the Timer page; `#/entries` still lands there.
+// The old Entries page is the Week view of the Time page; `#/entries` still lands there.
 function EntriesRedirect() {
-  useEffect(() => location.replace('#/timer/week'), []);
+  useEffect(() => location.replace('#/time/week'), []);
   return null;
 }
 registerView({ id: 'entries', title: 'Entries', path: 'entries', order: 20, hidden: true, component: EntriesRedirect });
-registerCommand({ id: 'go.entries', title: 'Go to Entries', run: () => void (location.hash = '#/timer/week') });
+registerCommand({ id: 'go.entries', title: 'Go to Entries', run: () => void (location.hash = '#/time/week') });
 // Organize (projects, clients, tags, task values) is owned by no tab: pickers, the palette and Settings link to it.
 registerView({ id: 'organize', title: 'Organize', path: 'organize', order: 92, hidden: true, component: ProjectsView });
 registerCommand({ id: 'go.organize', title: 'Go to Organize', run: () => void (location.hash = '#/organize') });

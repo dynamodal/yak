@@ -1,15 +1,15 @@
 // End-to-end for the navigation (decisions F14-F26): the tabs sit at the top on every screen size;
-// four tabs, no menu (Reports is a segment of the Timer page, R-335); Entries is the Week view of Timer; Settings is one scrolling page (#/settings, F-326) with detail views for things (#/settings/devices, /backup, /space/<id>); old routes redirect.
+// four tabs, no menu (Reports is a segment of the Time page, R-335); Entries is the Week view of Timer; Settings is one scrolling page (#/settings, F-326) with detail views for things (#/settings/devices, /backup, /space/<id>); old routes redirect.
 //
 //   npm run e2e navigation
 //
 import { BASE, launch, check, watchPage, finish } from './lib.mjs';
 
 const browser = await launch();
-const TABS = ['Timer', 'Notes', 'Tasks', 'Settings'];
+const TABS = ['Time', 'Notes', 'Tasks', 'Settings'];
 const CARDS = ['Your data', 'Preferences', 'About & help'];
 
-async function open(name, viewport, hash = '#/timer') {
+async function open(name, viewport, hash = '#/time') {
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   watchPage(page, name, { consoleErrors: true });
@@ -27,20 +27,20 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   check(tabs.join() === TABS.join(), `wide: the four tabs (${tabs.join(', ')})`);
   check((await p.locator('.tabs button, .tabs [aria-haspopup]').count()) === 0, 'wide: no tab opens a menu');
   check((await p.locator('.tabs a', { hasText: /^Reports$/ }).count()) === 0, 'wide: Reports is not a tab');
-  const views = p.getByRole('navigation', { name: 'Timer views' });
-  check((await views.getByRole('link').allInnerTexts()).join() === 'List,Week,Reports', 'wide: the Timer page switch is List, Week, Reports');
+  const views = p.getByRole('navigation', { name: 'Time views' });
+  check((await views.getByRole('link').allInnerTexts()).join() === 'List,Week,Reports', 'wide: the Time page switch is List, Week, Reports');
   await views.getByRole('link', { name: 'Reports' }).click();
   await p.locator('.rp-nav').waitFor();
-  check((await route(p)) === '#/timer/reports' && (await p.locator('.tabs a.active').innerText()) === 'Timer', 'wide: Reports opens at #/timer/reports with the Timer tab lit');
+  check((await route(p)) === '#/time/reports' && (await p.locator('.tabs a.active').innerText()) === 'Time', 'wide: Reports opens at #/time/reports with the Time tab lit');
   check((await p.locator('.timer-bar').count()) === 0, 'wide: no timer bar on Reports');
   check((await views.getByRole('link', { name: 'Reports' }).getAttribute('aria-current')) === 'page', 'wide: the Reports segment is current');
   // The Timer tab reopens the last view, Reports included, and says so in the address.
   await p.locator('.tabs a', { hasText: /^Notes$/ }).click();
-  await p.locator('.tabs a', { hasText: /^Timer$/ }).click();
+  await p.locator('.tabs a', { hasText: /^Time$/ }).click();
   await p.locator('.rp-nav').waitFor();
-  await p.waitForFunction(() => location.hash === '#/timer/reports', null, { timeout: 3000 }).catch(() => {});
-  check((await route(p)) === '#/timer/reports', 'wide: Timer reopens in the last used view (Reports)');
-  for (const [old, to] of [['#/reports', '#/timer/reports'], ['#/reports/detailed', '#/timer/reports/detailed'], ['#/reports/weekly', '#/timer/reports/weekly'], ['#/reports/summary', '#/timer/reports/summary']]) {
+  await p.waitForFunction(() => location.hash === '#/time/reports', null, { timeout: 3000 }).catch(() => {});
+  check((await route(p)) === '#/time/reports', 'wide: Timer reopens in the last used view (Reports)');
+  for (const [old, to] of [['#/reports', '#/time/reports'], ['#/reports/detailed', '#/time/reports/detailed'], ['#/reports/weekly', '#/time/reports/weekly'], ['#/reports/summary', '#/time/reports/summary']]) {
     await p.evaluate((h) => { location.hash = h; }, old);
     await p.waitForFunction((h) => location.hash === h, to, { timeout: 3000 }).catch(() => {});
     check((await route(p)) === to && (await p.locator('.rp-nav').count()) === 1, `wide: the old route ${old} redirects to ${to}`);
@@ -49,22 +49,22 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await p.locator('.tl-summary').waitFor();
 
   // Timer: List | Week; the last view is remembered; #/entries opens Week.
-  await p.locator('.tabs a', { hasText: /^Timer$/ }).click();
-  await p.getByRole('navigation', { name: 'Timer views' }).waitFor();
+  await p.locator('.tabs a', { hasText: /^Time$/ }).click();
+  await p.getByRole('navigation', { name: 'Time views' }).waitFor();
   check((await p.locator('.tl-summary').count()) === 1 && (await p.locator('.week-nav').count()) === 0, 'wide: Timer opens in List');
-  await p.getByRole('navigation', { name: 'Timer views' }).getByRole('link', { name: 'Week' }).click();
+  await p.getByRole('navigation', { name: 'Time views' }).getByRole('link', { name: 'Week' }).click();
   await p.locator('.week-nav').waitFor();
-  check((await route(p)) === '#/timer/week' && (await p.locator('.timer-bar').isVisible()), 'wide: Week keeps the timer bar');
+  check((await route(p)) === '#/time/week' && (await p.locator('.timer-bar').isVisible()), 'wide: Week keeps the timer bar');
   await p.locator('.tabs a', { hasText: /^Notes$/ }).click();
-  await p.locator('.tabs a', { hasText: /^Timer$/ }).click();
+  await p.locator('.tabs a', { hasText: /^Time$/ }).click();
   await p.locator('.week-nav').waitFor();
   check(true, 'wide: Timer reopens in the last used view (Week)');
-  await p.getByRole('navigation', { name: 'Timer views' }).getByRole('link', { name: 'List' }).click();
+  await p.getByRole('navigation', { name: 'Time views' }).getByRole('link', { name: 'List' }).click();
   await p.locator('.tl-summary').waitFor();
   await p.evaluate(() => { location.hash = '#/entries'; });
-  await p.waitForFunction(() => location.hash === '#/timer/week', null, { timeout: 3000 }).catch(() => {});
-  check((await route(p)) === '#/timer/week' && (await p.locator('.week-nav').count()) === 1, 'wide: #/entries opens the Timer page in Week view');
-  check((await p.locator('.tabs a.active').innerText()) === 'Timer', 'wide: the Timer tab is lit in Week view');
+  await p.waitForFunction(() => location.hash === '#/time/week', null, { timeout: 3000 }).catch(() => {});
+  check((await route(p)) === '#/time/week' && (await p.locator('.week-nav').count()) === 1, 'wide: #/entries opens the Time page in Week view');
+  check((await p.locator('.tabs a.active').innerText()) === 'Time', 'wide: the Time tab is lit in Week view');
 
   await p.locator('.tabs a', { hasText: /^Settings$/ }).click();
   await p.locator('.st-home').waitFor();
@@ -160,7 +160,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await p.getByRole('heading', { name: 'Organize', level: 1 }).waitFor();
   check((await route(p)) === '#/organize' && (await p.locator('.tabs a.active').count()) === 0, 'Edit… in the project picker opens Organize, which no tab owns');
   for (const h of ['Projects', 'Clients', 'Tags across entries, notes and tasks', 'Task values']) check((await p.getByRole('heading', { name: h, level: 2 }).count()) === 1, `Organize has the section ${h}`);
-  await p.evaluate(() => { location.hash = '#/timer'; });
+  await p.evaluate(() => { location.hash = '#/time'; });
   await p.locator('.tb').getByRole('button', { name: /^Tags/ }).click();
   await p.locator('.picker .picker-edit').click();
   await p.getByRole('heading', { name: 'Organize', level: 1 }).waitFor();

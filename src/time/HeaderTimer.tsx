@@ -40,7 +40,7 @@ const PROJECTS = 6;
 
 /**
  * Opened from the status area: switch to a recent entry, start on a project, or start empty. Starting
- * stops whatever runs (one running timer across spaces). The Timer page is one click away.
+ * stops whatever runs (one running timer across spaces). The Time page is one click away.
  */
 function Switcher({ anchor, onClose }: { anchor: { current: HTMLElement | null }; onClose(): void }) {
   const { spaces, setSpaceId, spaceId } = useApp();
@@ -80,10 +80,10 @@ function Switcher({ anchor, onClose }: { anchor: { current: HTMLElement | null }
         class="ht-opt ht-open"
         onClick={() => {
           onClose();
-          navigate('timer');
+          navigate('time');
         }}
       >
-        Open the Timer page
+        Open the Time page
       </button>
     </Popover>
   );
@@ -93,7 +93,7 @@ function Switcher({ anchor, onClose }: { anchor: { current: HTMLElement | null }
  * The running timer in the app header, on every view: description, project colour and elapsed
  * time with a stop button; when nothing runs, start and "Continue" the last entry. Clicking the
  * status area (the running entry, or "Not tracking") opens the switcher. The rule of one running
- * timer across spaces lives in the controller, as on the Timer page.
+ * timer across spaces lives in the controller, as on the Time page.
  */
 export function HeaderTimer() {
   const { spaceDocs, spaceId } = useApp();
@@ -106,7 +106,7 @@ export function HeaderTimer() {
   const [open, setOpen] = useState(false);
   const statusRef = useRef<HTMLButtonElement>(null);
   const toggle = (): void => setOpen(!open);
-  /** Starts with what is typed in the Timer page's bar (description, project, tags), then clears it, as the bar's own start does. */
+  /** Starts with what is typed in the Time page's bar (description, project, tags), then clears it, as the bar's own start does. */
   const startTyped = (): void => {
     const d = getDraft();
     const sid = d.project_id && d.spaceId ? d.spaceId : spaceId;

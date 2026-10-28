@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
-import { type CommandDef, commandUsing, eventShortcut, isUsableShortcut, normalizeShortcut, readOverrides, resetShortcut, setShortcut, shortcutsOf } from './commands';
+import { type CommandDef, commandUsing, eventShortcut, formatShortcut, isUsableShortcut, normalizeShortcut, readOverrides, resetShortcut, setShortcut, shortcutsOf } from './commands';
 
 const ev = (o: Partial<KeyboardEvent> & { key: string }): Parameters<typeof eventShortcut>[0] => ({ code: '', ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...o });
 
@@ -55,5 +55,17 @@ describe('bindings', () => {
     expect(commandUsing([a, b], {}, 'Alt+A')?.id).toBe('a');
     expect(commandUsing([a, b], {}, 'Alt+A', 'a')).toBeUndefined();
     expect(commandUsing([a, b], { b: 'Alt+A' }, 'Alt+A', 'a')?.id).toBe('b');
+  });
+});
+
+describe('formatShortcut', () => {
+  it('writes words with spaces, as the Shortcuts card does', () => {
+    expect(formatShortcut('Alt+P', false)).toBe('Alt P');
+    expect(formatShortcut('Ctrl+Shift+F', false)).toBe('Ctrl Shift F');
+    expect(formatShortcut('F5', false)).toBe('F5');
+  });
+  it('writes Mac symbols on a Mac', () => {
+    expect(formatShortcut('Alt+P', true)).toBe('⌥P');
+    expect(formatShortcut('Ctrl+Shift+F', true)).toBe('⌘⇧F');
   });
 });

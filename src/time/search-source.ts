@@ -42,7 +42,7 @@ registerSearchSource({
         tags: e.tags ?? [],
         open: () => {
           setSearchTarget({ kind: 'entry', spaceId, id: e.id, at: isoToMs(e.start) });
-          location.hash = '#/timer/week';
+          location.hash = '#/time/week';
         },
       });
     }

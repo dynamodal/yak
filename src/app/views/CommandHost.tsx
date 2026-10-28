@@ -1,10 +1,10 @@
 import type * as Y from 'yjs';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { allCommands, type CommandDef, registerCommand, eventShortcut, findByShortcut, readOverrides, shortcutsOf } from '../commands';
+import { allCommands, type CommandDef, registerCommand, eventShortcut, findByShortcut, formatShortcut, readOverrides, shortcutsOf } from '../commands';
 import { useApp } from '../context';
 import { useYVersion } from '../hooks';
 import { registerGlobal, registerHeaderItem } from '../registry';
-import { Button, Dialog } from '../ui';
+import { Button, Dialog, IconCommand } from '../ui';
 
 const OPEN_EVENT = 'app:command-palette';
 
@@ -88,7 +88,7 @@ function Palette({ commands, onRun, onClose }: { commands: readonly CommandDef[]
             <span>{c.title}</span>
             <span class="palette-keys">
               {shortcutsOf(c, overrides).map((s) => (
-                <kbd key={s}>{s.replace(/\+/g, ' ')}</kbd>
+                <kbd key={s}>{formatShortcut(s)}</kbd>
               ))}
             </span>
           </li>
@@ -131,12 +131,14 @@ export function CommandHost() {
   return open ? <Palette commands={allCommands()} onRun={(c) => c.run({ app: latest.current.app })} onClose={() => setOpen(false)} /> : null;
 }
 
-function PaletteButton() {
+/** The header's command button: the command icon and, on a wide screen with a keyboard, a chip with the bound shortcut. */
+export function PaletteButton() {
   const overrides = useOverrides();
   const keys = shortcutsOf(PALETTE_COMMAND, overrides)[0];
   return (
-    <Button class="palette-btn" aria-label="Commands" title={keys ? `Commands (${keys.replace(/\+/g, ' ')})` : 'Commands'} onClick={openPalette}>
-      ⌘
+    <Button class="palette-btn" aria-label="Command palette" aria-keyshortcuts={keys} title="Search, go to, run a command" onClick={openPalette}>
+      <IconCommand />
+      {keys ? <kbd class="palette-chip" aria-hidden="true">{formatShortcut(keys)}</kbd> : null}
     </Button>
   );
 }

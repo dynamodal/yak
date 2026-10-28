@@ -14,7 +14,7 @@
 
 .rp-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--gap); margin: 0.5rem 0 1rem; }
 .rp-totals dt { color: var(--muted); font-size: var(--text-sm); }
-.rp-totals dd { font-family: var(--font-serif); font-variant-numeric: tabular-nums; margin: 0.1rem 0 0; font-size: var(--text-xl); font-weight: var(--weight-bold); overflow-wrap: anywhere; }
+.rp-totals dd { font-variant-numeric: tabular-nums; margin: 0.1rem 0 0; font-size: var(--text-xl); font-weight: var(--weight-bold); overflow-wrap: anywhere; }
 .rp-sub { color: var(--muted); font-size: var(--text-sm); font-weight: 400; }
 .rp-card { margin-bottom: 1rem; padding: 0.75rem; }
 

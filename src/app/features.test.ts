@@ -3,7 +3,7 @@ import { commandHidden, effectiveHidden, hiddenRoute, readHiddenModules, searchK
 
 const store = (v: string | null) => ({ getItem: () => v });
 const views = [
-  { id: 'timer', path: 'timer' },
+  { id: 'timer', path: 'time' },
   { id: 'notes', path: 'notes' },
   { id: 'tasks', path: 'tasks' },
   { id: 'reports', path: 'reports', joins: 'timer' },
@@ -49,17 +49,17 @@ describe('registry filter', () => {
   });
   it('knows a hidden page by its route, in Settings too', () => {
     expect(hiddenRoute(['notes', 'abc'], views, hidden)).toBe(true);
-    expect(hiddenRoute(['timer'], views, hidden)).toBe(false);
+    expect(hiddenRoute(['time'], views, hidden)).toBe(false);
     expect(hiddenRoute(['settings', 'import'], views, effectiveHidden(['import']))).toBe(true);
     expect(hiddenRoute(['settings', 'backup'], views, effectiveHidden(['import']))).toBe(false);
     expect(hiddenRoute(['settings', 'nothing'], views, hidden)).toBe(false);
   });
-  it('knows a hidden view that joins the Timer page', () => {
+  it('knows a hidden view that joins the Time page', () => {
     const noReports = effectiveHidden(['reports']);
-    expect(hiddenRoute(['timer', 'reports'], views, noReports)).toBe(true);
-    expect(hiddenRoute(['timer', 'reports', 'detailed'], views, noReports)).toBe(true);
+    expect(hiddenRoute(['time', 'reports'], views, noReports)).toBe(true);
+    expect(hiddenRoute(['time', 'reports', 'detailed'], views, noReports)).toBe(true);
     expect(hiddenRoute(['reports'], views, noReports)).toBe(true);
-    expect(hiddenRoute(['timer', 'reports'], views, effectiveHidden([]))).toBe(false);
-    expect(hiddenRoute(['timer', 'week'], views, noReports)).toBe(false);
+    expect(hiddenRoute(['time', 'reports'], views, effectiveHidden([]))).toBe(false);
+    expect(hiddenRoute(['time', 'week'], views, noReports)).toBe(false);
   });
 });

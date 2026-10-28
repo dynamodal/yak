@@ -70,7 +70,7 @@ const bar = () => page.locator('.timer-bar');
 
 try {
   // ---- first online visit: install and take control ----
-  await page.goto(`${BASE}?test#/timer/list`);
+  await page.goto(`${BASE}?test#/time/list`);
   await bar().waitFor();
   check(await until(() => page.evaluate(() => navigator.serviceWorker.controller !== null)), 'the worker controls the page after the first visit');
   check((await controllerVersion()) === V1, `controller reports the built version ${V1}`);
@@ -94,7 +94,7 @@ try {
   // ---- offline: reload and use the app ----
   offline = true;
   await context.setOffline(true);
-  await page.goto(`${BASE}?test#/timer`); // same document: only the hash changes
+  await page.goto(`${BASE}?test#/time`); // same document: only the hash changes
   // Checked before the reload: emulated offline fires the offline event, but a document loaded
   // afterwards still reads navigator.onLine as true in headless Chromium.
   check(await until(() => page.locator('.offline-chip').isVisible()), 'header shows the Offline chip');
@@ -125,7 +125,7 @@ try {
     'notes editor (lazy chunk) works offline',
   );
 
-  await page.goto(`${BASE}?test#/timer/reports/detailed`);
+  await page.goto(`${BASE}?test#/time/reports/detailed`);
   check(await until(() => page.locator('main').innerText().then((t) => t.includes('Offline work'))), 'Detailed report lists the offline entry');
 
   await page.goto(`${BASE}?test#/help/open-source`);
@@ -145,7 +145,7 @@ try {
   // ---- back online; a new deploy ----
   await context.setOffline(false);
   offline = false;
-  await page.goto(`${BASE}?test#/timer/list`);
+  await page.goto(`${BASE}?test#/time/list`);
   await bar().waitFor();
   check(await until(async () => (await page.locator('.offline-chip').count()) === 0), 'Offline chip disappears when back online');
 
@@ -214,7 +214,7 @@ try {
     await until(async () => (await page.evaluate(() => navigator.serviceWorker.getRegistrations().then((rs) => rs.length))) === 0 && (await cacheNames()).length === 0, 15000),
     'kill switch unregisters the worker and deletes its caches',
   );
-  await page.goto(`${BASE}?test#/timer`);
+  await page.goto(`${BASE}?test#/time`);
   await page.reload();
   await bar().waitFor();
   await sleep(1500);

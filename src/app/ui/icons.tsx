@@ -194,3 +194,45 @@ export const IconSettings = () => (
     <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4" />
   </Svg>
 );
+
+export const IconCheckbox = () => (
+  <Svg>
+    <rect x="2.5" y="2.5" width="11" height="11" rx="2.5" />
+    <path d="M5.4 8.3l1.9 1.9 3.3-3.9" />
+  </Svg>
+);
+
+/** The place-of-interest loop sign, drawn here: four loops joined by a square. */
+export const IconCommand = () => (
+  <Svg>
+    <path d="M6 6V4.5A1.5 1.5 0 1 0 4.5 6H11.5A1.5 1.5 0 1 0 10 4.5V11.5A1.5 1.5 0 1 0 11.5 10H4.5A1.5 1.5 0 1 0 6 11.5V6z" />
+  </Svg>
+);
+
+/*
+ * The four sync shapes (shape as well as colour): a square, a disc, a ring and a triangle.
+ * The colour comes from the wrapper (`currentColor`).
+ */
+export const IconSyncOff = () => (
+  <Svg filled>
+    <rect x="3.25" y="3.25" width="9.5" height="9.5" rx="1.5" />
+  </Svg>
+);
+
+export const IconSyncDirect = () => (
+  <Svg filled>
+    <circle cx="8" cy="8" r="5.5" />
+  </Svg>
+);
+
+export const IconSyncRelay = () => (
+  <Svg>
+    <circle cx="8" cy="8" r="4.6" stroke-width="2" />
+  </Svg>
+);
+
+export const IconSyncOffline = () => (
+  <Svg filled>
+    <path d="M7.1 3.1a1 1 0 0 1 1.8 0l5 8.7a1 1 0 0 1-.9 1.5H3a1 1 0 0 1-.9-1.5z" />
+  </Svg>
+);

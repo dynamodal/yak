@@ -44,9 +44,9 @@ const settle = () => page.waitForTimeout(150);
 // The one space filter in the page header (shared with Timer and Week).
 const spaceFilter = (v) => page.getByLabel('Show space').selectOption(v === 'all' ? 'all' : { label: v });
 
-await page.goto(BASE + '?test#/timer/reports');
+await page.goto(BASE + '?test#/time/reports');
 await page.waitForFunction(() => window.__reports);
-check((await page.locator('.tabs a.active').innerText()).trim() === 'Timer' && (await page.locator('.seg a.active').innerText()).trim() === 'Reports', 'Reports is the Reports segment of the Timer page');
+check((await page.locator('.tabs a.active').innerText()).trim() === 'Time' && (await page.locator('.seg a.active').innerText()).trim() === 'Reports', 'Reports is the Reports segment of the Time page');
 check((await page.locator('.timer-bar').count()) === 0, 'no timer bar on Reports');
 check((await text('.rp-range')).length > 0 && (await page.locator('.rp-back').count()) === 0, 'the default range (This week) has no way-back button');
 
@@ -120,7 +120,7 @@ await settle();
 
 // ---- Detailed (a foldable section of the same page; an old link opens it)
 check(await page.locator('.rp-detail').count() === 0, 'the entries section starts folded');
-await page.evaluate(() => { location.hash = '#/timer/reports/detailed'; });
+await page.evaluate(() => { location.hash = '#/time/reports/detailed'; });
 await settle();
 check(await page.locator('.rp-detail').count() === 1 && await page.locator('.rp-table tbody tr').count() > 0, 'the old Detailed link opens the page with the entries section open');
 check((await page.getByRole('button', { name: 'Entries' }).getAttribute('aria-expanded')) === 'true', 'the section button says it is open');
@@ -147,7 +147,7 @@ const md = await page.evaluate(() => navigator.clipboard.readText());
 check(md.includes('## Time report 2025-03-24 to 2025-03-31') && md.includes('| **Total** | **12.50 h**'), 'Markdown copied with a summary table');
 
 // ---- Hours per day in the one table (the old Weekly grid)
-await page.evaluate(() => { location.hash = '#/timer/reports/weekly'; });
+await page.evaluate(() => { location.hash = '#/time/reports/weekly'; });
 await settle();
 const header = await page.locator('.rp-grid-table thead th').allInnerTexts();
 check(header.length === 12 && header[1] === 'Mon 24' && header[9] === 'Total' && header[11] === 'Amount', `weekly header (${header.join('|')})`);
@@ -220,9 +220,9 @@ await prev.click();
 await settle();
 const remembered = await label();
 await page.goto('about:blank');
-await page.goto(BASE + '?test#/timer');
+await page.goto(BASE + '?test#/time');
 await page.waitForFunction(() => window.__reports);
-await page.waitForFunction(() => location.hash === '#/timer/reports', null, { timeout: 3000 }).catch(() => {});
+await page.waitForFunction(() => location.hash === '#/time/reports', null, { timeout: 3000 }).catch(() => {});
 await page.locator('.rp-nav').waitFor();
 check(await page.locator('.rp-nav').count() === 1 && (await label()) === remembered, `the last view (Reports) and its range are remembered (${remembered})`);
 await page.locator('#rp-controls .rp-fold').click();
@@ -230,7 +230,7 @@ await select('Range', 'custom');
 await page.getByLabel('From', { exact: true }).fill('2025-03-24');
 await page.getByLabel('To', { exact: true }).fill('2025-03-31');
 await settle();
-// the space filter is the Timer page's: change it here, see it on List
+// the space filter is the Time page's: change it here, see it on List
 await spaceFilter('Work');
 await page.getByRole('link', { name: 'List' }).click();
 await page.locator('.tl-summary').waitFor();

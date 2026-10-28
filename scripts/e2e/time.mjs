@@ -11,7 +11,7 @@ import { BASE, launch, startMock, sleep, ok, fail, check, watchPage, until, fini
 const mock = await startMock();
 const browser = await launch();
 
-async function open(name, { viewport, hash = '#/timer', clock } = {}) {
+async function open(name, { viewport, hash = '#/time', clock } = {}) {
   const context = await browser.newContext({ viewport: viewport ?? { width: 1100, height: 900 } });
   const page = await context.newPage();
   watchPage(page, name);
@@ -86,7 +86,7 @@ const addTag = async (p, scope, name) => {
   check((await p.getByRole('menuitem', { name: 'Edit' }).count()) === 1 && (await p.getByRole('menuitem', { name: 'Archive' }).count()) === 1 && (await p.getByRole('menuitem', { name: 'Delete' }).count()) === 1, 'the row menu offers Edit, Archive and Delete');
   await p.keyboard.press('Escape');
 
-  await p.getByRole('link', { name: 'Timer' }).click();
+  await p.getByRole('link', { name: 'Time', exact: true }).click();
   await desc(p).fill('Design');
   await pickProject(p, bar(p), 'alp');
   { const l = await bar(p).getByRole('button', { name: /^Project/ }).getAttribute('aria-label'); check(l === 'Project: Alpha in Personal', `project picked by typing and Enter (${l})`); }
@@ -228,7 +228,7 @@ const addTag = async (p, scope, name) => {
   await p.getByLabel('New project name').fill('Ops');
   await p.getByRole('button', { name: 'Add project' }).click();
   check((await p.locator('.proj-row', { has: p.getByLabel('Name of Ops') }).locator('.space-tag').innerText()) === 'Work', 'a project added from All spaces lands in the chosen space and is labelled with it');
-  await p.getByRole('link', { name: 'Timer' }).click();
+  await p.getByRole('link', { name: 'Time', exact: true }).click();
   await desc(p).fill('On call');
   await bar(p).getByRole('button', { name: /^Project/ }).click();
   const headings = await p.locator('.picker-heading').allInnerTexts();
@@ -274,7 +274,7 @@ const addTag = async (p, scope, name) => {
   await tagAct(p, 'fresh-tag', 'Hide from pickers');
   check((await tagRow('fresh-tag').innerText()).includes('hidden from pickers'), 'a hidden tag is marked in the list');
   check((await tagged('fresh-tag')) === 1, 'hiding leaves the tag on its entries');
-  await p.getByRole('link', { name: 'Timer' }).click();
+  await p.getByRole('link', { name: 'Time', exact: true }).click();
   await bar(p).getByRole('button', { name: /^Tags/ }).click();
   check((await p.getByRole('option', { name: 'fresh-tag' }).count()) === 0, 'the hidden tag is not offered in the picker');
   await p.keyboard.press('Escape');
@@ -332,7 +332,7 @@ const addTag = async (p, scope, name) => {
   check((await until(async () => (await projIn(`space/${dst}`, 'Reports')).length === 0 && (await projIn(srcId, 'Reports'))[0] === true)) >= 0, 'one Undo reverses the bulk move');
 
   // entries view
-  await p.evaluate(() => { location.hash = '#/timer/week'; });
+  await p.evaluate(() => { location.hash = '#/time/week'; });
   await p.getByText('Week total').waitFor();
   const personalCount = (await all(p)).filter((e) => e.space === 'space/personal/time').length;
   // Every kept space is listed: Personal's entries and the one entry started in Work.
@@ -348,12 +348,12 @@ const addTag = async (p, scope, name) => {
   check((await p.getByLabel('Hours format').count()) === 0, 'entries view has no hours format selector (it lives on Settings)');
   await p.evaluate(() => { location.hash = '#/settings'; });
   await p.getByLabel('Hours shown as').selectOption('hm');
-  await p.evaluate(() => { location.hash = '#/timer/week'; });
+  await p.evaluate(() => { location.hash = '#/time/week'; });
   await p.getByText('Week total').waitFor();
   check(/\d+:\d\d/.test(await p.locator('.section-head .total').innerText()), 'h:mm format set on Settings applies');
   await p.evaluate(() => { location.hash = '#/settings'; });
   await p.getByLabel('Hours shown as').selectOption('decimal');
-  await p.evaluate(() => { location.hash = '#/timer/week'; });
+  await p.evaluate(() => { location.hash = '#/time/week'; });
   await p.getByText('Week total').waitFor();
 
   // Bulk edit: select with checkboxes and Shift, change several entries at once, one Undo each.
@@ -444,7 +444,7 @@ const addTag = async (p, scope, name) => {
   await tagAct(p, 'deep', 'Rename or merge');
   await p.getByLabel('New name for deep').fill('focus');
   await p.getByLabel('New name for deep').press('Enter');
-  await p.getByRole('link', { name: 'Timer' }).click();
+  await p.getByRole('link', { name: 'Time', exact: true }).click();
   await until(async () => (await lines(p).filter({ hasText: 'focus' }).count()) >= 1);
   check((await lines(p).filter({ hasText: 'focus' }).count()) >= 1, 'renaming a tag updates the entries');
   await p.close();
@@ -467,20 +467,20 @@ for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }
   check(descBox && Math.abs(descBox.y - stopBox.y) < stopBox.height, `${w} px: description and stop share the first row of the bar`);
   await line(p, 'Narrow entry 0').locator('.te-line').first().click({ position: { x: 4, y: 4 } });
   await bar(p).getByRole('button', { name: /^Project/ }).click();
-  for (const view of ['timer', 'timer/week', 'organize']) {
+  for (const view of ['time', 'time/week', 'organize']) {
     await p.evaluate((v) => { location.hash = `#/${v}`; }, view);
     await sleep(300);
     const o = await overflow(p);
     check(o <= 0, `${w} px: no horizontal scroll on ${view} (${o})`);
   }
-  await p.evaluate(() => { location.hash = '#/timer/week'; });
+  await p.evaluate(() => { location.hash = '#/time/week'; });
   await startSelecting(p);
   await p.locator('.te-check').first().click();
   await p.getByRole('button', { name: 'Set project' }).click();
   await p.getByRole('button', { name: 'Move dates' }).click();
   const oBulk = await overflow(p);
   check(oBulk <= 0, `${w} px: no horizontal scroll with the action bar open (${oBulk})`);
-  await p.evaluate(() => { location.hash = '#/timer'; });
+  await p.evaluate(() => { location.hash = '#/time'; });
   await sleep(300);
   await p.mouse.wheel(0, 2000);
   await sleep(300);
@@ -494,7 +494,7 @@ for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }
   const context = await browser.newContext({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true });
   const p = await context.newPage();
   p.on('pageerror', (e) => fail(`touch pageerror: ${e.message}`));
-  await p.goto(`${BASE}?test#/timer`);
+  await p.goto(`${BASE}?test#/time`);
   await bar(p).waitFor();
   await desc(p).fill('Touch');
   await bar(p).getByRole('button', { name: 'Start', exact: true }).click();
@@ -586,7 +586,7 @@ for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }
   const t = await until(async () => (await st(a)) === 'connected' && (await st(b)) === 'connected', 20000);
   check(t >= 0, `paired and connected in ${t} ms`);
 
-  for (const p of [a, b]) await p.evaluate(() => { location.hash = '#/timer'; });
+  for (const p of [a, b]) await p.evaluate(() => { location.hash = '#/time'; });
   await desc(a).fill('From A');
   await b.getByLabel('Space for the new entry').selectOption({ label: 'Work' });
   await desc(b).fill('From B');

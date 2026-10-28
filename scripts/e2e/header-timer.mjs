@@ -11,7 +11,7 @@ import { BASE, launch, sleep, ok, fail, check, watchPage, poll, finish } from '.
 
 const browser = await launch();
 
-async function open(name, { viewport, hash = '#/timer' } = {}) {
+async function open(name, { viewport, hash = '#/time' } = {}) {
   const context = await browser.newContext({ viewport: viewport ?? { width: 1100, height: 900 } });
   // A stand-in for the Badging API (headless Chrome has none), recording what the app asks for.
   await context.addInitScript(() => {
@@ -76,19 +76,19 @@ const clockSeconds = async (p) => {
   await header(p).getByRole('button', { name: 'Continue: Header check' }).click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === 'Header check'; }), 'continue last entry starts the same work again');
 
-  // the status area opens the switcher; from it, the Timer page
+  // the status area opens the switcher; from it, the Time page
   await header(p).locator('.ht-desc').click();
   check(await poll(async () => (await p.locator('.ht-switcher').count()) === 1), 'clicking the running entry opens the switcher');
   check((await p.locator('.ht-switcher .ht-opt').allInnerTexts()).some((t) => t.includes('Header check')), 'the switcher lists recent work');
-  await p.getByRole('button', { name: 'Open the Timer page' }).click();
-  check(await poll(() => p.url().endsWith('#/timer')), 'the switcher opens the Timer page');
-  check(await poll(async () => (await bar(p).getByLabel('Description', { exact: true }).inputValue()) === 'Header check'), 'Timer page shows the same running entry');
+  await p.getByRole('button', { name: 'Open the Time page' }).click();
+  check(await poll(() => p.url().endsWith('#/time')), 'the switcher opens the Time page');
+  check(await poll(async () => (await bar(p).getByLabel('Description', { exact: true }).inputValue()) === 'Header check'), 'Time page shows the same running entry');
 
-  // stop from the header on the Timer page too, then start from the header
+  // stop from the header on the Time page too, then start from the header
   await header(p).getByRole('button', { name: 'Stop timer' }).click();
-  check(await poll(async () => (await running(p)).length === 0), 'stop from the header on the Timer page');
+  check(await poll(async () => (await running(p)).length === 0), 'stop from the header on the Time page');
   await bar(p).getByRole('button', { name: 'Start', exact: true }).waitFor();
-  check(true, 'Timer page bar follows (shows Start)');
+  check(true, 'Time page bar follows (shows Start)');
 
   // The header's start uses what is typed in the bar (#21).
   await bar(p).getByLabel('Description', { exact: true }).fill('Typed in the bar');
@@ -97,7 +97,7 @@ const clockSeconds = async (p) => {
   await header(p).getByRole('button', { name: 'Stop timer' }).click();
   check(await poll(async () => (await bar(p).getByLabel('Description', { exact: true }).inputValue()) === ''), 'the bar is empty after the header started it');
 
-  await p.evaluate(() => { location.hash = '#/timer/reports'; });
+  await p.evaluate(() => { location.hash = '#/time/reports'; });
   await header(p).getByRole('button', { name: 'Start timer' }).click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === '' && r[0].space === 'space/personal'; }), 'start from the header: an empty entry in the active space');
   check(await poll(async () => (await header(p).innerText()).includes('(no description)')), 'header shows (no description)');
@@ -109,7 +109,7 @@ const clockSeconds = async (p) => {
   check(await poll(async () => (await header(p).innerText()).includes('(no description)')), 'the header shows a timer running in another space');
   await header(p).locator('.ht-desc').click();
   await p.getByRole('button', { name: 'Start a new timer' }).click();
-  await p.evaluate(() => { location.hash = '#/timer/list'; });
+  await p.evaluate(() => { location.hash = '#/time/list'; });
   await bar(p).getByLabel('Description', { exact: true }).fill('Work item');
   await bar(p).getByLabel('Description', { exact: true }).blur();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].space === 'space/work' && r[0].description === 'Work item'; }), 'starting in Work stops the Personal timer: one running');
@@ -138,17 +138,17 @@ const clockSeconds = async (p) => {
   await bar(p).getByLabel('Description', { exact: true }).fill('A long description that will not fit on a narrow phone screen at all');
   await bar(p).getByRole('button', { name: 'Start', exact: true }).click();
   await poll(async () => (await running(p)).length === 1);
-  for (const view of ['timer', 'timer/week', 'notes', 'tasks', 'timer/reports', 'organize', 'settings', 'settings/devices']) {
+  for (const view of ['time', 'time/week', 'notes', 'tasks', 'time/reports', 'organize', 'settings', 'settings/devices']) {
     await p.evaluate((v) => { location.hash = `#/${v}`; }, view);
     await sleep(300);
     const o = await overflow(p);
     const box = await header(p).boundingBox();
     check(o <= 0 && box && box.x >= 0 && box.x + box.width <= 375, `375 px running: no horizontal scroll on ${view} (${o}), header timer inside the screen`);
-    const dot = await p.locator('.status-dot-btn').boundingBox();
-    check(dot && dot.x >= 0 && dot.x + dot.width <= 375 && dot.y < box.y + box.height, `375 px on ${view}: the status dot is on the timer's row, inside the screen`);
+    const sync = await p.locator('.sync-btn').boundingBox();
+    const cmd = await p.locator('.palette-btn').boundingBox();
+    check(sync && cmd && sync.x >= 0 && sync.x + sync.width <= 375 && cmd.x >= 0 && sync.y < box.y + box.height && cmd.x + cmd.width <= sync.x, `375 px on ${view}: the command and sync buttons are on the timer's row, inside the screen`);
   }
-  check(!(await p.locator('.brand').isVisible()), '375 px: the app name is hidden');
-  check((await p.locator('.brand-icon').count()) === 1 && !(await p.locator('.brand-icon').isVisible()), '375 px: the icon is hidden with the name');
+  check((await p.locator('.brand-icon').isVisible()) && (await p.locator('.brand-name').boundingBox())?.width <= 2, '375 px: the logo shows and the app name is hidden (kept for screen readers)');
   const top = await p.evaluate(() => document.querySelector('main.view').getBoundingClientRect().top);
   check(top < 110, `375 px: content starts under 110 px (${Math.round(top)})`);
   const stop = await header(p).getByRole('button', { name: 'Stop timer' }).boundingBox();
@@ -165,10 +165,12 @@ const clockSeconds = async (p) => {
 // ---- 1280 px: one header row ----
 {
   const p = await open('wide', { viewport: { width: 1280, height: 900 } });
-  const [brand, tabs, timer, dot] = await Promise.all(['.brand', '.tabs', '.header-timer', '.status-dot-btn'].map((sel) => p.locator(sel).boundingBox()));
+  const [brand, tabs, timer, cmd, dot] = await Promise.all(['.brand', '.tabs', '.header-timer', '.palette-btn', '.sync-btn'].map((sel) => p.locator(sel).boundingBox()));
   const header = await p.locator('.topbar').boundingBox();
   check((await p.locator('.brand-icon').isVisible()) && (await p.locator('.brand-icon').getAttribute('alt')) === '', '1280 px: the decorative icon shows beside the name');
-  check([brand, tabs, timer, dot].every((b) => b && b.y >= header.y && b.y + b.height <= header.y + header.height), 'name, tabs, timer and status dot share one header row at 1280 px');
+  check([brand, tabs, timer, cmd, dot].every((b) => b && b.y >= header.y && b.y + b.height <= header.y + header.height), 'logo, tabs, timer, command button and sync button share one header row at 1280 px');
+  check(brand.x + brand.width <= tabs.x + 1 && timer.x >= tabs.x && timer.x + timer.width <= cmd.x && cmd.x + cmd.width <= dot.x, 'left to right: logo and name, tabs, timer, command button, sync button');
+  check((await p.locator('.brand-name').innerText()).length > 0 && (await p.locator('.palette-chip').innerText()) === 'Alt P', '1280 px: the app name and the shortcut chip show');
   check(header.height < 70, `1280 px: the header is one slim row (${Math.round(header.height)} px)`);
   const top = await p.evaluate(() => document.querySelector('main.view').getBoundingClientRect().top);
   check(top < 80, `1280 px: content starts under 80 px (${Math.round(top)})`);

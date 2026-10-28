@@ -28,7 +28,7 @@ const hook = (p, f, arg) => p.evaluate(f, arg);
 async function mk(name, query = '?test') {
   const page = await (await browser.newContext({ permissions: ['camera'], viewport: VIEWPORTS.desktop })).newPage();
   watchPage(page, name);
-  await page.goto(`${BASE}${query}#/timer`);
+  await page.goto(`${BASE}${query}#/time`);
   return page;
 }
 
@@ -89,7 +89,7 @@ await shot(w, 'welcome', 'help-before-setup');
 ok('welcome shots');
 
 // 2. One device after "Start fresh": the first Timer with its banners, then every page.
-await go(w, '#/timer');
+await go(w, '#/time');
 await w.getByRole('button', { name: 'Time, notes and tasks' }).click();
 await w.getByRole('link', { name: 'Settings' }).waitFor();
 await sleep(800);
@@ -97,7 +97,7 @@ await shot(w, 'single', 'timer-first-run');
 await dismissBanners(w);
 await shot(w, 'single', 'timer');
 // Timer List, Week and Reports (R-335) with a few entries, in light and dark; then the rest.
-await go(w, '#/timer/reports');
+await go(w, '#/time/reports');
 await w.waitForFunction(() => window.__reports);
 await hook(w, () => {
   const at = (h, m, days) => new Date(Date.now() - days * 86_400_000 + (h - 12) * 3_600_000 + m * 60_000).toISOString();
@@ -112,12 +112,12 @@ await hook(w, () => {
     ],
   });
 });
-for (const route of ['timer/list', 'timer/week', 'timer/reports']) {
+for (const route of ['time/list', 'time/week', 'time/reports']) {
   await go(w, `#/${route}`);
   await shot(w, 'single', route.replace('/', '-'));
 }
 // The way back from another range: Previous, then the shot shows the highlighted label.
-await go(w, '#/timer/reports');
+await go(w, '#/time/reports');
 await w.getByRole('button', { name: 'Previous period' }).click();
 await sleep(300);
 await shot(w, 'single', 'timer-reports-previous');
@@ -218,7 +218,7 @@ for (const [p, tag] of [[a1, 'A1'], [b1, 'B1']]) {
     await go(p, route(id));
     await shot(p, 'shared', `${tag}-settings-${id || 'home'}`);
   }
-  await go(p, '#/timer');
+  await go(p, '#/time');
   await shot(p, 'shared', `${tag}-timer`);
 }
 // The space page (Kept on, Shared with) and the account page, for both sides.

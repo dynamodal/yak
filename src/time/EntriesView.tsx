@@ -15,7 +15,7 @@ function rangeLabel(from: number, to: number): string {
   return `${f.toLocaleDateString(undefined, opts)} – ${t.toLocaleDateString(undefined, { ...opts, year: 'numeric' })}`;
 }
 
-/** The Week view of the Timer page: one week, every entry listed separately, empty days shown. */
+/** The Week view of the Time page: one week, every entry listed separately, empty days shown. */
 /** Days that have not happened yet and hold nothing are left out, so a week does not end in a column of "No entries."; a week wholly in the future keeps them. */
 function upToToday<T extends { dayStart: number; entries: readonly unknown[] }>(groups: readonly T[], now: number): readonly T[] {
   const shown = groups.filter((g) => g.entries.length > 0 || g.dayStart <= now);

@@ -1,4 +1,4 @@
-// End-to-end: commands and shortcuts. Alt+S starts and stops the timer, Alt+T goes to the Timer page,
+// End-to-end: commands and shortcuts. Alt+S starts and stops the timer, Alt+T goes to the Time page,
 // Alt+P opens the command palette, Ctrl+Shift+D inserts the date into the note being edited, and
 // "Today" makes today's note from a template. Shortcuts are rebindable in Settings and the change
 // is used at once, with conflicts refused.
@@ -27,7 +27,7 @@ check((await until(async () => (await running()) === 1)) >= 0, 'Alt+S starts a t
 await p.keyboard.press('Alt+S');
 check((await until(async () => (await running()) === 0)) >= 0, 'Alt+S stops it again');
 await p.keyboard.press('Alt+T');
-check((await until(async () => p.url().endsWith('#/timer'))) >= 0, 'Alt+T goes to the Timer page');
+check((await until(async () => p.url().endsWith('#/time'))) >= 0, 'Alt+T goes to the Time page');
 
 // The palette.
 await p.keyboard.press('Alt+P');
@@ -47,7 +47,7 @@ await p.evaluate(() => { location.hash = '#/help/shortcuts'; });
 await p.getByRole('button', { name: 'Change shortcut of Start or stop the timer' }).click();
 await p.getByText('Press the keys').waitFor();
 await p.keyboard.press('Alt+T');
-check((await p.locator('.st-group p.error').first().innerText()).includes('Go to Timer'), 'a shortcut another command uses is refused, naming it');
+check((await p.locator('.st-group p.error').first().innerText()).includes('Go to Time'), 'a shortcut another command uses is refused, naming it');
 await p.keyboard.press('s');
 check((await p.locator('.st-group p.error').first().innerText()).includes('Ctrl or Alt'), 'a plain key is refused');
 await p.keyboard.press('Alt+J');
@@ -100,11 +100,11 @@ check((await until(async () => (await notes()).some((n) => n.path === `Journal/$
 check((await notes()).find((n) => n.path === `Journal/${today.ymd}.md`).text.includes(`# ${today.ymd} on ${today.dd}`), 'the template note is filled in: title and date variables');
 
 void pad;
-// On a phone the header button is the only way to open the palette; it hides only below 20 rem (F34).
+// On a phone the header button is the only way to open the palette; it hides only below 20 rem (F34, F-33h).
 {
   const phone = await (await browser.newContext({ viewport: { width: 375, height: 700 }, hasTouch: true, isMobile: true })).newPage();
   watchPage(phone, 'phone');
-  await phone.goto(BASE + '?test#/timer');
+  await phone.goto(BASE + '?test#/time');
   await phone.waitForFunction(() => window.__app);
   const btn = phone.locator('.palette-btn');
   check(await btn.isVisible(), 'the palette button is shown at 375 px');

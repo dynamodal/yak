@@ -31,7 +31,12 @@ Update Yak on it first if it is old.
 
 - Changes travel directly between devices, encrypted. A small connection server only helps them find each other (the relay, this site's own, is the default).
 - Both devices must be open at the same time to exchange changes. Edits made offline sync when they meet.
-- The dot in the header shows the sync state; the **Sync** line on Settings and the device pages explain it and list the devices.
+- The sync button at the right of the header shows the state by its shape as well as its colour, and opens the list of devices and how each is linked:
+  - Grey square: sync is off, or no other device is paired yet.
+  - Filled green circle: linked to at least one device directly.
+  - Green ring: linked only through the relay, which only carries sealed data and is slower.
+  - Amber triangle: paired, but no device is linked now.
+- The **Sync** line on Settings and the device pages explain it further.
 - Phones pause pages in the background, so sync happens while the page is open.
 - If two devices edit the same thing, both edits are merged; nothing is lost silently.
 

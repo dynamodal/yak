@@ -115,6 +115,7 @@ export class SyncService {
   private pairing: StoredPairing | undefined;
   private lastConnectedAt: number | undefined;
   private readonly listeners = new Set<(s: SyncStatus) => void>();
+  private statusForTest: SyncStatus | undefined;
   private triggerTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly storageKey: string;
   private readonly createTransport: (url: string) => SignalingTransport;
@@ -194,6 +195,7 @@ export class SyncService {
   }
 
   get status(): SyncStatus {
+    if (this.statusForTest) return this.statusForTest;
     if (this.following) {
       const l = this.leaderStatus;
       return {
@@ -448,6 +450,12 @@ export class SyncService {
     this.mesh?.dropForTest(peerId);
   }
 
+  /** Test hook: report this status instead of the real one (undefined goes back), to show the header's sync shapes without real devices. */
+  setStatusForTest(s: SyncStatus | undefined): void {
+    this.statusForTest = s;
+    this.emit();
+  }
+
   private async begin(secret: string, signalingUrl: string, accountId?: string): Promise<void> {
     const normalized = normalizeSecret(secret);
     const url = signalingUrl.trim() || defaultSignalingUrl();
@@ -611,7 +619,7 @@ export class SyncService {
   private emit(): void {
     this.watchRelay();
     const s = this.status;
-    if (!this.following) this.tabs?.publishStatus(s);
+    if (!this.following && !this.statusForTest) this.tabs?.publishStatus(s);
     for (const l of this.listeners) l(s);
   }
 

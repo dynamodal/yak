@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { NAV_GROUPS, navModel, legacyRoute, type NavGroupDef } from './nav';
 import type { ViewDef } from './registry';
 
-const v = (id: string, order: number, group?: string, hidden?: boolean, joins?: string): ViewDef => ({ id, title: id, path: id, order, group, hidden, joins, component: () => null });
+// The Time page keeps the view id `timer` and has the path `time`.
+const v = (id: string, order: number, group?: string, hidden?: boolean, joins?: string): ViewDef => ({ id, title: id, path: id === 'timer' ? 'time' : id, order, group, hidden, joins, component: () => null });
 const all = [
   v('timer', 10),
   v('entries', 20, undefined, true),
@@ -24,10 +25,10 @@ const grouped = [v('timer', 10), v('entries', 20, 'time'), v('reports', 30, 'tim
 
 
 describe('navModel', () => {
-  it('shows four tabs: Timer, Notes, Tasks and Settings; Reports joins the Timer page (R-335)', () => {
+  it('shows four tabs: Time, Notes, Tasks and Settings; Reports joins the Time page (R-335)', () => {
     expect(NAV_GROUPS.map((g) => g.id)).toEqual(['settings']);
-    expect(ids(navModel(all, ['timer']))).toEqual(['timer', 'notes', 'tasks', 'settings']);
-    expect(navModel(all, ['timer', 'reports']).activePlace).toBe('timer');
+    expect(ids(navModel(all, ['time']))).toEqual(['timer', 'notes', 'tasks', 'settings']);
+    expect(navModel(all, ['time', 'reports']).activePlace).toBe('timer');
   });
 
   it('keeps menu groups working', () => {
@@ -50,7 +51,7 @@ describe('navModel', () => {
   });
 
   it('lists a group\'s pages by order and leaves out hidden ones', () => {
-    const manage = navModel(all, ['timer']).places.find((p) => p.id === 'settings');
+    const manage = navModel(all, ['time']).places.find((p) => p.id === 'settings');
     expect(manage).toEqual({ kind: 'link', id: 'settings', title: 'Settings', href: '#/settings' });
     expect(navModel(all, ['settings']).current?.id).toBe('settings');
   });
@@ -123,15 +124,15 @@ describe('legacyRoute', () => {
     expect(legacyRoute(['settings'], views)).toBeUndefined();
     expect(legacyRoute(['settings', 'devices', 'add'], views)).toBeUndefined();
     expect(legacyRoute(['settings', 'space', 'abc'], views)).toBeUndefined();
-    expect(legacyRoute(['timer'], views)).toBeUndefined();
+    expect(legacyRoute(['time'], views)).toBeUndefined();
   });
 });
 
 describe('a view that joins another', () => {
   it('redirects its old address to the parent, keeping the section', () => {
-    expect(legacyRoute(['reports'], all)).toEqual(['timer', 'reports']);
-    expect(legacyRoute(['reports', 'detailed'], all)).toEqual(['timer', 'reports', 'detailed']);
-    expect(legacyRoute(['reports', 'weekly'], all)).toEqual(['timer', 'reports', 'weekly']);
-    expect(legacyRoute(['timer', 'reports'], all)).toBeUndefined();
+    expect(legacyRoute(['reports'], all)).toEqual(['time', 'reports']);
+    expect(legacyRoute(['reports', 'detailed'], all)).toEqual(['time', 'reports', 'detailed']);
+    expect(legacyRoute(['reports', 'weekly'], all)).toEqual(['time', 'reports', 'weekly']);
+    expect(legacyRoute(['time', 'reports'], all)).toBeUndefined();
   });
 });

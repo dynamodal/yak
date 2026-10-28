@@ -21,9 +21,9 @@ const peersOf = (p) => p.evaluate(() => window.__app.peers());
 const connectedIds = async (p) => (await peersOf(p)).filter((x) => x.state === 'connected').map((x) => x.id).sort();
 const idOf = (p) => p.evaluate(() => window.__app.deviceId());
 const row = (p, id) => p.locator(`li.device-row#device-${id}`);
-// The status dot's panel lists the sync state of this device (a device that never paired says nothing).
+// The sync popover says how this device syncs: off for one that never paired (it offers "Set up sync"), else the shape's words.
 const chip = async (p) => {
-  await p.getByRole('button', { name: /^Backup and sync/ }).click();
+  await p.getByRole('button', { name: /^(Sync off|Synced|Via relay|Not connected)/ }).click();
   const text = await p.locator('.status-panel').innerText();
   await p.keyboard.press('Escape');
   return text;
@@ -33,7 +33,7 @@ const a = await mk('A');
 const b = await mk('B');
 const c = await mk('C');
 
-check((await a.getByRole('button', { name: 'Start syncing my devices' }).count()) === 1 && !/sync|signaling/i.test((await chip(a)).replace(/Devices/g, '')), 'a device outside an account offers to start syncing and shows no sync warning in the status panel');
+check((await a.getByRole('button', { name: 'Start syncing my devices' }).count()) === 1 && /Sync is off/.test(await chip(a)) && !/signaling|connect/i.test(await chip(a)), 'a device outside an account offers to start syncing and its sync popover says sync is off, with no warning');
 await startSyncing(a);
 await joinByInvite(a, b);
 (await until(async () => (await st(a)) === 'connected' && (await st(b)) === 'connected', 20000)) >= 0 ? ok('A and B paired') : fail('A and B did not pair');
@@ -48,7 +48,7 @@ check((await b.locator('[data-invite-code]').count()) === 1 && (await b.locator(
 check((await b.locator('input[aria-label="One-time code"]').count()) === 0 && (await b.getByRole('button', { name: 'Join', exact: true }).count()) === 0, 'it offers no way to join a different account while in one');
 
 // Status: this device in the header and at the top of the page; each other device in its row.
-check((await until(async () => (await chip(a)).includes('Syncing · 1 of 1'), 10000)) >= 0, 'the status panel counts linked devices');
+check((await until(async () => /Synced (directly|through the relay) · 1 of 1/.test(await chip(a)), 10000)) >= 0, 'the status panel counts linked devices');
 check((await a.locator('.status-line').innerText()).includes('Syncing · 1 of 1'), 'the top of the page says the same about this device');
 
 // Names: B names itself; A shows it.

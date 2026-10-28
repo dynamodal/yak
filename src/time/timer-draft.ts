@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { EntryFields } from './entries';
 
-/** What the Timer page's bar holds before a start. `spaceId` is the project's space; without a project, the page's space. */
+/** What the Time page's bar holds before a start. `spaceId` is the project's space; without a project, the page's space. */
 export type Draft = Pick<EntryFields, 'description' | 'project_id' | 'tags' | 'billable'> & { spaceId: string | null };
 
 export const EMPTY_DRAFT: Draft = { description: '', project_id: null, tags: [], billable: false, spaceId: null };

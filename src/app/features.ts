@@ -4,7 +4,7 @@ import { useEffect, useState } from 'preact/hooks';
  * Features this device can hide (F-309). The list is per device, in `localStorage` under `hidden_modules`;
  * when it is absent everything is on. Hiding only removes the pages, commands and search results: the data
  * stays and keeps syncing, so showing a feature again brings it all back (F39, no migration).
- * The timer, Backup & restore, Devices and the sync status are never hidden.
+ * Time, Settings, Backup & restore, Devices and the sync status are never hidden.
  */
 export type FeatureId = 'notes' | 'tasks' | 'reports' | 'mirror' | 'import';
 
@@ -114,7 +114,7 @@ export function searchKindHidden(kind: string, hidden: ReadonlySet<FeatureId> = 
  */
 export function hiddenRoute(route: readonly string[], views: readonly { id: string; path: string; group?: string; joins?: string }[], hidden: ReadonlySet<FeatureId> = effectiveHidden(readHiddenModules())): boolean {
   const [first, second] = route;
-  // `#/timer/reports`: a view that joins another's switch is hidden on its own.
+  // `#/time/reports`: a view that joins another's switch is hidden on its own.
   const parent = views.find((v) => v.path === first && v.group !== 'settings');
   const joined = second === undefined || !parent ? undefined : views.find((v) => v.joins === parent.id && v.path === second);
   const view = joined ?? (first === 'settings' ? views.find((v) => v.group === 'settings' && v.path === second) : parent);

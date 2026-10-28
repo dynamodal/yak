@@ -3,21 +3,20 @@ import * as Y from 'yjs';
 import { APP_NAME } from '../constants';
 import type { EventBus } from '../core/bus';
 import type { DocumentStore } from '../core/doc-store';
-import type { HealthItem } from '../core/health';
-import { deviceStatus } from '../sync/device-status';
 import type { SyncService } from '../sync/sync-service';
 import type { AccountState } from './account-state';
 import { AppContext, type AppContextValue } from './context';
-import { useNotices, useOnline, useSyncStatus } from './hooks';
+import { useNotices } from './hooks';
 import { TopNav } from './Nav';
 import { NAV_GROUPS, legacyRoute, navModel } from './nav';
 import { hiddenRoute, useHiddenModules } from './features';
 import { allBanners, allGlobals, allHeaderItems, allViews, joinedViews, registeredViews } from './registry';
 import { savedJoinedView } from './timer-views';
 import { navigate, parseHash, useRoute } from './router';
-import { Button, IconArrowLeft, Pill, ToastHost } from './ui';
+import { Button, IconArrowLeft, ToastHost } from './ui';
 import { ConflictWatch } from './ConflictWatch';
-import { DataStatus } from './DataStatus';
+import { SyncStatus } from './SyncStatus';
+import { useTabBadges } from './tab-badges';
 import { Welcome } from './Welcome';
 import { rememberShare } from './pending-share';
 import { safeStorage } from './join';
@@ -65,21 +64,13 @@ export function App(props: AppProps) {
   }, [route[0], route[1]]);
   // Re-render when this device's Features change; `allViews()` and the commands filter themselves.
   useHiddenModules();
-  const status = useSyncStatus(props.sync);
-  const online = useOnline();
   const pendingNotices = useNotices().length;
   const welcome = props.welcome === true && snapshot.allSpaces.length === 0;
   const noSpaces = snapshot.spaces.length === 0;
   const placeholder = useMemo(() => new Y.Doc(), []);
   // A device that keeps no space yet (it has just joined) shows only Settings, where its spaces are chosen; no other view works without a space's documents.
   const views = noSpaces ? allViews().filter((v) => v.group === 'settings').sort((a, b) => Number(b.path === 'settings') - Number(a.path === 'settings')) : allViews();
-  const device = deviceStatus({ paired: status.paired, online, signalingProblem: status.signalingProblem, peers: status.peers, otherTab: status.otherTab === true });
-  // A device that never set up sync says nothing about it. A paired one is listed in the panel, and
-  // only a signaling problem makes the dot amber (offline is normal and has its own chip).
-  const syncItems: HealthItem[] = status.paired
-    ? [{ level: status.signalingProblem && online ? 'warn' : 'info', text: `${device.label}. ${device.hint}` }]
-    : [];
-  const noticeItems: HealthItem[] = pendingNotices > 0 ? [{ level: 'info', text: `${pendingNotices} merge${pendingNotices === 1 ? '' : 's'} worth a look.` }] : [];
+  const badges = useTabBadges(pendingNotices);
 
   // Old addresses open their place in Settings: `#/manage/<x>` and `#/<x>` (`#/devices`, …) become `#/settings/<x>`,
   // the folded pages (General, Spaces, Sharing, Security, Features) become `#/settings`, and Backups and History are one page, `#/settings/backup`.
@@ -92,14 +83,14 @@ export function App(props: AppProps) {
   // A page this device hides sends you to the timer, or to Settings for a Settings page (F-309).
   const onHiddenPage = !welcome && hiddenRoute(route, registeredViews());
   useEffect(() => {
-    if (onHiddenPage && parseHash(location.hash).join('/') === route.join('/')) location.replace(route[0] === 'settings' ? '#/settings' : '#/timer');
+    if (onHiddenPage && parseHash(location.hash).join('/') === route.join('/')) location.replace(route[0] === 'settings' ? '#/settings' : '#/time');
   }, [onHiddenPage, route.join('/')]);
 
-  // `#/timer` alone opens the view used last; when that is a joined one (Reports), say so in the address.
+  // `#/time` alone opens the view used last; when that is a joined one (Reports), say so in the address.
   useEffect(() => {
-    if (welcome || noSpaces || route.length !== 1 || route[0] !== 'timer') return;
+    if (welcome || noSpaces || route.length !== 1 || route[0] !== 'time') return;
     const saved = savedJoinedView('timer');
-    if (saved && parseHash(location.hash).join('/') === route.join('/')) location.replace(`#/timer/${encodeURIComponent(saved)}`);
+    if (saved && parseHash(location.hash).join('/') === route.join('/')) location.replace(`#/time/${encodeURIComponent(saved)}`);
   }, [welcome, noSpaces, route.join('/')]);
 
   const setSpaceId = (id: string): void => {
@@ -144,7 +135,6 @@ export function App(props: AppProps) {
     const Help = allViews().find((v) => v.id === 'help')?.component;
     const restoring = (route[0] === 'backup' || route[0] === 'backups') && Backups;
     const helping = route[0] === 'help' && Help;
-    const helpItem = allHeaderItems().find((h) => h.id === 'help');
     return (
       <AppContext.Provider value={value}>
         <header class="topbar">
@@ -152,7 +142,11 @@ export function App(props: AppProps) {
             <img class="brand-icon" src="/icon.svg" alt="" width="24" height="24" />
             {APP_NAME}
           </span>
-          <div class="topbar-end">{helpItem ? <helpItem.component /> : null}</div>
+          <div class="topbar-end">
+            {allHeaderItems('welcome').map((h) => (
+              <h.component key={h.id} />
+            ))}
+          </div>
         </header>
         <main class="view">
           {restoring ? (
@@ -177,9 +171,11 @@ export function App(props: AppProps) {
 
   const nav = navModel(views, route);
   const current = nav.current;
+  const first = nav.places[0];
+  const home = first ? (first.kind === 'page' ? `#/${first.view.path}` : first.kind === 'link' ? first.href : '#/') : '#/';
   const landing = NAV_GROUPS.find((g) => g.landing && g.id === route[0]);
   const params = landing ? route.slice(2) : current && current.path === route[0] ? route.slice(1) : [];
-  // A view that joins a page's switch (Reports on the Timer page) is shown at `#/<page>/<its path>`; a bare `#/timer` opens the one used last (R-335).
+  // A view that joins a page's switch (Reports on the Time page) is shown at `#/<page>/<its path>`; a bare `#/time` opens the one used last (R-335).
   const joinedPath = current && current.path === route[0] ? (params[0] ?? savedJoinedView(current.id)) : undefined;
   const joined = current && joinedPath !== undefined ? joinedViews(current.id).find((v) => v.path === joinedPath) : undefined;
   const View = joined ? joined.component : current?.component;
@@ -196,22 +192,17 @@ export function App(props: AppProps) {
     <AppContext.Provider value={value}>
       <SkipLink />
       <header class="topbar">
-        <span class="brand">
-            <img class="brand-icon" src="/icon.svg" alt="" width="24" height="24" />
-            {APP_NAME}
-          </span>
-        <TopNav model={nav} />
+        <a class="brand" href={home}>
+          <img class="brand-icon" src="/icon.svg" alt="" width="24" height="24" />
+          <span class="brand-name">{APP_NAME}</span>
+        </a>
+        <TopNav model={nav} badges={badges} />
         <div class="topbar-end">
           {!noSpaces &&
             allHeaderItems().map((h) => (
               <h.component key={h.id} />
             ))}
-          {online ? null : (
-            <Pill tone="outline" class="offline-chip" role="status" title="No network: everything still works and is saved on this device">
-              Offline
-            </Pill>
-          )}
-          <DataStatus own={[...syncItems, ...noticeItems]} pendingNotices={pendingNotices} />
+          <SyncStatus pendingNotices={pendingNotices} />
         </div>
       </header>
       {!noSpaces &&

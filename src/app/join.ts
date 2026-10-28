@@ -116,6 +116,16 @@ export async function takeRestoredAccount(
   await adoptAccount(accountId, state, sync, storage, me);
 }
 
+/** An approved join is still keeping the account's spaces (the flag is set until `addPendingLocalSpaces` has kept them); the "Keep all spaces" notice stays hidden meanwhile. */
+export function keepsPendingApproval(storage: StorageLike): boolean {
+  try {
+    const parsed = JSON.parse(storage.getItem(PENDING_KEY) ?? '{}') as { keepAccountSpaces?: boolean } | null;
+    return parsed?.keepAccountSpaces === true;
+  } catch {
+    return false;
+  }
+}
+
 /** After a join, add the spaces this device brought, once the joined account's spaces have arrived. */
 export async function addPendingLocalSpaces(state: AccountState, storage: StorageLike, me: string): Promise<void> {
   let parsed: { spaces?: { id: string; name: string }[]; name?: string; keepAccountSpaces?: boolean } = {};

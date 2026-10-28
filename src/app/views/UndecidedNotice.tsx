@@ -2,6 +2,7 @@ import type * as Y from 'yjs';
 import { useApp } from '../context';
 import { useYVersion } from '../hooks';
 import { Button } from '../ui';
+import { keepsPendingApproval, safeStorage } from '../join';
 import { declineUndecided, decided, keeps, keepsMap, keepUndecided, setKeeps } from '../../core/keeps';
 
 /**
@@ -11,6 +12,8 @@ import { declineUndecided, decided, keeps, keepsMap, keepUndecided, setKeeps } f
 export function UndecidedNotice() {
   const { account, allSpaces, deviceId } = useApp();
   useYVersion(keepsMap(account) as unknown as Y.AbstractType<unknown>);
+  // An approved join keeps the account's spaces itself in a moment (F-20): do not flash the question.
+  if (keepsPendingApproval(safeStorage())) return null;
   const undecided = allSpaces.filter((s) => !decided(account, deviceId, s.id));
   const keepsNothing = allSpaces.every((s) => !keeps(account, deviceId, s.id));
   if (allSpaces.length === 0) {

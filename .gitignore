@@ -3,3 +3,4 @@ dist
 *.local
 .wrangler
 e2e-logs
+.claude/worktrees/

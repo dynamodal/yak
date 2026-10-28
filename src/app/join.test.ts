@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 import { addSpace, readSpaces } from '../core/account';
 import { decided, keeps } from '../core/keeps';
-import { addPendingLocalSpaces } from './join';
+import { addPendingLocalSpaces, keepsPendingApproval } from './join';
 import type { AccountState } from './account-state';
 import type { StorageLike } from '../core/account-setup';
 
@@ -33,5 +33,20 @@ describe('addPendingLocalSpaces after an approved join', () => {
     st.setItem(`app-${PENDING}`, JSON.stringify({ spaces: [], name: 'Phone' }));
     await addPendingLocalSpaces(stateOf(doc), st, 'phone');
     expect(decided(doc, 'phone', 'work')).toBe(false);
+  });
+});
+
+describe('keepsPendingApproval', () => {
+  it('is true only while an approved join has spaces left to keep', async () => {
+    const st = memory();
+    expect(keepsPendingApproval(st)).toBe(false);
+    st.setItem('app-pending-local-spaces', JSON.stringify({ spaces: [], name: 'Phone' }));
+    expect(keepsPendingApproval(st)).toBe(false);
+    st.setItem('app-pending-local-spaces', JSON.stringify({ spaces: [], keepAccountSpaces: true }));
+    expect(keepsPendingApproval(st)).toBe(true);
+    const doc = new Y.Doc();
+    addSpace(doc, 'work', 'Work', undefined, 'laptop');
+    await addPendingLocalSpaces(stateOf(doc), st, 'phone');
+    expect(keepsPendingApproval(st)).toBe(false);
   });
 });

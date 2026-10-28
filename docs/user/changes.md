@@ -1,5 +1,9 @@
 # What's new
 
+## 2026-10-27: Coming back to a share connects faster
+
+- After a share was ended and you join again with a new link, the two devices now find each other within seconds; before, it could take a minute or more before anything synced.
+
 ## 2026-10-27: Before coworkers: backups, pairing, wording, phones, quick wins
 
 - **Backup:** until your first backup works, a bar on every screen says **No backup yet** with **Set up**. Welcome and **Backup & restore** say plainly that clearing this site's data in the browser deletes Yak's data, and **Backup & restore** shows **Storage: kept** or **may be cleared by the browser**.

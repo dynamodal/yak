@@ -528,8 +528,11 @@ export class PeerMesh {
         // we are here: the relay keeps no history to tell it. The reply is addressed to that peer
         // only, so other devices ignore it and replies never cascade; rate-limited per peer.
         if (Date.now() - session.lastHelloReplyAt > HELLO_REPLY_INTERVAL_MS) {
-          session.lastHelloReplyAt = Date.now();
-          void this.say('hello', { to: payload.from });
+          session.replyHello();
+        } else if (identity?.required()) {
+          // Dropping it would strand a peer that restarted its mesh a moment after our last reply (a share member
+          // coming back): it waits for our hello to offer, and we wait for its hello. Answer when the interval is over (#30).
+          session.replyHelloLater();
         }
       }
     } else if (payload.type === 'offer') {
@@ -577,6 +580,7 @@ class Session {
   private attemptSid: string | undefined;
   private readonly handledOffers = new Set<string>();
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
+  private helloReplyTimer: ReturnType<typeof setTimeout> | undefined;
   private retryIndex = 0;
   private attemptStartedAt = 0;
 
@@ -624,7 +628,27 @@ class Session {
     this.link?.close();
   }
 
+  /** Answer a peer's hello with one addressed to it (the peer then offers if its id is the lower). */
+  replyHello(): void {
+    clearTimeout(this.helloReplyTimer);
+    this.helloReplyTimer = undefined;
+    this.lastHelloReplyAt = Date.now();
+    void this.mesh.say('hello', { to: this.peerId });
+  }
+
+  /** A hello arrived within the reply interval of the last answer: answer it when the interval is over, unless linked by then. */
+  replyHelloLater(): void {
+    if (this.helloReplyTimer !== undefined) return;
+    const wait = Math.max(0, this.lastHelloReplyAt + HELLO_REPLY_INTERVAL_MS - Date.now()) + 100;
+    this.helloReplyTimer = setTimeout(() => {
+      this.helloReplyTimer = undefined;
+      if (this.mesh.isStarted && !this.linkOpen && !this.mesh.opts.isBlocked?.(this.peerId)) this.replyHello();
+    }, wait);
+  }
+
   close(): void {
+    clearTimeout(this.helloReplyTimer);
+    this.helloReplyTimer = undefined;
     clearTimeout(this.retryTimer);
     this.relayOpen = false;
     this.stopRelay();

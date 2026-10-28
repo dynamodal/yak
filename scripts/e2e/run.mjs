@@ -40,7 +40,7 @@ const args = process.argv.slice(2);
 const jobsAt = args.indexOf('--jobs');
 const jobs = Math.max(1, Number(jobsAt >= 0 ? args[jobsAt + 1] : process.env.E2E_JOBS) || Math.min(availableParallelism(), 3));
 if (jobsAt >= 0) args.splice(jobsAt, 2);
-const logDir = join(root, 'e2e-logs');
+const logDir = process.env.E2E_LOG_DIR || join(root, 'e2e-logs');
 const build = !args.includes('--no-build');
 const wanted = args.filter((a) => !a.startsWith('--')).map((a) => a.replace(/\.mjs$/, ''));
 

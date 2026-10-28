@@ -160,6 +160,10 @@ try {
   let navigations = 0;
   page.on('framenavigated', (f) => { if (f === page.mainFrame()) navigations++; });
   await page.locator('.update-banner').getByRole('button', { name: 'Reload' }).click();
+  // Do not poll the old worker with messages while it hands over: a message in flight keeps it
+  // "busy", and Chromium then holds back the waiting version's activation until the 4 s fallback
+  // reload in applyUpdate() (#30). Wait for the page to reload instead, then ask once.
+  await until(() => navigations >= 1, 30000, 200);
   const activated = await until(async () => (await controllerVersion()) === V2, 30000);
   check(activated, `Reload activates the new version ${V2}`);
   if (!activated) {
@@ -171,8 +175,7 @@ try {
     console.log('diagnostic:', JSON.stringify(probe), 'navigations', navigations);
     process.exit(1);
   }
-  // The reload lands after the new worker takes control: wait for it, then for the count to hold still.
-  await until(() => navigations >= 1, 15000);
+  // The count must now hold still.
   let seen = -1;
   await until(async () => {
     const stable = seen === navigations;

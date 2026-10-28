@@ -295,6 +295,7 @@ async function boot(): Promise<void> {
         const v = shares.view(accountState.current.allSpaces.find((s) => s.storedName.toLowerCase() === space.toLowerCase())?.id ?? space);
         return v && { owner: v.owner, active: v.active, members: [...(v.state?.members.keys() ?? [])], ended: [...(v.state?.ended ?? [])], connected: [...v.connected], devices: [...(v.state?.devices.keys() ?? [])] };
       },
+      shareDebug: (space: string) => shares.debugText(accountState.current.allSpaces.find((s) => s.storedName.toLowerCase() === space.toLowerCase())?.id ?? space) + '\n--- main log\n' + sync.log.toText(),
       accountFp: () => keyTrust.accountFp,
       pairedAccountId: () => sync.pairedAccountId,
       keys: () => ({ required: keyTrust.required(), certified: keyTrust.proof !== undefined, certs: [...keyTrust.certs.keys()], verified: sync.status.peers.filter((p) => sync.isVerified(p.id)).map((p) => p.id) }),

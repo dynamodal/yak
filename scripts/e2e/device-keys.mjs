@@ -5,9 +5,9 @@
 //
 //   npm run e2e device-keys
 //
-import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep } from './lib.mjs';
+import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep, waitFor } from './lib.mjs';
 
-const browser = await launch({ fakeCamera: true });
+const browser = await launch({ fakeCamera: true, fastTimers: true });
 const mk = async (n) => {
   const page = await (await browser.newContext({ permissions: ['camera'] })).newPage();
   watchPage(page, n);
@@ -76,7 +76,7 @@ check(await hook(a, () => window.__app.requireKeys()), 'A signs "keys required" 
 // C has the sync code but no certificate: it gets no document.
 const c = await mk('C');
 await joinKeyless(c, code, { reloads: false });
-await sleep(15000);
+await sleep(waitFor(15000));
 check((await accountId(c)) !== accountA, 'a device without a certificate never receives the account');
 check(!(await text(c)).includes('signed'), 'nor any space');
 const peersA = await hook(a, () => window.__app.peers());

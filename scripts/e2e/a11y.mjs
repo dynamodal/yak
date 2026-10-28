@@ -30,7 +30,8 @@ async function axe(page, label) {
   check(violations.length === 0, `${label}: no axe violations`);
 }
 
-for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], ['dark', 375]]) {
+// The four contexts are independent, so they run at once (about a quarter of the wall time).
+async function scan([scheme, width]) {
   const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, bypassCSP: true });
   const page = await context.newPage();
   const tag = `${scheme} ${width}px`;
@@ -48,7 +49,8 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
   const personal = await page.evaluate(() => window.__app.spaces().personal);
   for (const hash of PAGES) {
     await page.evaluate((h) => { location.hash = h; }, hash.replace('PERSONAL', personal));
-    await page.waitForTimeout(400);
+    // The page is up when the route is set, the view has content and nothing is still animating (a fade skews contrast).
+    await page.waitForFunction((h) => location.hash === h && (document.querySelector('.view')?.childElementCount ?? 0) > 0 && document.getAnimations().every((a) => a.playState !== 'running'), hash.replace('PERSONAL', personal));
     await axe(page, `${tag} ${hash}`);
   }
 
@@ -90,6 +92,7 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
   await page.keyboard.press('Escape');
   await context.close();
 }
+await Promise.all([['light', 1280], ['dark', 1280], ['light', 375], ['dark', 375]].map(scan));
 
 // Keyboard and screen reader: the skip link comes first, the header and the timer are reachable
 // by Tab, the toast region is always in the page, and every button and link has a name.

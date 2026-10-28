@@ -1,0 +1,14 @@
+name: Chrome for the browser suites
+description: Use the runner's preinstalled Google Chrome (scripts/e2e/lib.mjs findChrome reads CHROME_PATH); install Playwright's Chromium only when the image has none.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        if [ -x /usr/bin/google-chrome ]; then
+          echo "CHROME_PATH=/usr/bin/google-chrome" >> "$GITHUB_ENV"
+          /usr/bin/google-chrome --version
+        else
+          echo "No preinstalled Chrome: installing Playwright's Chromium"
+          npx playwright-core install --with-deps chromium
+        fi

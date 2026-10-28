@@ -58,13 +58,42 @@ function patchWebkit(browser) {
   return browser;
 }
 
-/** Launches Chromium (or WebKit with E2E_BROWSER=webkit); `fakeCamera` adds the fake-camera flags (Chromium only). */
-export function launch({ fakeCamera = false, args = [] } = {}) {
-  if (WEBKIT) return webkit.launch().then(patchWebkit);
-  return chromium.launch({ executablePath: findChrome(), args: [...(fakeCamera ? FAKE_CAMERA_ARGS : []), ...args] });
+/**
+ * Test-build timers (docs/testing.md "Test-build timers"): suites that wait out a long product timer opt in with
+ * `launch({ fastTimers: true })`. Every page then runs the direct-path retry, the link retry delays and the relay
+ * stats refresh TIMER_SCALE times faster (`window.__yakTimerScale`, read only by a test build), and `waitFor(ms)`
+ * shortens a time-based wait by the same ratio. `E2E_REAL_TIMERS=1` turns both off: the push-to-main run uses it,
+ * so the product's real timers stay exercised.
+ */
+export const TIMER_SCALE = process.env.E2E_REAL_TIMERS === '1' ? 1 : 4;
+const MIN_WAIT_MS = 4000;
+
+/**
+ * A time-based wait (a negative check: "nothing arrives") for `ms` of real timers, shortened by TIMER_SCALE but never
+ * below 4 s (or `ms` itself when that is shorter): a link needs a few seconds to open, and a wait that ends before
+ * it could would prove nothing.
+ */
+export const waitFor = (ms) => Math.round(Math.max(ms / TIMER_SCALE, Math.min(ms, MIN_WAIT_MS)));
+
+function scaleTimers(browser) {
+  if (TIMER_SCALE <= 1) return browser;
+  const newContext = browser.newContext.bind(browser);
+  browser.newContext = async (...a) => {
+    const context = await newContext(...a);
+    await context.addInitScript((n) => { window.__yakTimerScale = n; }, TIMER_SCALE);
+    return context;
+  };
+  return browser;
 }
 
-/** Starts the mock ntfy mailbox on MOCKPORT; `.url` is what a suite types into the Connection server field. */
+/** Launches Chromium (or WebKit with E2E_BROWSER=webkit); `fakeCamera` adds the fake-camera flags (Chromium only); `fastTimers`: see TIMER_SCALE. */
+export async function launch({ fakeCamera = false, fastTimers = false, args = [] } = {}) {
+  const browser = WEBKIT
+    ? patchWebkit(await webkit.launch())
+    : await chromium.launch({ executablePath: findChrome(), args: [...(fakeCamera ? FAKE_CAMERA_ARGS : []), ...args] });
+  return fastTimers ? scaleTimers(browser) : browser;
+}
+
 export const startMock = () => startMockNtfy({ port: MOCK_PORT });
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

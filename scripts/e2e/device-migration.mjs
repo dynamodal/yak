@@ -6,9 +6,9 @@
 //
 //   npm run e2e device-migration
 //
-import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep, joinByInvite, PASS, fillSheet, openAdvanced } from './lib.mjs';
+import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep, waitFor, joinByInvite, PASS, fillSheet, openAdvanced } from './lib.mjs';
 
-const browser = await launch({ fakeCamera: true });
+const browser = await launch({ fakeCamera: true, fastTimers: true });
 const mk = async (n) => {
   const page = await (await browser.newContext({ permissions: ['camera'] })).newPage();
   watchPage(page, n);
@@ -50,7 +50,7 @@ await fillSheet(a, PASS);
 // The left-out device keeps working and keeps everything; it hears nothing more.
 await append(a, 'owner-after ');
 await append(s, 'left-out-after ');
-await sleep(4000);
+await sleep(waitFor(4000));
 check((await text(s)).includes('before-switch') && (await text(s)).includes('left-out-after'), 'the left-out device keeps its data and its new edits');
 check(!(await text(s)).includes('owner-after') && !(await text(a)).includes('left-out-after'), 'and syncs nothing until it joins again');
 

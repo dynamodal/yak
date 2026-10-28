@@ -6,7 +6,7 @@
 //
 import { BASE, launch, ok, fail, watchPage, until, finish, keepAllSpaces, openJoin, startSyncing, joinByInvite } from './lib.mjs';
 
-const browser = await launch({ fakeCamera: true });
+const browser = await launch({ fakeCamera: true, fastTimers: true });
 const mk = async (n) => {
   const context = await browser.newContext({ permissions: ['camera'] });
   // While window.__blockRtc is true every peer connection is limited to TURN candidates, and there

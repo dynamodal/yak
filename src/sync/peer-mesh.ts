@@ -5,6 +5,7 @@ import type { LinkEndpoint, LinkState } from './types';
 import type { PeerLinkEvents } from './peer-link';
 import type { RelayLinkEvents } from './relay-link';
 import { RateLimitedError, type InboxMessage, type SignalingTransport } from './signaling';
+import { scaledMs } from '../core/test-build';
 
 export interface PeerInfo {
   id: string;
@@ -122,7 +123,7 @@ export class PeerMesh {
   private readonly maxPeers: number;
 
   constructor(readonly opts: PeerMeshOptions) {
-    this.retryDelays = opts.retryDelaysMs ?? [15_000, 60_000];
+    this.retryDelays = opts.retryDelaysMs ?? [scaledMs(15_000), scaledMs(60_000)];
     this.staleStreamMs = opts.staleStreamMs ?? 100_000;
     this.maxOfferAge = opts.maxOfferAgeMs ?? 60_000;
     this.minTriggerInterval = opts.minTriggerIntervalMs ?? 20_000;
@@ -865,7 +866,7 @@ class Session {
       if (!this.relayOpen || this.linkOpen) return;
       void this.attempt('direct path check', true);
       this.scheduleUpgrade();
-    }, this.mesh.opts.directRetryMs ?? 60_000);
+    }, this.mesh.opts.directRetryMs ?? scaledMs(60_000));
   }
 
   private stopRelay(): void {

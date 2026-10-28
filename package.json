@@ -7,12 +7,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:ci": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "typecheck:worker": "tsc --noEmit -p worker/tsconfig.json",
     "e2e": "node scripts/e2e/run.mjs",
     "check:bundle": "node scripts/check-bundle.mjs",
+    "check:prod-bundle": "node scripts/check-prod-bundle.mjs",
     "release:obsidian": "scripts/release-obsidian.sh",
     "build:obsidian": "tsc --noEmit && vite build -c obsidian/vite.config.ts && cp obsidian/manifest.json obsidian/dist/manifest.json"
   },

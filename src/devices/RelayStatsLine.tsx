@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import { useApp } from '../app/context';
+import { scaledMs } from '../core/test-build';
 import { relayStatsDetails, relayStatsText, type RelayStats } from '../sync/relay-stats';
 
-const EVERY_MS = 60_000;
 
 /**
  * "Relay: 3 devices connected · 420 messages today" for this account's relay room. Asked when the page opens and
@@ -22,7 +22,7 @@ export function RelayStatsLine(props: { paired: boolean }) {
       void sync.relayStats().then((s) => alive && setStats(s));
     };
     ask();
-    const timer = setInterval(ask, EVERY_MS);
+    const timer = setInterval(ask, scaledMs(60_000));
     return () => {
       alive = false;
       clearInterval(timer);

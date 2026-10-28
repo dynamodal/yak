@@ -91,7 +91,7 @@ export function Welcome(props: { onStarted(): void }) {
             Time, notes and tasks
           </Button>
         </div>
-        <p class="hint">Time tracker hides Notes and Tasks. You can change this any time in Settings › Preferences.</p>
+        <p class="hint">Time tracker hides Notes and Tasks; the other choice shows Time, Notes and Tasks. You can change this any time in Settings › Preferences › Tabs shown.</p>
       </div>
 
       <details class="welcome-more">

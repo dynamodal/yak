@@ -141,7 +141,7 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
   .tab-dot { top: 0.35rem; right: 0.45rem; }
 }
 /* Below 320 px (a side-strip window) there is no room for the logo or the command button; the palette is still on its shortcut. */
-@media (max-width: 19.9rem) { .btn.palette-btn, .brand { display: none; } .topbar-end { flex-wrap: wrap; } .topbar-end > .header-timer { flex: 1 1 100%; } }
+@media (max-width: 19.9rem) { .btn.palette-btn, .brand { display: none; } .topbar-end { flex-wrap: wrap; } .topbar-end > .timer-pill { flex: 1 1 100%; } }
 @media (max-width: 27.5rem) {
   .brand-name { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 }
@@ -182,3 +182,14 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
 .welcome-more > summary { cursor: pointer; color: var(--muted); font-size: var(--text-sm); }
 .welcome-more[open] > summary { margin-bottom: 1rem; }
 .welcome-choice > .btn { justify-self: start; }
+
+/* Narrow (under 30rem): a running timer wraps to its own full-width row below the tabs, so its description, time and stop
+   button show in full; idle, the pill stays on the first row as a round button. The group's box goes away so its children
+   (pill, command button, sync) become items of the header row itself. */
+@media (max-width: 29.99rem) {
+  .topbar-end { display: contents; }
+  .topbar-end > .timer-pill { margin: 0.4rem 0 0.4rem auto; flex: 0 1 auto; }
+  .topbar-end > .btn { margin-block: 0.4rem; }
+  .topbar-end > .timer-pill.running { order: 4; flex: 1 1 100%; margin: 0 0 0.4rem; }
+  .topbar:has(.timer-pill.running) .palette-btn { margin-left: auto; }
+}

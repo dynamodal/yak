@@ -66,7 +66,7 @@ const controllerVersion = (p = page) =>
 const cacheNames = () => page.evaluate(() => caches.keys());
 const entries = () => page.evaluate(() => window.__app.json('space/personal/time', 'time_entries'));
 const notes = () => page.evaluate(() => window.__app.json('space/personal', 'notes'));
-const bar = () => page.locator('.timer-bar');
+const bar = () => page.locator('.timer-pill');
 
 try {
   // ---- first online visit: install and take control ----
@@ -104,12 +104,16 @@ try {
   await bar().waitFor({ timeout: 10000 });
   check(offlineLoad?.fromServiceWorker() === true, 'app reloads with no network, served by the worker');
 
-  await bar().getByLabel('Description', { exact: true }).fill('Offline work');
-  await bar().getByLabel('Description', { exact: true }).press('Enter');
-  await bar().getByRole('button', { name: 'Stop', exact: true }).waitFor();
+  // At 375 px the idle pill is only its round button: start at once, then name the entry in the details.
+  await bar().getByRole('button', { name: 'Start timer' }).click();
+  await bar().getByRole('button', { name: 'Stop timer' }).waitFor();
+  await bar().locator('.tp-label').click();
+  await page.getByRole('dialog', { name: 'Timer details' }).getByLabel('Description', { exact: true }).fill('Offline work');
+  await page.getByRole('dialog', { name: 'Timer details' }).getByLabel('Description', { exact: true }).press('Enter');
+  await page.getByRole('dialog', { name: 'Timer details' }).waitFor({ state: 'detached' });
   await sleep(1200);
-  await bar().getByRole('button', { name: 'Stop', exact: true }).click();
-  await bar().getByRole('button', { name: 'Start', exact: true }).waitFor();
+  await bar().getByRole('button', { name: 'Stop timer' }).click();
+  await bar().getByRole('button', { name: 'Start timer' }).waitFor();
   const done = Object.values(await entries()).filter((e) => !e.deleted && e.description === 'Offline work' && e.stop !== null);
   check(done.length === 1, 'timer starts and stops offline');
 

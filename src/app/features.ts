@@ -4,14 +4,17 @@ import { useEffect, useState } from 'preact/hooks';
  * Features this device can hide (F-309). The list is per device, in `localStorage` under `hidden_modules`;
  * when it is absent everything is on. Hiding only removes the pages, commands and search results: the data
  * stays and keeps syncing, so showing a feature again brings it all back (F39, no migration).
- * Time, Settings, Backup & restore, Devices and the sync status are never hidden.
+ * Settings, Backup & restore, Devices and the sync status are never hidden. Time can be hidden (F-33l):
+ * the tab, Reports, the timer pill, the timer commands and the running cue go; a running timer must be
+ * stopped first (`setFeatureBlock`), so a timer is never left running out of sight on this device.
  */
-export type FeatureId = 'notes' | 'tasks' | 'reports' | 'mirror' | 'import';
+export type FeatureId = 'time' | 'notes' | 'tasks' | 'reports' | 'mirror' | 'import';
 
 export const FEATURES: readonly { id: FeatureId; title: string; hint: string }[] = [
+  { id: 'time', title: 'Time', hint: 'The timer, the log, the week and reports' },
   { id: 'notes', title: 'Notes', hint: 'Markdown notes. Hiding Notes also hides Tasks.' },
   { id: 'tasks', title: 'Tasks', hint: 'Tasks are notes with a due date or status.' },
-  { id: 'reports', title: 'Reports', hint: 'Totals and charts of your time.' },
+  { id: 'reports', title: 'Reports', hint: 'Totals and charts of your time. Hiding Time also hides Reports.' },
   { id: 'mirror', title: 'Mirror', hint: 'Keep a folder of Markdown files in step with your notes. Needs folder access in the browser.' },
   { id: 'import', title: 'Import', hint: 'Bring in a Toggl or CSV export.' },
 ];
@@ -21,6 +24,8 @@ const EVENT = 'app:features';
 
 /** The view (by id) each feature owns. */
 const VIEW_FEATURE: Readonly<Record<string, FeatureId>> = {
+  timer: 'time',
+  entries: 'time',
   notes: 'notes',
   'notes-settings': 'notes',
   tasks: 'tasks',
@@ -30,6 +35,7 @@ const VIEW_FEATURE: Readonly<Record<string, FeatureId>> = {
 
 /** The commands that are not a "Go to <view>". */
 const COMMAND_FEATURE: Readonly<Record<string, FeatureId>> = {
+  'timer.toggle': 'time',
   'notes.find': 'notes',
   'notes.today': 'notes',
   'notes.insert-date': 'notes',
@@ -56,11 +62,28 @@ function safeStorage(): Storage | undefined {
   }
 }
 
-/** What is hidden in effect: the stored list, plus Tasks whenever Notes is hidden. */
+/** What is hidden in effect: the stored list, plus Tasks whenever Notes is hidden and Reports whenever Time is hidden. */
 export function effectiveHidden(stored: readonly FeatureId[]): Set<FeatureId> {
   const out = new Set(stored);
   if (out.has('notes')) out.add('tasks');
+  if (out.has('time')) out.add('reports');
   return out;
+}
+
+// ---- A feature that cannot be hidden right now (a running timer)
+
+const blocks = new Map<FeatureId, string>();
+
+/** A feature says why it cannot be hidden at the moment (`null` clears it). Settings shows the reason and disables the switch. */
+export function setFeatureBlock(id: FeatureId, reason: string | null): void {
+  if ((blocks.get(id) ?? null) === reason) return;
+  if (reason === null) blocks.delete(id);
+  else blocks.set(id, reason);
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(EVENT));
+}
+
+export function featureBlock(id: FeatureId): string | undefined {
+  return blocks.get(id);
 }
 
 export function setHiddenModules(list: readonly FeatureId[]): void {
@@ -119,6 +142,20 @@ export function hiddenRoute(route: readonly string[], views: readonly { id: stri
   const joined = second === undefined || !parent ? undefined : views.find((v) => v.joins === parent.id && v.path === second);
   const view = joined ?? (first === 'settings' ? views.find((v) => v.group === 'settings' && v.path === second) : parent);
   return view !== undefined && viewHidden(view.id, hidden);
+}
+
+/**
+ * Where to land: the first tab this device shows, else Settings (never hidden). `views` is every registered view;
+ * tabs are the ones with no group, not `hidden` and not joined to another page.
+ */
+export function landingRoute(
+  hidden: ReadonlySet<FeatureId>,
+  views: readonly { id: string; path: string; order: number; group?: string; joins?: string; hidden?: boolean }[],
+): string {
+  const tab = [...views]
+    .sort((a, b) => a.order - b.order)
+    .find((v) => !v.group && !v.hidden && v.joins === undefined && !viewHidden(v.id, hidden));
+  return tab ? `#/${tab.path}` : '#/settings';
 }
 
 /** The two choices on Welcome. */

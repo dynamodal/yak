@@ -253,3 +253,31 @@ export async function openAdvanced(page) {
   if (!(await fold.evaluate((d) => d.open))) await fold.locator('summary').first().click();
   return fold;
 }
+
+// ---- The timer pill (header) and its details popover; the Time page has no bar of its own
+export const pill = (p) => p.locator('.timer-pill');
+export const startRound = (p) => pill(p).getByRole('button', { name: 'Start timer' });
+export const stopRound = (p) => pill(p).getByRole('button', { name: 'Stop timer' });
+export const detailsDialog = (p) => p.getByRole('dialog', { name: 'Timer details' });
+/** Opens the details popover from the pill's label (no-op when open) and returns it. */
+export async function openDetails(p) {
+  const label = pill(p).locator('.tp-label');
+  if ((await label.getAttribute('aria-expanded')) !== 'true') await label.click();
+  const d = detailsDialog(p);
+  await d.waitFor();
+  await sleep(120); // the popover's Esc and outside-click listeners attach after the next frame
+  return d;
+}
+/** With a timer running: opens the details and sets its description (Update). */
+export async function nameRunning(p, description) {
+  const d = await openDetails(p);
+  await d.getByLabel('Description', { exact: true }).fill(description);
+  await d.getByRole('button', { name: 'Update' }).click();
+}
+/** Starts a timer from the popover with a description (Enter), the way a person types it. */
+export async function startWith(p, description) {
+  const d = await openDetails(p);
+  await d.getByLabel('Description', { exact: true }).fill(description);
+  await d.getByLabel('Description', { exact: true }).press('Enter');
+  await stopRound(p).waitFor();
+}

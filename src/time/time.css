@@ -13,36 +13,6 @@
 .fields .description { flex: 1 1 14rem; min-width: 0; }
 .clock { font-variant-numeric: tabular-nums; font-size: var(--text-2xl); font-weight: var(--weight-semibold); }
 
-/* Timer bar: one row on a wide screen; description and start/stop, then the fields, when narrow. */
-.tb { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'else else else' 'desc fields go' 'note note note'; align-items: center; gap: var(--space-1) var(--space-2); margin: 0 0 var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3); }
-.tb.running { border-color: var(--running); background: var(--accent-tint); }
-.tb-desc { grid-area: desc; min-width: 0; }
-.tb-desc .description { width: 100%; font-size: var(--text-lg); border-color: transparent; background: transparent; padding-left: var(--space-1); }
-.tb-desc .description:hover { border-color: var(--border); }
-.tb-fields { grid-area: fields; display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
-.tb-go, .tb-manual { grid-area: go; display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); }
-.tb-manual { flex-wrap: wrap; }
-.tb-manual input[type='date'] { width: 9.5rem; }
-.tb-manual input[type='time'] { width: 7.5rem; }
-.tb-times { display: inline-flex; align-items: center; gap: var(--space-1); min-width: 0; }
-.tb-elsewhere { grid-area: else; display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-1); padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3); border-radius: var(--radius); background: var(--surface-2); box-shadow: inset 3px 0 0 var(--running); font-size: var(--text-sm); }
-.tb-elsewhere-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tb-elsewhere .clock { font-size: var(--text-sm); }
-.tb-elsewhere-stop { padding: 0.15rem 0.6rem; }
-.tb-note { grid-area: note; margin: 0; font-size: var(--text-sm); color: var(--muted); }
-.tb-note.error { color: var(--danger); }
-.tb-start { display: inline-flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-pill); padding: 0.35rem 0.5rem 0.35rem 0.9rem; }
-.btn.tb-start.running { background: var(--stop); border-color: var(--stop); color: var(--stop-text); }
-.tb-start .clock { font-size: var(--text-lg); color: inherit; }
-.tb-start:not(.running) .clock { opacity: 0.75; }
-.tb-start .ui-icon { width: 1.6rem; height: 1.6rem; }
-.tb-billable { display: inline-flex; align-items: center; justify-content: center; min-width: 2rem; height: 2rem; border-radius: var(--radius); color: var(--muted); cursor: pointer; }
-.tb-billable:hover { background: var(--surface-2); }
-.tb-billable.on { color: var(--billable); }
-.tb-billable:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
-.tb-billable .ui-icon, .tb-fields .ui-icon { width: 1.15rem; height: 1.15rem; }
-.tb-mode { background: transparent; border-color: transparent; color: var(--muted); height: 2rem; }
-.tb-mode.on { color: var(--accent); background: var(--surface-2); }
 
 /* Project and tag pickers: quiet buttons that open a searchable list. */
 .picker-btn { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; max-width: 16rem; padding: 0.3rem 0.5rem; background: transparent; border-color: transparent; }
@@ -122,13 +92,6 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 }
 /* A narrow window with a mouse (the "mini" timer): actions float over the end of the row on hover
    instead of taking room from the description. */
-/* Header timer: 44 px tap targets on touch and narrow screens; "Continue" is only its icon on a phone. */
-@media (min-width: 20rem) and ((pointer: coarse) or (max-width: 40rem)) {
-  .header-timer .ht-btn, .header-timer .ht-desc { min-height: 2.75rem; min-width: 2.75rem; justify-content: center; }
-}
-@media (max-width: 40rem) {
-  .ht-continue .ht-continue-label, .ht-continue .ht-text, .ht-continue .swatch { display: none; }
-}
 @media (max-width: 40rem) and (hover: hover) {
   .te-line { position: relative; }
   .te-actions { position: absolute; right: var(--space-1); top: 50%; transform: translateY(-50%); padding: 0.1rem; border-radius: var(--radius); background: var(--surface-2); box-shadow: var(--shadow-float); visibility: hidden; }
@@ -167,52 +130,16 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .proj-row .rate { width: 5.5rem; }
 .proj-row .currency { width: 4rem; text-transform: uppercase; }
 
-/* Header timer (every view). Running is marked with --running. */
-.header-timer { display: flex; align-items: center; gap: 0.35rem; min-width: 0; flex: 0 1 auto; padding: 0.1rem 0.15rem 0.1rem 0.25rem; border: 1px solid var(--border); border-radius: var(--radius); }
-.header-timer.running { border-color: var(--running); }
-.header-timer .clock { font-size: var(--text-lg); color: var(--running); }
-.header-timer button { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 0; padding: 0.2rem 0.4rem; }
-.ht-desc { background: transparent; border-color: transparent; }
-.ht-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14rem; }
-.ht-btn { flex: none; }
-.ht-status { flex: none; }
-.ht-idle { white-space: nowrap; }
-.ht-continue { flex: 0 1 auto; background: transparent; }
-.ht-start, .ht-stop { background: var(--surface-2); }
-.ht-stop { color: var(--stop); }
-.ht-start { color: var(--ok); }
-.ht-switcher { display: flex; flex-direction: column; min-width: 16rem; max-width: min(24rem, 92vw); max-height: 70vh; overflow-y: auto; padding: var(--space-1); }
-.ht-opt { display: flex; align-items: center; gap: var(--space-2); width: 100%; text-align: left; background: none; border: 0; padding: 0.4rem var(--space-2); border-radius: var(--radius-sm); }
-.ht-opt:hover, .ht-opt:focus-visible { background: var(--surface-2); }
-.ht-opt .ht-text { flex: 1; max-width: none; }
-.ht-new, .ht-open { color: var(--accent); }
-.ht-continue-label { color: var(--muted); white-space: nowrap; }
 .te-space { flex: none; }
-.tb-space { max-width: 10rem; }
-.ht-icon { width: 1rem; height: 1rem; flex: none; }
 
 .idle-banner { background: var(--surface-2); border-bottom: 3px solid var(--warn); padding: 0.6rem 1rem; }
 .idle-banner p { margin: 0 0 0.4rem; }
 
 @media (max-width: 40rem) {
-  .header-timer { flex: 1 1 auto; }
-  .header-timer.running .ht-desc { flex: 1 1 auto; justify-content: flex-start; }
-  .ht-text { max-width: none; }
   .fields .description { flex-basis: 100%; }
   .week-nav { flex-wrap: wrap; }
   .week-label { min-width: 0; flex: 1 1 100%; order: -1; text-align: left; }
-  .tb { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'else else' 'desc go' 'fields fields' 'note note'; padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2); }
-  .tb.manual { grid-template-areas: 'else else' 'desc desc' 'fields fields' 'go go' 'note note'; }
-  .tb-manual { justify-content: flex-start; }
-  .tb-manual input[type='date'] { flex: 1 1 8.5rem; width: auto; }
-  .tb-times { flex: 1 1 14rem; }
-  .tb-manual input[type='time'] { flex: 1 1 5rem; width: auto; }
-  .tb-start { padding-left: 0.7rem; }
-  .tb-start .clock { font-size: inherit; }
-  .tb-start .ui-icon { width: 1.35rem; height: 1.35rem; }
   .picker-btn { max-width: 11rem; }
-  .tb-fields { flex-wrap: wrap; }
-  .tb-space { flex: 1 1 6rem; min-width: 0; }
   .te-line { padding-left: var(--space-2); gap: var(--space-1); }
   .day-head { padding-right: calc(var(--space-1) + var(--te-actions-w) + var(--space-1) + 0.25rem); }
   .te-main { flex-direction: column; align-items: stretch; gap: 0; }
@@ -259,13 +186,49 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .page-select { min-width: 5.75rem; justify-content: center; }
 .sheet .edit-panel { padding: 0; border-top: 0; }
 
-/* A very narrow window (a desktop app window squeezed to a side strip): one thing per row. */
-@media (max-width: 20rem) {
-  .ht-status { flex: 0 1 auto; min-width: 0; }
-  .ht-idle { overflow: hidden; text-overflow: ellipsis; }
-  .header-timer .ht-continue { display: none; }
-  .tb { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'else' 'desc' 'go' 'fields' 'note'; }
-  .tb-go { justify-content: stretch; }
-  .tb-go .tb-start { flex: 1; justify-content: space-between; }
-}
 .row-check { flex: none; width: 1.25rem; height: 1.25rem; margin: 0 var(--space-2) 0 0; }
+
+/* The timer pill (every page, in the header) and its popover. Running is the accent wash; stop is --stop. */
+.timer-pill { display: flex; align-items: center; gap: var(--space-1); min-width: 0; flex: 0 1 auto; padding: 2px 2px 2px var(--space-1); border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface); }
+.timer-pill.running { background: var(--accent-tint); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.tp-label { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; min-height: var(--control-h); padding: 0 var(--space-2); background: transparent; border: 0; border-radius: var(--radius-pill); color: var(--text); }
+.tp-label:hover { background: var(--surface-2); }
+.timer-pill.running .tp-label:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.tp-start-text { font-weight: var(--weight-medium); }
+.tp-chip { font: inherit; font-size: var(--text-xs); line-height: 1.5; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 0.35rem; white-space: nowrap; }
+.tp-desc { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 16rem; }
+.timer-pill .clock { font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--text); white-space: nowrap; }
+.tp-round { flex: none; display: inline-grid; place-items: center; width: var(--control-h); height: var(--control-h); padding: 0; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-text); }
+.tp-round:hover { filter: brightness(1.08); }
+.timer-pill.running .tp-round { background: var(--stop); color: var(--stop-text); }
+.tp-round .ui-icon { width: 1rem; height: 1rem; }
+@media (max-width: 34.99rem) {
+  .timer-pill:not(.running) .tp-label { display: none; }
+  .timer-pill:not(.running) { padding: 0; border-color: transparent; background: transparent; }
+}
+@media (max-width: 29.99rem) {
+  .timer-pill.running .tp-label { flex: 1 1 auto; justify-content: flex-start; }
+  .timer-pill.running .tp-desc { flex: 1 1 auto; max-width: none; }
+}
+.tp-popover { width: min(26rem, calc(100vw - 1rem)); max-width: none; padding: var(--space-3); }
+.tp-form { display: flex; flex-direction: column; gap: var(--space-2); }
+.tp-description { width: 100%; font-size: var(--text-lg); }
+.tp-heading { margin: var(--space-1) 0 0; font-size: var(--text-xs); font-weight: var(--weight-semibold); text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.tp-recent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; max-height: min(13rem, 28vh); overflow-y: auto; }
+.tp-recent-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--space-2); width: 100%; min-height: var(--control-h); padding: 0.3rem var(--space-2); text-align: left; background: none; border: 0; border-radius: var(--radius-sm); color: var(--text); }
+.tp-recent-row:hover, .tp-recent-row:focus-visible { background: var(--surface-2); }
+.tp-continue-label { color: var(--accent); font-weight: var(--weight-medium); }
+.tp-r-desc { font-weight: var(--weight-medium); overflow-wrap: anywhere; }
+.tp-r-meta { color: var(--muted); font-size: var(--text-sm); }
+.tp-fields { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.tp-billable { display: inline-flex; align-items: center; gap: 0.35rem; min-height: var(--control-h); padding: 0 var(--space-2); background: transparent; border: 1px solid transparent; border-radius: var(--radius); color: var(--muted); }
+.tp-billable:hover { background: var(--surface-2); }
+.tp-billable.on { color: var(--billable); }
+.tp-billable .ui-icon { width: 1.15rem; height: 1.15rem; }
+.tp-footer { display: flex; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-1); }
+.manual-dialog { width: min(30rem, calc(100vw - 1rem)); }
+.manual-title { margin: 0 0 var(--space-3); font-size: var(--text-xl); }
+.manual-form { display: flex; flex-direction: column; gap: var(--space-3); }
+.manual-form .description { width: 100%; }
+.manual-times { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.manual-range { display: inline-flex; align-items: center; gap: var(--space-1); }

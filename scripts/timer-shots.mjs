@@ -123,7 +123,7 @@ for (const scheme of ['light', 'dark']) {
   }
   if (scheme === 'light' && prefix !== 'before') {
     // Stopped: the bar offers projects of every space; and the mode for adding a finished entry.
-    await page.locator('.timer-bar').getByRole('button', { name: 'Stop', exact: true }).click();
+    await page.getByRole('button', { name: 'Stop timer' }).click();
     for (const size of SIZES.filter((s) => s.name === '1280' || s.name.startsWith('mini'))) {
       await page.setViewportSize({ width: size.width, height: size.height });
       await page.goto(`${BASE}?test#/time`);

@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type * as Y from 'yjs';
+import { effectiveHidden, useHiddenModules } from '../../app/features';
 import { useAllSpaces, useYVersion } from '../../app/hooks';
 import { SpacePicker } from '../../app/views/SpacePicker';
 import { useApp } from '../../app/context';
@@ -99,7 +100,10 @@ export function TasksView({ params }: ViewProps) {
     setMessage(`Added “${q.title}”${projects[0] ? ` to ${projects[0]}` : where}.`);
   };
 
+  // With Time hidden (F-33l) a task has no timer button; the tasks and their time entries are kept.
+  const timeOn = !effectiveHidden(useHiddenModules()).has('time');
   const actions: TaskActions = {
+    timeOn,
     open: (id) => navigate('notes', id),
     spaceLabel: (t) => (all ? spaceName(spaceOfNote.get(t.id) ?? '') : undefined),
     setDone: (t, done) => {
@@ -192,6 +196,8 @@ interface TaskActions {
   open(id: string): void;
   setDone(t: Task, done: boolean): void;
   setStatus(t: Task, status: string): void;
+  /** The Time feature is on, so tasks offer a timer. */
+  timeOn: boolean;
   startTimer(t: Task): void;
   archive(t: Task, archived: boolean): void;
   /** The task's space name, when several spaces are on show. */
@@ -340,7 +346,7 @@ function TaskItem({ t, actions }: { t: Task; actions: TaskActions }) {
         <TaskMeta t={t} space={actions.spaceLabel(t)} />
       </div>
       <span class="row-actions">
-        <IconButton icon={<IconPlay />} label={`Start timer for ${t.title}`} onClick={() => actions.startTimer(t)} />
+        {actions.timeOn && <IconButton icon={<IconPlay />} label={`Start timer for ${t.title}`} onClick={() => actions.startTimer(t)} />}
         <MenuButton
           label={`More actions for ${t.title}`}
           icon={<IconMore />}
@@ -586,7 +592,7 @@ function TaskCard({ t, ci, columns, actions, onDragEnd }: { t: Task; ci: number;
       </a>
       <TaskMeta t={t} space={actions.spaceLabel(t)} />
       <span class="row-actions card-actions">
-        <IconButton icon={<IconPlay />} label={`Start timer for ${t.title}`} title="Start timer" onClick={() => actions.startTimer(t)} />
+        {actions.timeOn && <IconButton icon={<IconPlay />} label={`Start timer for ${t.title}`} title="Start timer" onClick={() => actions.startTimer(t)} />}
         <MenuButton
           label={`More actions for ${t.title}`}
           icon={<IconMore />}

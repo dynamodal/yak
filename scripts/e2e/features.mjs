@@ -1,10 +1,10 @@
 // End-to-end for Features and Security (F-309): Welcome's presets set this device's hidden list, a hidden
-// page's route goes to the timer, the Features page turns pages back on, and passphrase fields have a Show switch
+// page's route goes to the first visible tab, the Features page turns pages back on, and passphrase fields have a Show switch
 // and a live hint.
 //
 //   npm run e2e features
 //
-import { BASE, launch, check, watchPage, finish } from './lib.mjs';
+import { BASE, launch, check, watchPage, finish, pill, startRound, stopRound, poll } from './lib.mjs';
 
 const browser = await launch();
 
@@ -71,7 +71,7 @@ const hash = (p) => p.evaluate(() => location.hash);
   await p.evaluate(() => (location.hash = '#/settings/import'));
   await p.waitForFunction(() => location.hash === '#/settings', null, { timeout: 5000 }).catch(() => {});
   check((await hash(p)) === '#/settings', `a hidden Settings page lands on Settings (${await hash(p)})`);
-  // Backup & restore and the timer cannot be hidden: no switch for them, and the page still opens.
+  // Backup & restore cannot be hidden: no switch for it, and the page still opens.
   await p.evaluate(() => (location.hash = '#/settings/backup'));
   await p.getByRole('heading', { name: 'Backup & restore' }).waitFor();
   check(true, 'Backup & restore still opens with Notes hidden');
@@ -109,6 +109,54 @@ const hash = (p) => p.evaluate(() => location.hash);
   await p.evaluate(() => (location.hash = '#/settings/backup'));
   await sheet.getByRole('button', { name: 'Cancel' }).click();
   check(await p.getByRole('button', { name: 'Create a passphrase…' }).waitFor({ timeout: 5000 }).then(() => true, () => false), 'Backup & restore offers to create a passphrase');
+  await p.context().close();
+}
+
+// ---- Time switch (F-33l): hides the tab, Reports, the pill, Alt+S and the cue; never with a timer running
+{
+  const p = await open('time-off', '?test&welcome');
+  await p.getByRole('button', { name: 'Time, notes and tasks' }).click();
+  await p.locator('.tabs').waitFor();
+  const running = () => p.evaluate(() => ['space/personal', 'space/work'].reduce((n, id) => n + Object.values(window.__app.json(id + '/time', 'time_entries') ?? {}).filter((e) => e.stop === null && !e.deleted).length, 0));
+  const count = () => p.evaluate(() => ['space/personal', 'space/work'].reduce((n, id) => n + Object.keys(window.__app.json(id + '/time', 'time_entries') ?? {}).length, 0));
+  await startRound(p).click();
+  await poll(async () => (await running()) === 1);
+  await p.evaluate(() => (location.hash = '#/settings'));
+  await p.locator('details.st-tabs-shown > summary').click();
+  check(await p.getByLabel('Time', { exact: true }).isDisabled(), 'the Time switch is locked while a timer runs');
+  check(await p.getByText('A timer is running. Stop it before hiding Time.').isVisible(), 'and says why');
+  await stopRound(p).click();
+  await poll(async () => (await running()) === 0);
+  check(await poll(async () => !(await p.getByLabel('Time', { exact: true }).isDisabled())), 'the Time switch unlocks once the timer is stopped');
+  await p.getByLabel('Time', { exact: true }).uncheck();
+  check((await tabs(p)).join() === 'Notes,Tasks,Settings', `Time off: no Time tab (${(await tabs(p)).join()})`);
+  check((await pill(p).count()) === 0, 'Time off: no timer pill in the header');
+  check((await hidden(p)) === '["time"]', `the choice is stored on this device (${await hidden(p)})`);
+  check(await p.getByLabel('Reports', { exact: true }).isDisabled(), 'Reports follows Time: its switch is locked');
+  for (const route of ['#/time', '#/time/week', '#/time/reports', '#/reports', '#/entries']) {
+    await p.evaluate((r) => (location.hash = r), route);
+    await p.waitForFunction(() => location.hash === '#/notes', null, { timeout: 5000 }).catch(() => {});
+    check((await hash(p)) === '#/notes', `${route} lands on the first visible tab, Notes (${await hash(p)})`);
+  }
+  const before = await count();
+  await p.keyboard.press('Alt+s');
+  await p.waitForTimeout(300);
+  check((await count()) === before, 'Alt+S does nothing while Time is hidden');
+  check(!(await p.evaluate(() => document.body.innerText)).includes('Start or stop the timer') && !(await p.evaluate(() => document.body.innerText)).includes('Go to Time'), 'no timer commands while Time is hidden');
+  check((await p.title()) === 'Yak' || !(await p.title()).includes('Not tracking'), `the title cue is off (${await p.title()})`);
+  // Every other feature off too: Settings, which is never hidden.
+  await p.evaluate(() => (location.hash = '#/settings'));
+  await p.locator('details.st-tabs-shown > summary').click();
+  await p.getByLabel('Notes', { exact: true }).uncheck();
+  check((await tabs(p)).join() === 'Settings', `all features off: only Settings (${(await tabs(p)).join()})`);
+  await p.evaluate(() => (location.hash = '#/time'));
+  await p.waitForFunction(() => location.hash === '#/settings', null, { timeout: 5000 }).catch(() => {});
+  check((await hash(p)) === '#/settings', 'with every other feature off the app lands on Settings');
+  // Back on: data was kept, the pill returns.
+  await p.locator('details.st-tabs-shown > summary').click();
+  await p.getByLabel('Time', { exact: true }).check();
+  check((await tabs(p)).join() === 'Time,Settings', 'Time on again: the tab returns');
+  check(await poll(async () => (await pill(p).count()) === 1), 'Time on again: the pill returns');
   await p.context().close();
 }
 

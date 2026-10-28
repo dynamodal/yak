@@ -24,33 +24,42 @@
 }
 
 :root {
-  /* Colour: surfaces and text. */
-  --bg: light-dark(#fbfbfa, #141413);
-  --surface: light-dark(#ffffff, #1c1c1a);
-  --surface-2: light-dark(#f2f1ee, #26261f);
-  --text: light-dark(#1d1d1b, #ecebe6);
-  --muted: light-dark(#6b6a66, #a3a29b);
-  --border: light-dark(#e3e1dc, #34332d);
+  /* Colour: surfaces and text (warm neutrals). */
+  --bg: light-dark(#faf7f2, #1a1917);
+  --surface: light-dark(#ffffff, #242220);
+  --surface-2: light-dark(#f3eee6, #2d2a27);
+  --text: light-dark(#1f1d1a, #ece8e1);
+  --muted: light-dark(#67625a, #b4aea3);
+  --border: light-dark(#eae4da, #36322e);
 
-  /* Colour: accent and status. */
-  --accent: light-dark(#2a66d4, #6c9cf0);
-  --accent-text: light-dark(#ffffff, #0d1220);
-  --ok: light-dark(#187636, #4cc06b);
-  --warn: light-dark(#955800, #e0a33e);
-  --info: light-dark(#2f6fde, #6c9cf0);
-  --danger: light-dark(#c4312b, #f06a63);
+  /* Colour: accent (sage) and status. The light accent is one step darker than the mockup so it reaches 4.5:1 on --surface-2. */
+  --accent: light-dark(#4a7563, #8fc4b2);
+  --accent-text: light-dark(#ffffff, #10201a);
+  --ok: light-dark(#3b7547, #6fbf86);
+  --warn: light-dark(#8f5a14, #e0ae6a);
+  --info: light-dark(#3a6ea5, #7fb0e8);
+  --danger: light-dark(#b42340, #f07a8c);
+  /* The stop button while a timer runs: a warm rust, distinct from --danger (raspberry). */
+  --stop: light-dark(#8e3a2b, #e39583);
+  --stop-text: light-dark(#ffffff, #2a0f09);
+
+  /* Colour: washes (a tint of a colour over the page, for a state behind text). */
+  --accent-tint: light-dark(color-mix(in srgb, var(--accent) 14%, var(--bg)), color-mix(in srgb, var(--accent) 24%, var(--bg)));
+  --warn-wash: light-dark(#f7ebd8, #3a2f1f);
 
   /* Colour: roles, so a role can be retuned without touching the status colour it borrows. */
   --focus-ring: var(--accent);
-  --running: var(--ok);
+  --running: var(--accent);
   --billable: var(--ok);
-  --on-danger: var(--accent-text);
+  --on-danger: light-dark(#ffffff, #2a0a10);
   --backdrop: rgb(0 0 0 / 0.35);
   /* A QR code needs a light background in both themes, or phones cannot read it. */
   --qr-light: #ffffff;
 
   /* Type. */
   --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Headings and big numbers: a system serif; no web font (CSP). */
+  --font-serif: Georgia, 'Times New Roman', serif;
   --font-mono: ui-monospace, monospace;
   --font-size: 15px;
   --line-height: 1.5;
@@ -83,11 +92,12 @@
   /* Radii. */
   --radius-xs: 2px;
   --radius-sm: 6px;
-  --radius: 8px;
+  --radius: 9px;
+  --radius-card: 14px;
   --radius-pill: 999px;
 
   /* Shadows: popovers, menus and toasts float above the page. */
-  --shadow-float: 0 6px 24px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.5));
+  --shadow-float: 0 6px 24px light-dark(rgb(60 40 20 / 0.14), rgb(0 0 0 / 0.5));
 
   /* Motion. */
   --duration-fast: 120ms;

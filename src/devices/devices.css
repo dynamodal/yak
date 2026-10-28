@@ -1,8 +1,8 @@
-.devices-page .notice { border: 1px solid var(--border); border-left: 4px solid var(--info); border-radius: var(--radius); background: var(--surface); padding: var(--gap); margin: var(--gap) 0; }
+.devices-page .notice { border: 1px solid var(--border); border-left: 4px solid var(--info); border-radius: var(--radius-card); background: var(--surface); padding: var(--gap); margin: var(--gap) 0; }
 .devices-page .notice p { margin: 0 0 0.5rem; }
 .devices-page .notice p:last-child { margin-bottom: 0; }
 .device-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gap); }
-.device-row { display: grid; gap: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: var(--gap); }
+.device-row { display: grid; gap: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); padding: var(--gap); }
 .device-main { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
 .peer-name { font-weight: normal; }
 .device-state { display: inline-flex; align-items: center; gap: 0.35rem; margin-left: auto; }

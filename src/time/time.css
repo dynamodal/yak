@@ -11,11 +11,11 @@
 
 .fields { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .fields .description { flex: 1 1 14rem; min-width: 0; }
-.clock { font-variant-numeric: tabular-nums; font-size: var(--text-2xl); font-weight: var(--weight-semibold); }
+.clock { font-family: var(--font-serif); font-variant-numeric: tabular-nums; font-size: var(--text-2xl); font-weight: var(--weight-semibold); }
 
 /* Timer bar: one row on a wide screen; description and start/stop, then the fields, when narrow. */
 .tb { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'else else else' 'desc fields go' 'note note note'; align-items: center; gap: var(--space-1) var(--space-2); margin: 0 0 var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3); }
-.tb.running { border-color: var(--running); }
+.tb.running { border-color: var(--running); background: var(--accent-tint); }
 .tb-desc { grid-area: desc; min-width: 0; }
 .tb-desc .description { width: 100%; font-size: var(--text-lg); border-color: transparent; background: transparent; padding-left: var(--space-1); }
 .tb-desc .description:hover { border-color: var(--border); }
@@ -32,7 +32,7 @@
 .tb-note { grid-area: note; margin: 0; font-size: var(--text-sm); color: var(--muted); }
 .tb-note.error { color: var(--danger); }
 .tb-start { display: inline-flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-pill); padding: 0.35rem 0.5rem 0.35rem 0.9rem; }
-.btn.tb-start.running { background: var(--running); border-color: var(--running); }
+.btn.tb-start.running { background: var(--stop); border-color: var(--stop); color: var(--stop-text); }
 .tb-start .clock { font-size: var(--text-lg); color: inherit; }
 .tb-start:not(.running) .clock { opacity: 0.75; }
 .tb-start .ui-icon { width: 1.6rem; height: 1.6rem; }
@@ -69,9 +69,9 @@
 /* Totals above the list. */
 /* Side by side; stacked in a very narrow window. */
 .tl-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr)); gap: var(--space-3); margin: var(--space-3) 0; }
-.tl-stat { display: flex; flex-direction: column; gap: 0.1rem; padding: var(--space-2) var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.tl-stat { display: flex; flex-direction: column; gap: 0.1rem; padding: var(--space-2) var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .tl-stat-label { color: var(--muted); font-size: var(--text-sm); }
-.tl-stat .total { font-size: var(--text-2xl); line-height: 1.2; }
+.tl-stat .total { font-family: var(--font-serif); font-size: var(--text-2xl); line-height: 1.2; }
 .tl-more { justify-content: center; }
 
 /* Days: one card per day with its total; rows inside. */
@@ -79,7 +79,7 @@
 .section-head .total { font-size: var(--text-lg); }
 .section-head, .day-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--gap); }
 .section-head { border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
-.day { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: var(--space-3); }
+.day { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); margin-bottom: var(--space-3); }
 .day > .empty { padding: var(--space-2) var(--space-3); }
 /* The day total lines up with the row durations: same right edge as a duration, past the actions column. */
 .day { --te-actions-w: 4.1rem; }
@@ -179,7 +179,7 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .ht-idle { white-space: nowrap; }
 .ht-continue { flex: 0 1 auto; background: transparent; }
 .ht-start, .ht-stop { background: var(--surface-2); }
-.ht-stop { color: var(--danger); }
+.ht-stop { color: var(--stop); }
 .ht-start { color: var(--ok); }
 .ht-switcher { display: flex; flex-direction: column; min-width: 16rem; max-width: min(24rem, 92vw); max-height: 70vh; overflow-y: auto; padding: var(--space-1); }
 .ht-opt { display: flex; align-items: center; gap: var(--space-2); width: 100%; text-align: left; background: none; border: 0; padding: 0.4rem var(--space-2); border-radius: var(--radius-sm); }

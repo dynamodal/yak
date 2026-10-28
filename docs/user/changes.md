@@ -1,5 +1,13 @@
 # What's new
 
+## 2026-10-28: New look
+
+- Warmer colours with a soft green accent, in light and dark.
+- Rounder buttons, cards and tabs; the current tab is a soft pill.
+- Headings and big numbers (the timer clock, totals) use a serif font.
+- The stop button is now a warm red-brown while a timer runs; start and selection are green.
+- New projects get softer default colours; your existing projects keep theirs.
+
 ## 2026-10-28: No "Keep all spaces" flash after joining
 
 - A device you approved by one-time code no longer shows the **Keep all spaces** notice for a few seconds before opening the Timer.

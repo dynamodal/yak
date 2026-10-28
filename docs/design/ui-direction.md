@@ -40,22 +40,24 @@ Ink (monochrome, sharp) was rejected as too harsh; Soft's indigo as too generic.
 | `--surface` | `#FFFFFF` | `#242220` |
 | `--surface-2` | `#F3EEE6` | `#2D2A27` |
 | `--text` | `#1F1D1A` | `#ECE8E1` |
-| `--muted` | `#7A756C` | `#9A948A` |
+| `--muted` (owner pick) | `#67625A` | `#B4AEA3` |
 | `--border` | `#EAE4DA` | `#36322E` |
-| `--accent` (start, selection, running) | `#4F7A68` | `#8FC4B2` |
-| `--accent-tint` (running wash) | `#E6EFE9` | `#243A32` |
-| `--stop` (the stop button while running) | `#A8432F` | `#E08A76` |
-| `--warn` / wash | `#B5762A` / `#F7EBD8` | `#E0AE6A` / `#3A2F1F` |
+| `--accent` (start, selection, links, focus, running) | `#4A7563` (owner pick `#4F7A68`, see F-33f) | `#8FC4B2` |
+| `--accent-tint` (running wash, 14% / 24% accent over `--bg`) | about `#E4E8E1` | about `#2D4039` |
+| `--stop` (the stop button while running; `--stop-text` on it) | `#8E3A2B` (white) | `#E39583` (dark) |
+| `--warn` / `--warn-wash` | `#8F5A14` (owner pick `#B5762A`, see F-33f) / `#F7EBD8` | `#E0AE6A` / `#3A2F1F` |
+| `--danger` (raspberry, distinct from the rust stop) | `#B42340` | `#F07A8C` |
+| `--ok` / `--info` | `#3B7547` / `#3A6EA5` | `#6FBF86` / `#7FB0E8` |
 
-- These are the mockup values, a starting point.
-  `#7A756C` on `#FAF7F2` is about 4.4:1, under the 4.5:1 rule (T205); the restyle PR adjusts any token that fails `tokens.test.ts` and the `a11y` suite.
-- Radii: controls 9 px, cards 14 px, pills and tabs fully round.
-- Type: headings and big numbers in a system serif stack (`Georgia, 'Times New Roman', serif`); UI text stays the system sans; tabular figures for time.
+- Radii: controls 9 px (`--radius`), cards 14 px (`--radius-card`), pills, tabs and the view switch fully round.
+- Type: headings and big numbers (clock, totals) in `--font-serif` (`Georgia, 'Times New Roman', serif`); UI text stays the system sans; tabular figures for time.
   No web font: the CSP and the no-remote-code rule stand.
-- Project dots keep their user-chosen colours; the default palette gets muted, earthy tones.
+- Nav tabs are soft pills (current = `--surface-2` fill), done in CSS without markup changes.
+- Project dot defaults (`palette.ts`, new projects only; existing projects keep their colour): light `#4F86C6 #D9902F #8E6FC4 #3FA58A`, then `#C4617A #6C8F4E #C9693F #6D7F94`.
+  Owner's dark-mode swatches for the first four: `#7FB0E8 #EBA84A #B9A0E8 #5FC4A8` (a project colour is one stored hex, so only the light set is a default).
 - Start is the accent; Stop is `--stop`, so the state reads at a glance, not only by icon.
 - Icons: our own drawings in `icons.tsx` (the mockups used a webfont only to sketch).
-- The restyle is tokens and `ui.css` only (the theme decisions already isolate colour, radius and type).
+- The restyle is tokens and `ui.css` first; a few module rules changed colour or radius only (time.css stop/running, card radii).
 
 ## Shell and navigation
 

@@ -1,16 +1,20 @@
 // Screenshots of every page with the same seeded data and a frozen clock, for checking that a
-// styling change looks the same (or reviewing one that should not). Runs against dist/ served
-// with the real headers.
+// styling change looks the same (or review one that should not). Needs a test build (the `?test`
+// hooks) served with the real headers. Output goes to the directory you name; keep it outside the
+// repo, never commit images.
 //
-//   npm install --no-save playwright-core && npm run build
+//   npm install --no-save playwright-core   # already there after `npm ci`
+//   YAK_TEST_BUILD=1 npm run build
 //   node scripts/serve-dist.mjs 4207 &
-//   TARGET=http://127.0.0.1:4207/ node scripts/screens.mjs shoot before/
-//   ... change, rebuild ...
-//   TARGET=http://127.0.0.1:4207/ node scripts/screens.mjs shoot after/
-//   node scripts/screens.mjs compare before/ after/
+//   TARGET=http://127.0.0.1:4207/ node scripts/screens.mjs shoot /tmp/shots/before
+//   ... change, rebuild (same command), restart the server if it serves a copy ...
+//   TARGET=http://127.0.0.1:4207/ node scripts/screens.mjs shoot /tmp/shots/after
+//   node scripts/screens.mjs compare /tmp/shots/before /tmp/shots/after
 //
-// Each shot is taken at 1280, 768 and 375 px, in light and dark. `compare` lists every file whose
-// pixels differ and how many pixels changed.
+// ONLY=notes,tasks limits `shoot` to those shots.
+// Each shot is taken at 1280, 768 and 375 px, in light and dark. The clock is fixed at NOW (seed
+// dates are relative to it), so two runs of the same build give identical pixels. `compare` lists
+// every file whose pixels differ and how many pixels changed, and exits 1 if any do.
 //
 import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -38,22 +42,38 @@ const SEED = {
   ],
 };
 
+// A shot is a route, or a name mapped to one in ROUTES. Pages that only redirect are left out.
+const ONLY = process.env.ONLY?.split(','); // ONLY=notes,tasks shoots just those
 const SHOTS = [
-  'timer', 'entries', 'projects', 'reports', 'reports/detailed', 'reports/weekly', 'notes', 'notes-open', 'tasks', 'tasks-board',
-  'tasks-table', 'settings/backup', 'settings/devices', 'settings/general', 'settings/spaces', 'note-settings', 'help/shortcuts', 'import', 'timer-editing', 'timer-forced', 'tasks-forced',
-  'organize', 'help', 'help/report',
+  'timer', 'week', 'reports', 'reports/detailed', 'reports/weekly', 'notes', 'notes-open', 'tasks', 'tasks-board', 'tasks-table',
+  'settings', 'settings/backup', 'settings/devices', 'note-settings', 'organize', 'help', 'help/shortcuts', 'help/report', 'import',
+  'timer-editing', 'timer-forced', 'tasks-forced',
 ];
+const ROUTES = {
+  timer: 'timer/list', week: 'timer/week', reports: 'timer/reports', 'reports/detailed': 'timer/reports/detailed', 'reports/weekly': 'timer/reports/weekly',
+  'notes-open': 'notes', 'tasks-board': 'tasks/board', 'tasks-table': 'tasks/table', 'timer-editing': 'timer/list', 'timer-forced': 'timer/list', 'tasks-forced': 'tasks',
+};
+
+/** A fresh profile starts on Welcome: name the first space and start with everything on. Skipped when Welcome is absent. */
+async function firstRun(page) {
+  const name = page.locator('input[aria-label="Name of the first space"]');
+  if (!(await name.waitFor({ timeout: 5000 }).then(() => true, () => false))) return;
+  await name.fill('personal');
+  await page.getByRole('button', { name: 'Time, notes and tasks' }).click();
+  await name.waitFor({ state: 'detached' });
+}
 
 async function shoot(outDir) {
   mkdirSync(outDir, { recursive: true });
   const browser = await launch();
   for (const scheme of ['light', 'dark']) {
-    const ctx = await browser.newContext({ colorScheme: scheme, viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+    const ctx = await browser.newContext({ colorScheme: scheme, viewport: { width: 1280, height: 900 }, locale: 'en-US', timezoneId: 'UTC', reducedMotion: 'reduce' });
     const page = await ctx.newPage();
     page.on('pageerror', (e) => console.error('pageerror:', e.message));
     await page.clock.setFixedTime(NOW);
     await page.goto(`${BASE}?test#/timer/reports`);
-    await page.waitForFunction(() => window.__reports);
+    await firstRun(page);
+    await page.waitForFunction(() => window.__reports, null, { timeout: 15000 });
     await page.evaluate((s) => window.__reports.seed('personal', s), SEED);
     await page.goto(`${BASE}?test#/notes`);
     await page.getByRole('toolbar', { name: 'Notes' }).getByRole('button', { name: 'New…', exact: true }).click();
@@ -64,6 +84,7 @@ async function shoot(outDir) {
     await page.waitForTimeout(300);
     await page.locator('.cm-content').click();
     await page.keyboard.type('Kickoff with [[Beta]] about #invoices.');
+    await page.waitForTimeout(300);
     await page.goto(`${BASE}?test#/tasks`);
     for (const t of ['Write report @office due:2026-03-20', 'Call Acme !high', 'Plan sprint']) {
       await page.locator('input[aria-label="New task"]').fill(t);
@@ -72,13 +93,13 @@ async function shoot(outDir) {
     await page.waitForTimeout(300);
     for (const width of [1280, 768, 375]) {
       await page.setViewportSize({ width, height: width > 400 ? 900 : 812 });
-      for (const shot of SHOTS) {
-        const route = { 'notes-open': 'notes', 'tasks-board': 'tasks/board', 'tasks-table': 'tasks/table', 'timer-editing': 'timer/list', 'timer-forced': 'timer/list', 'tasks-forced': 'tasks', timer: 'timer/list' }[shot] ?? shot;
+      for (const shot of SHOTS.filter((x) => !ONLY || ONLY.includes(x))) {
+        const route = ROUTES[shot] ?? shot;
         await page.goto(`${BASE}?test#/${route}`);
         // `-forced` shots set the opposite theme on <html>, as the Settings page does.
         // Route changes keep the document, so every other shot clears it again.
         await page.evaluate((t) => (t ? document.documentElement.setAttribute('data-theme', t) : document.documentElement.removeAttribute('data-theme')), shot.endsWith('-forced') ? (scheme === 'light' ? 'dark' : 'light') : null);
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(800);
         if (shot === 'notes-open') {
           // The note route is #/notes/<uuid>: open the note by clicking it in the tree.
           await page.locator('a.tree-note', { hasText: /^Acme$/ }).click();

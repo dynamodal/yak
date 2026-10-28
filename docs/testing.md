@@ -31,6 +31,7 @@ CI (F-6 in `docs/decisions/app.md`):
 - Shared helpers: `scripts/e2e/lib.mjs` (launch, page factory that fails on page errors and CSP violations, `check`, `until`).
 - `ux-shots` is a dev tool, not a suite: it is left out of the full `npm run e2e` and runs only when named. It screenshots Welcome, every Settings page, the passphrase fields and the share panel at 1280 and 375 px, in the states fresh, one device, two synced devices, keys required and shared. Output goes to `UX_SHOTS_DIR` (default `<tmp>/yak-ux-shots`), never into the repo. The first-run banners are not shown in test pages.
 - `?test` in the URL exposes test hooks (`window.__app`, `__backup`, `__history`, `__reports`) only in a test build (`YAK_TEST_BUILD=1`, which `npm run e2e` sets and marks with `dist/.test-build`); a production build ignores `?test`. They name spaces `personal` and `work` (`src/core/test-ids.ts`).
+- `scripts/screens.mjs` is a dev tool for styling changes: `shoot <dir>` screenshots every page at 1280, 768 and 375 px, light and dark, from a test build with fixed seed data, a fixed clock, UTC and `en-US`; `compare <a> <b>` lists files whose pixels differ. Build with `YAK_TEST_BUILD=1`, serve with `scripts/serve-dist.mjs`, set `TARGET`; the header comment has the steps. Keep the output outside the repo and never commit it.
 - Chromium: `npx playwright-core install chromium` once, or set `CHROME_PATH`.
 - Never run suites against public ntfy.sh; use `scripts/mock-ntfy.mjs`.
 - While working, run only the suites you touch; run them all once before the PR.

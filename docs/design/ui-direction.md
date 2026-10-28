@@ -106,15 +106,14 @@ The pill is the only timer control; the Time page is the log.
   Under about 560 px the label goes and only the round button stays.
 - Running: project dot, description (ellipsis, "(no description)"), elapsed time (tabular) and a round `--stop` button.
 - Two hit areas: the round button starts or stops at once and never opens anything (a start with no description is valid; it uses the popover's draft, in the active space, on the current page); the label opens the popover.
-- Popover (shared `Popover`, a labelled dialog): description, then Recent, then project, tags and billable; footer `Discard` and `Start` (`Update` while running).
+- Popover (shared `Popover`, a labelled dialog): description, then Recent, then project, tags and billable; footer `Start` (`Update` while running). There is no Discard here: a running or stopped entry is deleted from the entries list (soft delete with Undo).
   Recent: first row `Continue: <description> · <project> · stopped <time ago>` (the entry that stopped last in any space), then up to 5 distinct recent combinations.
   Arrow keys move, Enter picks; stopped, a pick starts a new entry, running it fills the running one.
   `Enter` starts or updates, `Esc` closes; a half-typed description survives navigation.
-  Discard while running is a soft delete with an Undo toast; idle it clears the draft.
 - `Alt+S` stopped: starts at once and opens the popover with focus in the description; `Esc` keeps the timer running and returns focus.
   Running: it stops the timer and opens nothing.
   `Alt+T` is Go to Time; both stay as they are (owner, 2026-10-28), rebindable like every shortcut.
-- Narrow (under 30 rem): idle stays on the first row as the round button; running wraps to its own full-width row below the tabs.
+- Narrow: from 360 px the header is at most two rows: row one is the logo, the tab icons, the command and sync controls (and the idle round button); row two exists only while running and is the full-width pill (under 30 rem; wider windows keep the pill on row one). Below 360 px the tabs take their own row, so a running header has three.
 - The Time page has no start bar; its page header has `Add entry` (the manual-entry form).
 - Considered and rejected: a page bar that replaces the pill (Toggl's look, but the control moves), and both at once (two start buttons).
 

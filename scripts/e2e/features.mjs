@@ -48,20 +48,15 @@ const hash = (p) => p.evaluate(() => location.hash);
   await p.evaluate(() => (location.hash = '#/time/list'));
   await seg('List').waitFor();
   check((await seg('Reports').count()) === 1, 'Reports is a segment of the Time page');
+  check((await p.getByLabel('Reports', { exact: true }).count()) === 0, 'there is no separate Reports switch: Reports follows Time');
+  // An old stored `reports` entry (the switch is gone) hides nothing.
+  await p.evaluate(() => localStorage.setItem('hidden_modules', '["reports"]'));
+  await p.evaluate(() => (location.hash = '#/time/reports'));
+  await p.locator('.rp-nav').waitFor();
+  check((await hash(p)) === '#/time/reports', 'a stale `reports` entry in hidden_modules leaves Reports shown');
+  await p.evaluate(() => localStorage.setItem('hidden_modules', '[]'));
   await p.evaluate(() => (location.hash = '#/settings'));
   await p.locator('details.st-tabs-shown > summary').click();
-  await p.getByLabel('Reports', { exact: true }).uncheck();
-  await p.evaluate(() => (location.hash = '#/time/list'));
-  await seg('List').waitFor();
-  check((await seg('Reports').count()) === 0, 'Reports can be hidden: its segment is gone');
-  for (const route of ['#/time/reports', '#/time/reports/detailed', '#/reports', '#/reports/weekly']) {
-    await p.evaluate((r) => (location.hash = r), route);
-    await p.waitForFunction(() => location.hash === '#/time', null, { timeout: 5000 }).catch(() => {});
-    check((await hash(p)) === '#/time', `${route} goes to the timer when Reports is hidden (${await hash(p)})`);
-  }
-  await p.evaluate(() => (location.hash = '#/settings'));
-  await p.locator('details.st-tabs-shown > summary').click();
-  await p.getByLabel('Reports', { exact: true }).check();
   // Hiding Notes hides Tasks too, and the Tasks switch is off and locked.
   await p.getByLabel('Notes', { exact: true }).uncheck();
   check((await tabs(p)).join() === 'Time,Settings', 'Notes off hides Tasks too');
@@ -132,7 +127,6 @@ const hash = (p) => p.evaluate(() => location.hash);
   check((await tabs(p)).join() === 'Notes,Tasks,Settings', `Time off: no Time tab (${(await tabs(p)).join()})`);
   check((await pill(p).count()) === 0, 'Time off: no timer pill in the header');
   check((await hidden(p)) === '["time"]', `the choice is stored on this device (${await hidden(p)})`);
-  check(await p.getByLabel('Reports', { exact: true }).isDisabled(), 'Reports follows Time: its switch is locked');
   for (const route of ['#/time', '#/time/week', '#/time/reports', '#/reports', '#/entries']) {
     await p.evaluate((r) => (location.hash = r), route);
     await p.waitForFunction(() => location.hash === '#/notes', null, { timeout: 5000 }).catch(() => {});

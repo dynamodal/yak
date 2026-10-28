@@ -1,6 +1,5 @@
 import type { BusEvents, EventBus } from '../core/bus';
 import {
-  deleteEntry,
   type EntryFields,
   entryFields,
   type RunningRef,
@@ -41,17 +40,6 @@ export class TimeController {
   stop(ref: Pick<RunningRef, 'spaceId' | 'id'>, now: number = Date.now()): void {
     const doc = this.privateDocs.get(ref.spaceId);
     if (doc && stopEntryAt(doc, ref.id, now)) this.announceStopped([ref]);
-  }
-
-  /**
-   * Discard a running timer: a soft delete (`deleted: true`, restorable for the usual window), never a hard one.
-   * The entry is stopped at `now` first, so a restore brings back the time up to the discard.
-   */
-  discard(ref: Pick<RunningRef, 'spaceId' | 'id'>, now: number = Date.now()): boolean {
-    const doc = this.privateDocs.get(ref.spaceId);
-    if (!doc || !deleteEntry(doc, ref.id, now)) return false;
-    this.announceStopped([ref]);
-    return true;
   }
 
   /** Start a new entry with the fields of a past one. */

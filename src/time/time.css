@@ -225,7 +225,7 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .tp-billable:hover { background: var(--surface-2); }
 .tp-billable.on { color: var(--billable); }
 .tp-billable .ui-icon { width: 1.15rem; height: 1.15rem; }
-.tp-footer { display: flex; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-1); }
+.tp-footer { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-1); }
 .manual-dialog { width: min(30rem, calc(100vw - 1rem)); }
 .manual-title { margin: 0 0 var(--space-3); font-size: var(--text-xl); }
 .manual-form { display: flex; flex-direction: column; gap: var(--space-3); }

@@ -1,9 +1,9 @@
 import type { RefObject } from 'preact';
 import { useId, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { useApp } from '../app/context';
-import { Button, IconBillable, Popover, toast } from '../app/ui';
+import { Button, IconBillable, Popover } from '../app/ui';
 import { ensureTag } from './catalog';
-import { editEntry, entryFields, restoreEntry, type RunningRef } from './entries';
+import { editEntry, entryFields, type RunningRef } from './entries';
 import { type SpaceCatalog, useCatalogs, useController, useRecents, useSpaceName } from './hooks';
 import { ProjectPicker, TagPicker } from './pickers';
 import { type RecentItem, relativeAgo } from './recents';
@@ -26,8 +26,7 @@ export interface TimerPopoverProps {
 /**
  * The pill's details: a description, the recent work to pick from, project, tags and billable. Stopped, it edits the shared
  * draft (so half a description survives navigation, H-21) and Start begins a timer with it; running, it edits the running
- * entry. Enter starts or updates; Esc closes (the Popover does that); Discard clears the draft, or soft-deletes the running
- * entry with an Undo toast.
+ * entry. Enter starts or updates; Esc closes (the Popover does that). Deleting an entry is done from the entries list.
  */
 export function TimerPopover({ id, anchor, current, onClose, onEscape }: TimerPopoverProps) {
   const { spaceId, setSpaceId, spaceDocs, privateDocs } = useApp();
@@ -96,25 +95,6 @@ export function TimerPopover({ id, anchor, current, onClose, onEscape }: TimerPo
       startFromDraft(controller, spaceId, spaceDocs, setSpaceId);
       done();
     }
-  };
-  const discard = (): void => {
-    if (current) {
-      const { spaceId: sid, id } = current;
-      if (controller.discard(current)) {
-        toast('Timer discarded.', {
-          action: {
-            label: 'Undo',
-            run: () => {
-              const doc = privateDocs.get(sid);
-              if (doc) restoreEntry(doc, id);
-            },
-          },
-        });
-      }
-    } else {
-      setDraft(EMPTY_DRAFT);
-    }
-    done();
   };
   const pick = (item: RecentItem): void => {
     const f = entryFields(item.entry);
@@ -231,9 +211,6 @@ export function TimerPopover({ id, anchor, current, onClose, onEscape }: TimerPo
           </p>
         ) : null}
         <div class="tp-footer">
-          <Button variant="danger" class="tp-discard" onClick={discard}>
-            Discard
-          </Button>
           <Button variant="primary" type="submit" class="tp-go">
             {current ? 'Update' : 'Start'}
           </Button>

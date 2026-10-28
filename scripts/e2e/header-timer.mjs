@@ -1,8 +1,8 @@
 // End-to-end for the timer pill and the running cue (docs/decisions/header-timer.md, F-33j and F-33k): the round button
 // starts and stops at once and opens nothing; the label opens the details popover (description, Recent, project, tags,
-// billable, Start/Update, Discard); Alt+S starts and opens it with focus in the description, Esc keeps it running, Alt+S
-// stops without a popover; recents across spaces; Discard is a soft delete with Undo; the draft survives navigation;
-// the title, favicon and app badge follow; 375 px layout (idle on one row, running on its own row).
+// billable, Start/Update); Alt+S starts and opens it with focus in the description, Esc keeps it running, Alt+S
+// stops without a popover; recents across spaces; deleting a running entry from the list is a soft delete with Undo; the draft survives navigation;
+// the title, favicon and app badge follow; 360 px and wider: one header row idle, two while running (320: three).
 // Runs against dist/ served with the real headers, so CSP violations fail the run.
 //
 //   npm run e2e header-timer
@@ -97,7 +97,7 @@ const clockSeconds = async (p) => {
   const rowTexts = await d.locator('.tp-recent-row').allInnerTexts();
   check(rowTexts[0]?.startsWith('Continue:') && rowTexts[0].includes('stopped'), `the first Recent row is Continue with a stopped time (${rowTexts[0]})`);
   check(rowTexts.some((t) => t.includes('Header check')), 'Recent lists earlier work');
-  check((await d.getByRole('button', { name: 'Start', exact: true }).count()) === 1 && (await d.getByRole('button', { name: 'Discard' }).count()) === 1, 'the stopped popover has Start and Discard');
+  check((await d.getByRole('button', { name: 'Start', exact: true }).count()) === 1, 'the stopped popover has Start');
   check(await d.getByLabel('Description', { exact: true }).evaluate((el) => el === document.activeElement), 'the description has focus when the popover opens');
   // Esc closes and focus returns to the label.
   await p.keyboard.press('Escape');
@@ -160,14 +160,21 @@ const clockSeconds = async (p) => {
   await d.getByRole('button', { name: 'Update' }).click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === 'Renamed while running'; }), 'Update changes the running entry');
 
-  // Discard while running: a soft delete, with an Undo toast.
+  // No Discard in the popover; a running entry is deleted from the entries list (Week shows it), a soft delete with Undo.
   d = await openDetails(p);
-  await d.getByRole('button', { name: 'Discard' }).click();
-  check(await poll(async () => (await running(p)).length === 0), 'Discard stops the running timer');
+  check((await d.getByRole('button', { name: 'Discard' }).count()) === 0, 'the popover has no Discard button');
+  await p.keyboard.press('Escape');
+  await p.evaluate(() => { location.hash = '#/time/week'; });
+  const row = p.locator('.te-row', { hasText: 'Renamed while running' }).first();
+  await row.waitFor();
+  await row.hover();
+  await row.getByRole('button', { name: 'More actions: Renamed while running' }).click();
+  await p.getByRole('menuitem', { name: 'Delete' }).click();
+  check(await poll(async () => (await running(p)).length === 0), 'deleting the running entry from the list stops the timer');
   const gone = (await entries(p)).find((e) => e.description === 'Renamed while running');
-  check(gone && gone.deleted === true, 'Discard is a soft delete (the entry is kept, marked deleted)');
+  check(gone && gone.deleted === true, 'the delete is a soft delete (the entry is kept, marked deleted)');
   await p.getByRole('button', { name: 'Undo' }).click();
-  check(await poll(async () => { const e = (await entries(p)).find((x) => x.description === 'Renamed while running'); return e && !e.deleted && e.stop !== null; }), 'Undo brings the discarded entry back, stopped');
+  check(await poll(async () => { const e = (await entries(p)).find((x) => x.description === 'Renamed while running'); return e && !e.deleted && e.stop !== null; }), 'Undo brings it back, stopped');
 
   // Continue across spaces: the entry that stopped last in Work continues in Work, from Personal.
   await inWork(p);
@@ -228,12 +235,12 @@ const clockSeconds = async (p) => {
     const sync = await p.locator('.sync-btn').boundingBox();
     const cmd = await p.locator('.palette-btn').boundingBox();
     const tabs = await p.locator('.tabs').boundingBox();
-    check(sync && cmd && sync.x + sync.width <= 375 && cmd.x + cmd.width <= sync.x && sync.y + sync.height <= tabs.y + 1 && box.y >= tabs.y + tabs.height - 1, `375 px on ${view}: the command and sync buttons stay on the first row and the running pill has its own row below the tabs`);
+    check(sync && cmd && sync.x + sync.width <= 375 && cmd.x + cmd.width <= sync.x && Math.abs(tabs.y - sync.y) < 14 && tabs.x + tabs.width <= cmd.x + 1 && box.y >= Math.max(tabs.y + tabs.height, sync.y + sync.height) - 1, `375 px on ${view}: logo, tabs, command and sync share row one and the running pill has row two (two rows)`);
     check(box.width > 335, `375 px on ${view}: the running pill is full width (${Math.round(box.width)})`);
   }
   check((await p.locator('.brand-icon').isVisible()) && (await p.locator('.brand-name').boundingBox())?.width <= 2, '375 px: the logo shows and the app name is hidden (kept for screen readers)');
   const top = await p.evaluate(() => document.querySelector('main.view').getBoundingClientRect().top);
-  check(top < 170, `375 px running (two rows): content starts under 170 px (${Math.round(top)}); the limit is higher than idle's 110 px by design`);
+  check(top < 130, `375 px running (two rows): content starts under 130 px (${Math.round(top)}); the limit is higher than idle's 110 px by design`);
   const stop = await stopRound(p).boundingBox();
   check(stop && stop.x + stop.width <= 375 && stop.width >= 24, '375 px: stop button visible and tappable');
   const text = await header(p).locator('.tp-desc').boundingBox();
@@ -243,7 +250,21 @@ const clockSeconds = async (p) => {
   await sleep(200);
   const o = await overflow(p);
   check(o <= 0, `375 px stopped with a long last entry: no horizontal scroll (${o})`);
-  // Even narrower
+  // 360 to 414 px: at most two rows while running, one while idle
+  for (const width of [360, 390, 414]) {
+    await p.setViewportSize({ width, height: 800 });
+    await startRound(p).click();
+    await poll(async () => (await running(p)).length === 1);
+    const h = (await p.locator('.topbar').boundingBox()).height;
+    const t = await p.locator('.tabs').boundingBox();
+    const s2 = await p.locator('.sync-btn').boundingBox();
+    check(Math.abs(t.y - s2.y) < 14 && h < 125 && (await overflow(p)) <= 0, `${width} px running: two rows (tabs beside sync; header ${Math.round(h)} px)`);
+    await stopRound(p).click();
+    await poll(async () => (await running(p)).length === 0);
+    const hi = (await p.locator('.topbar').boundingBox()).height;
+    check(hi < 70, `${width} px idle: one row (header ${Math.round(hi)} px)`);
+  }
+  // Below 360 px the tabs keep their own row (three rows while running)
   await p.setViewportSize({ width: 320, height: 800 });
   await startRound(p).click();
   await poll(async () => (await running(p)).length === 1);

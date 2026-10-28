@@ -27,10 +27,13 @@ describe('hidden modules', () => {
     expect([...effectiveHidden(['notes'])].sort()).toEqual(['notes', 'tasks']);
     expect([...effectiveHidden(['tasks'])]).toEqual(['tasks']);
   });
-  it('hiding Time also hides Reports; Reports can be hidden alone', () => {
-    expect([...effectiveHidden(['time'])].sort()).toEqual(['reports', 'time']);
-    expect([...effectiveHidden(['reports'])]).toEqual(['reports']);
-    expect([...effectiveHidden(['time', 'reports'])].sort()).toEqual(['reports', 'time']);
+  it('Reports has no switch of its own: an old stored `reports` entry is dropped and hides nothing', () => {
+    expect(readHiddenModules(store('["reports"]'))).toEqual([]);
+    expect(readHiddenModules(store('["reports","time"]'))).toEqual(['time']);
+    const old = effectiveHidden(readHiddenModules(store('["reports"]')));
+    expect(['timer', 'reports'].map((id) => viewHidden(id, old))).toEqual([false, false]);
+    expect(hiddenRoute(['time', 'reports'], views, old)).toBe(false);
+    expect(commandHidden('go.reports', old)).toBe(false);
   });
   it('knows the time id', () => {
     expect(readHiddenModules(store('["time","notes"]'))).toEqual(['time', 'notes']);
@@ -38,10 +41,10 @@ describe('hidden modules', () => {
 });
 
 describe('registry filter', () => {
-  const hidden = effectiveHidden(['notes', 'reports']);
+  const hidden = effectiveHidden(['notes', 'time']);
   it('hides the views of hidden features, never Settings or backups', () => {
-    expect(['notes', 'tasks', 'reports', 'notes-settings'].map((id) => viewHidden(id, hidden))).toEqual([true, true, true, true]);
-    expect(['timer', 'backup', 'devices', 'mirror', 'import', 'settings'].map((id) => viewHidden(id, hidden))).toEqual([false, false, false, false, false, false]);
+    expect(['notes', 'tasks', 'reports', 'notes-settings', 'timer'].map((id) => viewHidden(id, hidden))).toEqual([true, true, true, true, true]);
+    expect(['backup', 'devices', 'mirror', 'import', 'settings'].map((id) => viewHidden(id, hidden))).toEqual([false, false, false, false, false]);
   });
   it('Time off hides the Time page, its old Entries route, Reports and the timer commands', () => {
     const noTime = effectiveHidden(['time']);
@@ -61,8 +64,8 @@ describe('registry filter', () => {
     expect(commandHidden('notes.find', hidden)).toBe(true);
     expect(commandHidden('go.tasks', hidden)).toBe(true);
     expect(commandHidden('go.reports', hidden)).toBe(true);
-    expect(commandHidden('go.timer', hidden)).toBe(false);
-    expect(commandHidden('timer.toggle', hidden)).toBe(false);
+    expect(commandHidden('go.timer', hidden)).toBe(true);
+    expect(commandHidden('timer.toggle', hidden)).toBe(true);
   });
   it('filters search results by kind', () => {
     expect(searchKindHidden('note', hidden)).toBe(true);
@@ -73,18 +76,19 @@ describe('registry filter', () => {
   });
   it('knows a hidden page by its route, in Settings too', () => {
     expect(hiddenRoute(['notes', 'abc'], views, hidden)).toBe(true);
-    expect(hiddenRoute(['time'], views, hidden)).toBe(false);
+    expect(hiddenRoute(['time'], views, hidden)).toBe(true);
+    expect(hiddenRoute(['time'], views, effectiveHidden(['notes']))).toBe(false);
     expect(hiddenRoute(['settings', 'import'], views, effectiveHidden(['import']))).toBe(true);
     expect(hiddenRoute(['settings', 'backup'], views, effectiveHidden(['import']))).toBe(false);
     expect(hiddenRoute(['settings', 'nothing'], views, hidden)).toBe(false);
   });
-  it('knows a hidden view that joins the Time page', () => {
-    const noReports = effectiveHidden(['reports']);
-    expect(hiddenRoute(['time', 'reports'], views, noReports)).toBe(true);
-    expect(hiddenRoute(['time', 'reports', 'detailed'], views, noReports)).toBe(true);
-    expect(hiddenRoute(['reports'], views, noReports)).toBe(true);
+  it('knows a hidden view that joins the Time page: Reports follows Time', () => {
+    const noTime = effectiveHidden(['time']);
+    expect(hiddenRoute(['time', 'reports'], views, noTime)).toBe(true);
+    expect(hiddenRoute(['time', 'reports', 'detailed'], views, noTime)).toBe(true);
+    expect(hiddenRoute(['reports'], views, noTime)).toBe(true);
     expect(hiddenRoute(['time', 'reports'], views, effectiveHidden([]))).toBe(false);
-    expect(hiddenRoute(['time', 'week'], views, noReports)).toBe(false);
+    expect(hiddenRoute(['time', 'week'], views, effectiveHidden([]))).toBe(false);
   });
 });
 

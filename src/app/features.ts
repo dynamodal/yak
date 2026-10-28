@@ -8,13 +8,12 @@ import { useEffect, useState } from 'preact/hooks';
  * the tab, Reports, the timer pill, the timer commands and the running cue go; a running timer must be
  * stopped first (`setFeatureBlock`), so a timer is never left running out of sight on this device.
  */
-export type FeatureId = 'time' | 'notes' | 'tasks' | 'reports' | 'mirror' | 'import';
+export type FeatureId = 'time' | 'notes' | 'tasks' | 'mirror' | 'import';
 
 export const FEATURES: readonly { id: FeatureId; title: string; hint: string }[] = [
   { id: 'time', title: 'Time', hint: 'The timer, the log, the week and reports' },
   { id: 'notes', title: 'Notes', hint: 'Markdown notes. Hiding Notes also hides Tasks.' },
   { id: 'tasks', title: 'Tasks', hint: 'Tasks are notes with a due date or status.' },
-  { id: 'reports', title: 'Reports', hint: 'Totals and charts of your time. Hiding Time also hides Reports.' },
   { id: 'mirror', title: 'Mirror', hint: 'Keep a folder of Markdown files in step with your notes. Needs folder access in the browser.' },
   { id: 'import', title: 'Import', hint: 'Bring in a Toggl or CSV export.' },
 ];
@@ -29,7 +28,8 @@ const VIEW_FEATURE: Readonly<Record<string, FeatureId>> = {
   notes: 'notes',
   'notes-settings': 'notes',
   tasks: 'tasks',
-  reports: 'reports',
+  // Reports is a segment of the Time page, so it follows Time (F-33m); an old stored `reports` id is not a known feature and is ignored.
+  reports: 'time',
   import: 'import',
 };
 
@@ -62,11 +62,10 @@ function safeStorage(): Storage | undefined {
   }
 }
 
-/** What is hidden in effect: the stored list, plus Tasks whenever Notes is hidden and Reports whenever Time is hidden. */
+/** What is hidden in effect: the stored list, plus Tasks whenever Notes is hidden. */
 export function effectiveHidden(stored: readonly FeatureId[]): Set<FeatureId> {
   const out = new Set(stored);
   if (out.has('notes')) out.add('tasks');
-  if (out.has('time')) out.add('reports');
   return out;
 }
 

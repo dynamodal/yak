@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EventBus } from '../core/bus';
 import { TimeController } from './controller';
-import { collection } from '../core/schema';
-import { findRunning, liveEntries, restoreEntry } from './entries';
+import { findRunning, liveEntries } from './entries';
 import { at, makeSpaceDocs, syncDevices } from './testing';
 
 const T0 = at(2026, 10, 14, 9);
@@ -24,22 +23,6 @@ describe('TimeController', () => {
     expect(events).toEqual([`started personal ${a}`, `stopped personal ${a}`, `started work ${b}`]);
     ctl.stop({ spaceId: 'work', id: b }, T0 + 120_000);
     expect(events.at(-1)).toBe(`stopped work ${b}`);
-  });
-
-  it('discards a running timer as a soft delete that can be restored, and announces the stop', () => {
-    const { ctl, docs, events } = setup();
-    const id = ctl.start('personal', { description: 'oops' }, T0);
-    expect(ctl.discard({ spaceId: 'personal', id }, T0 + 90_000)).toBe(true);
-    expect(findRunning(docs)).toHaveLength(0);
-    expect(liveEntries(docs.get('personal')!)).toHaveLength(0);
-    expect(events.at(-1)).toBe(`stopped personal ${id}`);
-    const doc = docs.get('personal')!;
-    expect(collection(doc, 'time_entries').get(id)?.get('deleted')).toBe(true);
-    expect(restoreEntry(doc, id, T0 + 100_000)).toEqual({ ok: true });
-    const back = liveEntries(doc)[0]!;
-    expect(back).toMatchObject({ description: 'oops', duration: 90 });
-    expect(back.stop).not.toBeNull();
-    expect(ctl.discard({ spaceId: 'nowhere', id }, T0)).toBe(false);
   });
 
   it('starts from a bus request, with the task and project', () => {

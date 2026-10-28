@@ -1,0 +1,22 @@
+# Changes to these paths need the owner's review: the `main` ruleset requires code-owner approval.
+# They run code at install, build, CI or deploy time, or steer AI agents working on the repo.
+
+# Dependencies and compiler settings
+/package.json         @thomascwells
+/package-lock.json    @thomascwells
+/.node-version        @thomascwells
+/tsconfig.json        @thomascwells
+/worker/tsconfig.json @thomascwells
+
+# Build and deploy config
+/vite.config.ts          @thomascwells
+/obsidian/vite.config.ts @thomascwells
+/wrangler.jsonc          @thomascwells
+
+# CI, Dependabot, release and helper scripts
+/.github/ @thomascwells
+/scripts/ @thomascwells
+
+# Agent instructions
+/CLAUDE.md @thomascwells
+/.claude/  @thomascwells

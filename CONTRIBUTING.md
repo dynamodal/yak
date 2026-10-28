@@ -5,6 +5,7 @@ Thanks for helping. Yak is a small project; the aim is a few well-understood par
 ## Before you start
 
 - Open an issue first for anything bigger than a typo or small fix, and wait for a yes.
+- Only collaborators can open pull requests; if you are not one, start with an issue.
 - Read [docs/goals.md](docs/goals.md): principles, constraints and rejected ideas.
 - Read [docs/architecture.md](docs/architecture.md) for the code layout.
 

@@ -1,5 +1,10 @@
 # What's new
 
+## 2026-10-28: No "Keep all spaces" flash after joining
+
+- A device you approved by one-time code no longer shows the **Keep all spaces** notice for a few seconds before opening the Timer.
+- Spaces that appear later still ask.
+
 ## 2026-10-27: Coming back to a share connects faster
 
 - After a share was ended and you join again with a new link, the two devices now find each other within seconds; before, it could take a minute or more before anything synced.

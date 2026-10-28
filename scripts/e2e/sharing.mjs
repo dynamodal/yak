@@ -25,6 +25,13 @@ const idOf = (p) => hook(p, () => window.__app.deviceId());
 const append = (p, id, s) => hook(p, ([i, x]) => window.__app.append(i, 't', x), [id, s]);
 const text = (p, id) => hook(p, (i) => window.__app.text(i, 't'), id);
 const view = (p, space) => hook(p, (s) => window.__app.shareView(s), space);
+/** On a failed wait, print what each device's share mesh and log say (the hang in #30 shows only on a loaded CI runner). */
+const dump = async (why) => {
+  for (const [name, p] of [['A1', a1], ['B1', b1]]) {
+    console.log(`--- ${why}: ${name} view ${JSON.stringify(await view(p, spaceS))}`);
+    console.log(await hook(p, (s) => window.__app.shareDebug(s), spaceS).catch((e) => `no log: ${e.message}`));
+  }
+};
 const unlock = (p, pass) => until(async () => (await hook(p, (x) => window.__app.unlock(x), pass)) === 'ok', 30000);
 
 // Account A: two devices. Account B: one device.
@@ -72,7 +79,7 @@ await hook(a1, (id) => window.__app.shareApprove(id), reqA.id);
 (await until(async () => (await view(b1, spaceS))?.active && (await view(a1, spaceS))?.members.includes(fpB), 30000)) >= 0 ? ok('B and A both list B as a member') : fail(`views ${JSON.stringify([await view(a1, spaceS), await view(b1, spaceS)])}`);
 
 // Edit it both ways.
-(await until(async () => ((await text(b1, docS)) ?? '').includes('A-before'), 60000)) >= 0 ? ok('B receives what A wrote before sharing') : fail('B has nothing of A');
+(await until(async () => ((await text(b1, docS)) ?? '').includes('A-before'), 60000)) >= 0 ? ok('B receives what A wrote before sharing') : (fail('B has nothing of A'), await dump('first sync'));
 await append(b1, docS, 'B-edit ');
 (await until(async () => ((await text(a1, docS)) ?? '').includes('B-edit') && ((await text(a2, docS)) ?? '').includes('B-edit'), 60000)) >= 0 ? ok("B's edit reaches both of A's devices") : fail('B edit did not arrive');
 await append(a2, docS, 'A2-edit ');
@@ -125,7 +132,7 @@ await hook(b1, ([c, n]) => window.__app.shareAsk(c, n), [link2, 'Bob']);
 await hook(b1, () => window.__app.shareConfirm());
 await hook(a1, async () => window.__app.shareApprove((await window.__app.shareHost()).requests[0].id));
 (await until(async () => (await hook(b1, () => window.__app.shareJoin()))?.phase === 'done', 40000)) >= 0 ? ok('B is back in the share') : fail(`B rejoin ${JSON.stringify(await hook(b1, () => window.__app.shareJoin()))}`);
-(await until(async () => ((await text(b1, docS)) ?? '').includes('A-after-delete'), 60000)) >= 0 ? ok('B catches up with what it missed') : fail('B did not catch up');
+(await until(async () => ((await text(b1, docS)) ?? '').includes('A-after-delete'), 60000)) >= 0 ? ok('B catches up with what it missed') : (fail('B did not catch up'), await dump('catch up'));
 await append(b1, docS, 'B-readded ');
 (await until(async () => ((await text(a1, docS)) ?? '').includes('B-readded'), 60000)) >= 0 ? ok("and B's edits reach A again") : fail('B edit did not arrive');
 

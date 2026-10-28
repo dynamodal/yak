@@ -43,11 +43,14 @@ try {
   check((await until(async () => (await byPath(a, 'Projects/Acme.md')) !== undefined)) >= 0, 'Move to… put it in a new folder Projects');
   check((await a.locator('.note-crumbs').innerText()).includes('Projects'), 'breadcrumbs show the folder');
   // The editor sits on the page without a form-style border; clicking it still focuses the text.
-  const surface = await a.evaluate(() => {
-    const s = getComputedStyle(document.querySelector('.note-editor'));
-    return { width: s.borderTopWidth, shadow: s.boxShadow };
-  });
-  check(surface.width === '0px' && surface.shadow === 'none', 'the note editor has no border');
+  // Focus may still be leaving the editor (the title's Enter put it there, then the dialog took it),
+  // and box-shadow and background fade over 0.12 s: wait for the resting style, not a mid-fade value (#30).
+  const restingSurface = () =>
+    a.evaluate(() => {
+      const s = getComputedStyle(document.querySelector('.note-editor'));
+      return s.borderTopWidth === '0px' && s.boxShadow === 'none';
+    });
+  check((await until(restingSurface)) >= 0, 'the note editor has no border');
   const lit = () => a.evaluate(() => getComputedStyle(document.querySelector('.note-editor')).boxShadow);
   await a.locator('.cm-content').click();
   check((await lit()) !== 'none', 'the note editor shows an accent line while it has focus');

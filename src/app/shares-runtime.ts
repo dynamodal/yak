@@ -144,6 +144,15 @@ export class Shares {
     await this.running;
   }
 
+  /** The mesh's event log and peers for one share (test builds print it when a suite fails). */
+  debugText(space: string): string {
+    const e = this.entries.get(space);
+    if (!e?.svc) return '(no mesh)';
+    const svc = e.svc;
+    const trusted = svc.status.peers.map((p) => `${p.id.slice(0, 8)} verified=${svc.isVerified(p.id)} trusted=${e.trust.peer(p.id) !== undefined} account=${e.trust.accountOf.get(p.id)?.slice(0, 6)}`);
+    return `trust active=${e.trust.active} proof=${!!e.trust.proof} peers=[${[...e.trust.peers.keys()].map((i) => i.slice(0, 8))}]\n${trusted.join('\n')}\npeers ${JSON.stringify(svc.status.peers)}\n${svc.log.toText()}`;
+  }
+
   pinsOf(space: string): SharePins {
     return this.pins.load(space);
   }

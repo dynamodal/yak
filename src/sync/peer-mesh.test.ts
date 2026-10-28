@@ -582,6 +582,27 @@ describe('PeerMesh', () => {
     expect(hub.publishes - before).toBeLessThanOrEqual(1 + 3 + 3 * 2);
   });
 
+  it('keys required: answers the hello of a peer whose mesh restarted right after our last reply, once the interval is over (#30)', async () => {
+    const { keys, hub, net } = await setup();
+    hub.noHistory = true;
+    const certs = await Certs.of(['aaa', 'bbb']);
+    certs.required = true;
+    const a = makeDevice('aaa', keys, hub, net, { identity: certs.identity('aaa') });
+    const b = makeDevice('bbb', keys, hub, net, { identity: certs.identity('bbb') });
+    running.push(a, b);
+    b.mesh.start();
+    a.mesh.start();
+    await waitFor(() => connectedTo(a).length === 1 && connectedTo(b).length === 1, 3000, 'first link');
+    // The initiator's mesh is made again (a share member coming back) while b's reply is seconds old: it knows no peer
+    // yet, so it waits for b's hello, and b used to wait for a's.
+    a.mesh.stop();
+    await waitFor(() => connectedTo(b).length === 0, 3000, 'b sees the link end');
+    const again = makeDevice('aaa', keys, hub, net, { identity: certs.identity('aaa') });
+    running.push(again);
+    again.mesh.start();
+    await waitFor(() => connectedTo(again).length === 1 && connectedTo(b).length === 1, 9000, 'linked again after the interval');
+  }, 15000);
+
   it('ignores a removed device', async () => {
     const { keys, hub, net } = await setup();
     const blocked = new Set(['ccc']);

@@ -151,13 +151,13 @@ export async function addPendingLocalSpaces(state: AccountState, storage: Storag
   }
   storage.setItem(PENDING_KEY, '{}');
   await state.refresh();
-  // The join began on Settings (no spaces yet); now that there are some, start on the Timer. A deeper link is left alone.
+  // The join began on Settings (no spaces yet); now that there are some, start on the Time page. A deeper link is left alone.
   if (parsed.keepAccountSpaces && readSpaces(state.doc).length > 0) goToTimerFromBareSettings();
 }
 
-/** After a join: leave Settings (where joining happens) for the Timer, unless the person already went to Notes, Tasks or the like. */
+/** After a join: leave Settings (where joining happens) for the Time page, unless the person already went to Notes, Tasks or the like. */
 function goToTimerFromBareSettings(): void {
   if (typeof location === 'undefined') return;
   const path = location.hash.replace(/^#\/?/, '').replace(/\/+$/, '');
-  if (path === '' || path === 'settings' || path.startsWith('settings/') || path === 'welcome') location.hash = '#/timer';
+  if (path === '' || path === 'settings' || path.startsWith('settings/') || path === 'welcome') location.hash = '#/time';
 }

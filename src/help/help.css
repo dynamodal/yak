@@ -10,11 +10,8 @@
 .help-section { scroll-margin-top: 1rem; }
 .help-link { font-size: var(--text-sm); }
 
-.help-btn { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border: 1px solid var(--border); border-radius: 50%; color: var(--muted); text-decoration: none; font-weight: var(--weight-semibold); }
+.help-btn { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--muted); text-decoration: none; font-weight: var(--weight-semibold); }
 .help-btn:hover { color: var(--text); }
-@media (max-width: 20rem) {
-  .help-btn { display: none; }
-}
 .help-report-bar { display: flex; gap: 0.5rem; align-items: center; margin: 0.25rem 0 1rem; }
 
 .report-form { display: flex; flex-direction: column; gap: var(--space-3); max-width: 42rem; margin: var(--space-3) 0; }
@@ -30,8 +27,6 @@
 .oss-license { font-size: var(--text-sm); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 0.3rem; margin-left: 0.25rem; }
 .oss-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-sm); background: var(--surface-2); padding: 0.5rem; border-radius: var(--radius); max-height: 20rem; }
 
-.help-btn { position: relative; }
-.help-dot { position: absolute; top: -0.15rem; right: -0.15rem; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--accent); border: 1px solid var(--surface); }
 .change-date { font-size: var(--text-sm); font-weight: 400; margin-left: 0.4rem; }
 
 /* The alpha banner sits outside any page: keep it off the screen edges on a phone. */

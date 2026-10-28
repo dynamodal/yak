@@ -24,7 +24,7 @@ import { completePendingReplace, replacePending } from '../backup/replace';
 import { startOffline } from '../offline/client';
 import { logSharingOn, onLogSharingChange } from '../sync/log-sharing';
 import { SharedLogWriter } from '../sync/shared-log';
-import { SyncService } from '../sync/sync-service';
+import { SyncService, type SyncStatus } from '../sync/sync-service';
 import { createTransport } from '../sync/transport-factory';
 import { friendlyDocId, testDocId } from '../core/test-ids';
 import { AccountState } from './account-state';
@@ -246,6 +246,8 @@ async function boot(): Promise<void> {
       peers: () => sync.status.peers.map((p) => ({ id: p.id, state: p.state })),
       deviceId: () => me,
       dropLink: (peerId?: string) => sync.dropForTest(peerId),
+      /** Show this sync status instead of the real one (`null` restores it): the header's sync shapes without real devices. */
+      fakeStatus: (s: Partial<SyncStatus> | null) => sync.setStatusForTest(s ? { paired: false, state: 'stopped', peers: [], signalingUrl: '', signalingProblem: false, ...s } : undefined),
       /** Device keys (#256): sign "keys required" with the account key this device holds; what this device knows. */
       requireKeys: () => accountKeys.requireKeysForTest?.() ?? Promise.resolve(false),
       /** Slice 3 (#257): unlock with the passphrase, the switch with approvals, approve a known device. */

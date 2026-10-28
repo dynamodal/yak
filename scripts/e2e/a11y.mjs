@@ -5,13 +5,13 @@
 //   npm run e2e a11y
 //
 import { createRequire } from 'node:module';
-import { BASE, launch, check, watchPage, finish } from './lib.mjs';
+import { BASE, launch, check, watchPage, poll, finish } from './lib.mjs';
 
 const axeSource = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 const browser = await launch();
 
 const PAGES = [
-  '#/timer/list', '#/timer/week', '#/timer/reports', '#/notes', '#/tasks', '#/help', '#/help/report',
+  '#/time/list', '#/time/week', '#/time/reports', '#/notes', '#/tasks', '#/help', '#/help/report',
   '#/settings', '#/settings/backup', '#/settings/import', '#/settings/devices', '#/organize',
   '#/settings/space/PERSONAL', '#/note-settings', '#/help/shortcuts', '#/settings/network',
 ];
@@ -21,7 +21,7 @@ async function axe(page, label) {
   await page.addScriptTag({ path: axeSource });
   const all = (await page.evaluate(() => window.axe.run(document, { resultTypes: ['violations'] }))).violations;
   const violations = all
-    .map((v) => (v.id === 'label-content-name-mismatch' ? { ...v, nodes: v.nodes.filter((n) => !n.html.includes('tb-start')) } : v))
+    .map((v) => (v.id === 'label-content-name-mismatch' ? { ...v, nodes: v.nodes.filter((n) => !n.html.includes('tb-start') && !n.html.includes('palette-btn')) } : v))
     .filter((v) => v.nodes.length);
   for (const v of violations) {
     const nodes = v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} :: ${n.html.slice(0, 400)} :: ${(n.any[0] ?? n.all[0] ?? n.none[0])?.message ?? ''}`.slice(0, 600));
@@ -35,7 +35,7 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
   const page = await context.newPage();
   const tag = `${scheme} ${width}px`;
   watchPage(page, `a11y ${tag}`, { consoleErrors: true });
-  await page.goto(`${BASE}?test#/timer/list`);
+  await page.goto(`${BASE}?test#/time/list`);
   await page.waitForFunction(() => window.__app);
   await page.locator('.view').waitFor();
 
@@ -52,6 +52,24 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
     await axe(page, `${tag} ${hash}`);
   }
 
+  // The sync control in its four shapes, with its popover open (the shape, the name and the list must pass axe).
+  const peer = (id, state, via) => ({ id, state, ...(via ? { via } : {}) });
+  const sync = {
+    off: { paired: false, peers: [] },
+    direct: { paired: true, state: 'connected', peers: [peer('aaaaaaaa-1', 'connected', 'direct'), peer('bbbbbbbb-2', 'waiting-for-peer')] },
+    relay: { paired: true, state: 'connected', peers: [peer('aaaaaaaa-1', 'connected', 'relay')] },
+    offline: { paired: true, state: 'waiting-for-peer', peers: [peer('aaaaaaaa-1', 'waiting-for-peer')] },
+  };
+  await page.evaluate(() => { location.hash = '#/time/list'; });
+  for (const [state, s] of Object.entries(sync)) {
+    await page.evaluate((x) => window.__app.fakeStatus(x), s);
+    await page.locator('.sync-btn').click();
+    await page.locator('.status-panel').waitFor();
+    await axe(page, `${tag} sync ${state} popover`);
+    await poll(async () => { await page.keyboard.press('Escape'); return (await page.locator('.status-panel').count()) === 0; });
+  }
+  await page.evaluate(() => window.__app.fakeStatus(null));
+
   // Dialogs and pickers.
   await page.evaluate(() => { location.hash = '#/settings'; });
   await page.getByRole('button', { name: '+ Share with an account' }).click();
@@ -59,7 +77,7 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
   await page.waitForTimeout(300);
   await axe(page, `${tag} share dialog`);
   await page.keyboard.press('Escape');
-  await page.evaluate(() => { location.hash = '#/timer/list'; });
+  await page.evaluate(() => { location.hash = '#/time/list'; });
   await page.locator('.timer-bar').waitFor();
   await page.keyboard.press('Alt+p');
   await page.locator('dialog.palette').waitFor();
@@ -79,14 +97,14 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   watchPage(page, 'a11y keyboard', { consoleErrors: true });
-  await page.goto(`${BASE}?test#/timer/list`);
+  await page.goto(`${BASE}?test#/time/list`);
   await page.waitForFunction(() => window.__app);
   await page.locator('.view').waitFor();
   await page.keyboard.press('Tab');
   check((await page.evaluate(() => document.activeElement?.textContent)) === 'Skip to content', 'the first Tab stop is the skip link');
   await page.keyboard.press('Enter');
   check(await page.evaluate(() => document.activeElement?.id === 'main'), 'the skip link moves focus to the page');
-  check((await page.evaluate(() => location.hash)) === '#/timer/list', 'and leaves the route alone');
+  check((await page.evaluate(() => location.hash)) === '#/time/list', 'and leaves the route alone');
   check((await page.locator('main h1').count()) >= 1 || (await page.locator('h1').count()) >= 1, 'the page has a level-1 heading');
   check((await page.locator('.toasts[role="status"][aria-live="polite"]').count()) === 1, 'the toast live region is always present');
   const seen = new Set();

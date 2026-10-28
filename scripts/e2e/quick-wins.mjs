@@ -29,7 +29,7 @@ const browser = await launch();
   check(await poll(async () => p.evaluate(() => !!document.activeElement?.closest('.note-editor'))), 'Enter in the title moves focus to the note body');
   check((await title.inputValue()) === 'Quick win', 'the typed title is kept');
 
-  await p.evaluate(() => { location.hash = '#/timer/reports'; });
+  await p.evaluate(() => { location.hash = '#/time/reports'; });
   const section = p.locator('#rp-table');
   await section.getByRole('button', { name: 'Download CSV' }).waitFor();
   check((await section.getByRole('button', { name: 'Copy as Markdown' }).count()) === 1, 'Reports: Download CSV sits next to Copy as Markdown');
@@ -45,7 +45,7 @@ const browser = await launch();
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const p = await context.newPage();
   watchPage(p, 'phone', { consoleErrors: true });
-  await p.goto(`${BASE}?test#/timer`);
+  await p.goto(`${BASE}?test#/time`);
   await p.locator('.header-timer').waitFor();
   await p.getByLabel('Description', { exact: true }).fill('Phone entry');
   await p.getByLabel('Start', { exact: true }).click();

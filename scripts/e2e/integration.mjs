@@ -26,17 +26,17 @@ const [entry] = await running();
 entry && entry.description.includes('Write report') ? ok(`entry described "${entry.description}"`) : fail(`unexpected description: ${entry?.description}`);
 entry && entry.task_id ? ok('entry is linked to the task (task_id set)') : fail('entry has no task_id');
 
-await page.goto(`${BASE}?test#/timer`);
+await page.goto(`${BASE}?test#/time`);
 await sleep(1200);
 await page.getByRole('button', { name: 'Stop', exact: true }).first().click();
 (await until(async () => (await running()).length === 0)) ? ok('stopped from the Timer view') : fail('timer did not stop');
 
-await page.goto(`${BASE}?test#/timer/reports/detailed`);
+await page.goto(`${BASE}?test#/time/reports/detailed`);
 (await until(() => page.locator('main').innerText().then((t) => t.includes('Write report')))) ? ok('Detailed report lists the entry') : fail('entry missing from the Detailed report');
 
-(await page.locator('.status-dot-btn.warn').count()) > 0 ? ok('status dot is amber (no backup made yet)') : fail('status dot is not amber');
+(await page.locator('.tab-dot.warn').count()) > 0 ? ok('Settings dot is amber (no backup made yet)') : fail('Settings dot is not amber');
 
-for (const route of ['timer', 'entries', 'projects', 'reports', 'notes', 'tasks', 'backups', 'devices']) {
+for (const route of ['time', 'entries', 'projects', 'reports', 'notes', 'tasks', 'backups', 'devices']) {
   await page.goto(`${BASE}?test#/${route}`);
   await sleep(300);
   const text = await page.locator('main').innerText();

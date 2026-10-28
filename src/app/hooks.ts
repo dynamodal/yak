@@ -102,6 +102,10 @@ export function useNotices(): readonly Notice[] {
 /** What modules and the shell report about the safety of this device's data (`core/health.ts`). */
 export function useHealth(): readonly HealthItem[] {
   const [items, setItems] = useState(healthItems);
-  useEffect(() => onHealth(() => setItems(healthItems())), []);
+  // Read again once subscribed: a child's effect (the backup banner) runs before its parent's, so it may have reported already.
+  useEffect(() => {
+    setItems(healthItems());
+    return onHealth(() => setItems(healthItems()));
+  }, []);
   return items;
 }

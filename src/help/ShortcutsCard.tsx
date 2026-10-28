@@ -1,5 +1,5 @@
 import { useLayoutEffect, useState } from 'preact/hooks';
-import { allCommands, commandUsing, eventShortcut, isUsableShortcut, resetShortcut, setShortcut, shortcutsOf } from '../app/commands';
+import { allCommands, commandUsing, eventShortcut, formatShortcut, isUsableShortcut, resetShortcut, setShortcut, shortcutsOf } from '../app/commands';
 import { useApp } from '../app/context';
 import { useOverrides } from '../app/views/CommandHost';
 import { Button } from '../app/ui';
@@ -62,7 +62,7 @@ export function ShortcutsCard() {
                   {capturing === c.id ? (
                     <em>Press the keys… (Esc cancels, Backspace removes)</em>
                   ) : keys.length ? (
-                    keys.map((k) => <kbd key={k}>{k.replace(/\+/g, ' ')}</kbd>)
+                    keys.map((k) => <kbd key={k}>{formatShortcut(k)}</kbd>)
                   ) : (
                     <span class="muted">none</span>
                   )}

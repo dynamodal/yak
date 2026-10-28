@@ -20,7 +20,7 @@ function TabsShown() {
         </span>
       </summary>
       <p class="hint">
-        Per device. Hiding a feature only hides its pages: your notes, tasks and other data are kept, keep syncing, and are still in backups. The timer, Backup &amp; restore and the sync status are always shown.
+        Per device. Hiding a feature only hides its pages: your notes, tasks and other data are kept, keep syncing, and are still in backups. Time, Settings, Backup &amp; restore and the sync status are always shown.
       </p>
       <ul class="features-list">
         {FEATURES.map((f) => {

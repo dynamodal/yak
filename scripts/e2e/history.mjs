@@ -9,7 +9,7 @@ import { BASE, launch, check, watchPage, until, finish, newNote } from './lib.mj
 const browser = await launch();
 const p = await (await browser.newContext({ viewport: { width: 1200, height: 900 } })).newPage();
 watchPage(p, 'A');
-await p.goto(BASE + '?test#/timer');
+await p.goto(BASE + '?test#/time');
 await p.waitForFunction(() => window.__history && window.__app && window.__backup);
 
 const h = (fn, ...args) => p.evaluate(([f, a]) => window.__history[f](...a), [fn, args]);

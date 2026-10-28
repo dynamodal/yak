@@ -28,7 +28,7 @@ const browser = await launch();
 const page = await (await browser.newContext({ viewport: { width: 1100, height: 900 } })).newPage();
 page.on('pageerror', (e) => console.error('pageerror', e.message));
 
-await page.goto(BASE + '?test#/timer');
+await page.goto(BASE + '?test#/time');
 await page.waitForFunction(() => window.__app?.spaces().personal);
 for (const s of ['personal', 'work']) {
   for (const [doc, file] of [[`space/${s}`, `${s}.bin`], [`space/${s}/time`, `${s}-time.bin`]]) {
@@ -54,7 +54,7 @@ const rows = [];
 const budgets = {
   'first load (reload, timer page ready)': 3000,
   'Timer': 1500,
-  'Week (#/timer/week)': 1500,
+  'Week (#/time/week)': 1500,
   'Reports (this year)': 2500,
   'Notes': 2500,
   'Tasks': 2500,
@@ -113,22 +113,22 @@ await record('first load (reload, timer page ready)', async () => {
       } catch { /* app not up yet */ }
     }, 5);
   });
-  await fresh.goto(BASE + '?test#/timer');
+  await fresh.goto(BASE + '?test#/time');
   await fresh.waitForFunction(() => window.__t, null, { timeout: 60000, polling: 50 });
   const ms = Math.round(await fresh.evaluate(() => window.__t));
   await fresh.close();
   return { ms, longest: 0 };
 });
-await record('Timer', () => settle('#/timer'));
+await record('Timer', () => settle('#/time'));
 await page.waitForTimeout(300);
-await record('Week (#/timer/week)', () => settle('#/timer/week'));
-await settle('#/timer/reports');
+await record('Week (#/time/week)', () => settle('#/time/week'));
+await settle('#/time/reports');
 if ((await page.locator('.rp-controls select').count()) === 0) await page.locator('main button[aria-expanded="false"]').first().click();
 await record('Reports (this year)', () => settle(() => page.locator('.rp-controls select').first().selectOption('this_year')));
 await record('Notes', () => settle('#/notes'));
 await record('Tasks', () => settle('#/tasks'));
 await record('Organize', () => settle('#/organize'));
-await settle('#/timer');
+await settle('#/time');
 
 // Typing in a note with 3,200 notes around it: the time each key takes to reach the screen.
 await settle('#/notes');

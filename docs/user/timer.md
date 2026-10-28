@@ -6,7 +6,7 @@
 - The running timer also shows in the header; stop it from there on any page.
 - **Continue** starts a new entry like the last one.
 - Entries are listed by day. Open one to change its description, project, tags, billable flag, start and stop.
-- The Timer page has **List**, **Week** and **Reports** views; the last one you used opens next time. The space menu applies to all three.
+- The Time page has **List**, **Week** and **Reports** views; the last one you used opens next time. The space menu applies to all three.
 
 ## Projects, clients and tags
 

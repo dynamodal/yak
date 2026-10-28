@@ -17,14 +17,14 @@ await p.locator('input[aria-label="Note title"]').waitFor();
 await p.keyboard.type('Zebra plan');
 await p.keyboard.press('Enter');
 await until(async () => (await p.evaluate(() => Object.values(window.__app.json('space/personal', 'notes')).filter((n) => n.path === 'Zebra plan.md').length)) === 1);
-await p.evaluate(() => { location.hash = '#/timer'; });
+await p.evaluate(() => { location.hash = '#/time'; });
 const bar = p.locator('.timer-bar');
 await bar.getByLabel('Description', { exact: true }).fill('Feeding the zebra');
 await bar.getByRole('button', { name: 'Start', exact: true }).click();
 await until(async () => (await bar.getByRole('button', { name: 'Stop', exact: true }).count()) === 1);
 await bar.getByRole('button', { name: 'Stop', exact: true }).click();
 
-for (const hash of ['#/timer', '#/timer/reports', '#/notes', '#/organize']) {
+for (const hash of ['#/time', '#/time/reports', '#/notes', '#/organize']) {
   await p.evaluate((h) => { location.hash = h; }, hash);
   await p.keyboard.press('Control+Shift+F');
   check((await p.locator('dialog.search-dialog').count()) === 1, `Ctrl+Shift+F opens the search on ${hash}`);
@@ -35,11 +35,11 @@ const open = async () => {
   await p.keyboard.press('Control+Shift+F');
   await p.getByLabel('Search query').fill('zebra');
 };
-await p.evaluate(() => { location.hash = '#/timer'; });
+await p.evaluate(() => { location.hash = '#/time'; });
 await open();
 check((await p.locator('.search-group', { hasText: 'Notes' }).count()) === 1 && (await p.locator('.search-group', { hasText: 'Time entries' }).count()) === 1, 'one word finds the note and the entry, in their groups');
 await p.getByRole('option', { name: /Feeding the zebra/ }).click();
-check((await until(async () => p.url().endsWith('#/timer/week'))) >= 0, 'an entry opens in the Week view');
+check((await until(async () => p.url().endsWith('#/time/week'))) >= 0, 'an entry opens in the Week view');
 check((await until(async () => (await p.locator('li.entry.search-hit-flash').count()) === 1)) >= 0, 'and its row is highlighted');
 await open();
 await p.getByRole('button', { name: 'Time entries', exact: true }).click();

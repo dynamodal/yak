@@ -92,7 +92,7 @@ await keepsBox(b, 'This device', 'Personal').check();
 check((await until(async () => (await text(b, 'space/personal')).includes('late personal'), 15000)) >= 0, 'keeping it again brings what it missed');
 
 // A timer started in the UI writes to the space's private document, not the space document.
-await a.goto(BASE + '?test#/timer');
+await a.goto(BASE + '?test#/time');
 await a.waitForFunction(() => window.__app);
 await a.getByRole('button', { name: /^Start/ }).first().click();
 const inPrivate = () => a.evaluate(() => ['space/personal/time', 'space/work/time'].reduce((n, id) => n + Object.keys(window.__app.json(id, 'time_entries')).length, 0));

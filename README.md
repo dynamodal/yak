@@ -16,7 +16,7 @@ A local-first, browser-only time tracker with Markdown notes and tasks. No insta
 - Why and what: [docs/goals.md](docs/goals.md)
 - How it is built: [docs/architecture.md](docs/architecture.md), [docs/sync.md](docs/sync.md)
 - What is next: [docs/roadmap.md](docs/roadmap.md) and the GitHub issues
-- User guide (also in the app under the ? in the header): [docs/user/](docs/user/); references: [backups](docs/backups.md), [Toggl import](docs/import.md), [offline](docs/offline.md)
+- User guide (also in the app under Settings, About & help): [docs/user/](docs/user/); references: [backups](docs/backups.md), [Toggl import](docs/import.md), [offline](docs/offline.md)
 
 ## Licence
 

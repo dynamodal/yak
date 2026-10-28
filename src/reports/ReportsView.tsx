@@ -100,7 +100,7 @@ export function ReportsView({ params }: ViewProps) {
   const [detailOpen, setDetailOpen] = useFold('detailed', false);
   const [controlsOpen, setControlsOpen] = useState(false);
 
-  // The one space filter of the Timer page (header control); an id this device no longer keeps counts as all spaces.
+  // The one space filter of the Time page (header control); an id this device no longer keeps counts as all spaces.
   const [storedFilter] = useSpaceFilter();
   const filter = accountSpaces.some((s) => s.id === storedFilter) ? storedFilter : 'all';
   const today = dayKey(Date.now());

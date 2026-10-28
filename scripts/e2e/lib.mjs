@@ -138,7 +138,7 @@ export async function finish(...closables) {
  */
 export async function keepAllSpaces(page) {
   const button = page.getByRole('button', { name: 'Keep all spaces' });
-  const onTimer = () => page.evaluate(() => location.hash.startsWith('#/timer')).catch(() => false);
+  const onTimer = () => page.evaluate(() => location.hash.startsWith('#/time')).catch(() => false);
   const deadline = Date.now() + 30000;
   let pressedAt = 0;
   while (Date.now() < deadline) {

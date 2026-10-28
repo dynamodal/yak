@@ -18,6 +18,8 @@ export interface ViewDef {
   /** A navigation group the page is listed under (`NAV_GROUPS` in `nav.ts`); omit for a place of its own. */
   group?: string;
   component: ComponentType<ViewProps>;
+  /** The tab's icon (a drawing from `ui/icons.tsx`); a tab without one shows its label only. */
+  icon?: ComponentType;
   /** Hide from the navigation (still routable). */
   hidden?: boolean;
   /**
@@ -92,6 +94,8 @@ export interface HeaderItemDef {
   order: number;
   /** Rendered in the header on every view, inside the app context. Keep it compact: it must fit a 375 px screen. */
   component: ComponentType;
+  /** Where it shows: the app header (default) or the bare header of the welcome screen. */
+  where?: 'app' | 'welcome';
 }
 
 const headerItems: HeaderItemDef[] = [];
@@ -103,6 +107,28 @@ export function registerHeaderItem(def: HeaderItemDef): void {
   headerItems.sort((a, b) => a.order - b.order);
 }
 
-export function allHeaderItems(): readonly HeaderItemDef[] {
-  return headerItems;
+export function allHeaderItems(where: 'app' | 'welcome' = 'app'): readonly HeaderItemDef[] {
+  return headerItems.filter((h) => (h.where ?? 'app') === where);
+}
+
+export interface TabBadgeDef {
+  id: string;
+  /** The navigation place that carries the dot (`settings`, or a view id). */
+  tab: string;
+  /** Words for a screen reader, for example "something is new". */
+  label: string;
+  /** A hook: true while the dot should show. Called on every render of the header, so it must not change between renders. */
+  useActive(): boolean;
+}
+
+const tabBadges: TabBadgeDef[] = [];
+
+/** A neutral dot on a tab for something low-priority that is waiting (What's new on Settings). */
+export function registerTabBadge(def: TabBadgeDef): void {
+  if (tabBadges.some((b) => b.id === def.id)) return;
+  tabBadges.push(def);
+}
+
+export function allTabBadges(): readonly TabBadgeDef[] {
+  return tabBadges;
 }

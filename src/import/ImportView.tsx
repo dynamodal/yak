@@ -309,7 +309,7 @@ function Outcome({ result, space, onAgain }: { result: RunResult; space: string;
       </p>
       <div class="row">
         <a href="#/entries">Entries</a>
-        <a href="#/timer/reports">Reports</a>
+        <a href="#/time/reports">Reports</a>
         <Button onClick={onAgain}>
           Import another file
         </Button>

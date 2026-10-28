@@ -7,25 +7,38 @@ html, body { margin: 0; background: var(--bg); color: var(--text); }
 body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 #app { min-height: 100vh; display: flex; flex-direction: column; }
 
-/* Header: one row on a wide screen (name | tabs | timer | status dot); below 64rem the tabs take a
-   second row, and on a phone the name is hidden so row one is the timer and the dot. */
+/* Header: one row on a wide screen (logo and name | tabs | timer | commands | sync); below 64rem the tabs take a
+   second row. Only the timer changes width: the commands and sync controls stay put to its right. Under 35rem the
+   tab labels go (they stay as hidden text for screen readers), under 27.5rem the app name goes too. */
 .topbar { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--gap); padding: 0 1rem; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: var(--z-sticky); }
-.brand { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: var(--weight-bold); letter-spacing: 0.01em; padding: 0.4rem 0; }
+.brand { display: inline-flex; align-items: center; gap: 0.5rem; flex: none; font-weight: var(--weight-bold); letter-spacing: 0.01em; color: var(--text); text-decoration: none; padding: 0.4rem 0; border-radius: var(--radius); }
 .brand-icon { width: 1.5rem; height: 1.5rem; border-radius: 0.375rem; flex: none; }
 .space-select { max-width: 100%; }
 .topbar-end { display: flex; align-items: center; gap: var(--space-2); min-width: 0; margin-left: auto; padding: 0.4rem 0; }
-.status-dot-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; width: var(--control-h); height: var(--control-h); padding: 0; background: transparent; border: 0; border-radius: 50%; cursor: pointer; }
-.status-dot-btn:hover, .status-dot-btn:focus-visible { background: var(--surface-2); }
-.status-dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--ok); }
-.status-dot-btn.warn .status-dot { background: var(--warn); }
-.notice-dot { position: absolute; top: 0.3rem; right: 0.3rem; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); }
-.status-panel { width: 22rem; padding: var(--space-3); }
-.status-ok { margin: 0; color: var(--ok); font-weight: var(--weight-semibold); }
+.btn.palette-btn { gap: 0.4rem; padding: 0 0.6rem; flex: none; }
+.palette-chip { font: inherit; font-size: var(--text-xs); line-height: 1.5; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 0.35rem; white-space: nowrap; }
+.btn.sync-btn { flex: none; gap: 0.4rem; padding: 0 0.55rem; }
+.sync-shape { display: inline-flex; font-size: 1.15em; color: var(--sync, var(--muted)); }
+.sync-chevron { display: inline-flex; font-size: 0.8em; color: var(--muted); }
+.sync-btn.off, .sync-head.off { --sync: var(--muted); }
+.sync-btn.direct, .sync-head.direct, .sync-btn.relay, .sync-head.relay { --sync: var(--accent); }
+.sync-btn.offline, .sync-head.offline { --sync: var(--warn); }
+.status-panel { width: min(22rem, calc(100vw - 1rem)); padding: var(--space-3); }
+.sync-head { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
+.sync-hint { margin: var(--space-1) 0 0; }
+.sync-devices { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: grid; gap: var(--space-2); }
+.sync-devices li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-3); }
+.sync-device-name { font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
+.sync-kind { font-size: var(--text-sm); }
+.sync-kind.direct, .sync-kind.relay { color: var(--accent); }
+.sync-kind.none { color: var(--warn); }
+.sync-relay-note { margin: var(--space-2) 0 0; }
+.status-other { margin: var(--space-3) 0 var(--space-1); font-size: var(--text-sm); color: var(--muted); }
 .status-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
 .status-list li { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); padding-left: var(--space-2); border-left: 3px solid var(--info); }
 .status-list li.warn { border-left-color: var(--warn); }
-.status-links a { color: var(--accent); }
-.status-links { display: flex; gap: var(--space-4); margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--border); }
+.status-links a:not(.btn) { color: var(--accent); }
+.status-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--border); }
 .notice-list { list-style: none; padding: 0; margin: 0.5rem 0; display: grid; gap: 0.5rem; }
 .notice-list li { display: grid; gap: 0.25rem; }
 .offline-chip { white-space: nowrap; }
@@ -34,16 +47,20 @@ body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 @media (min-width: 64rem) {
   .topbar { flex-wrap: nowrap; }
   .tabs { order: 0; flex: 1 1 auto; align-self: center; }
-  .tabs a { display: flex; align-items: center; }
 }
-/* Tabs are soft pills: the current one has the --surface-2 fill and the text colour. */
-.tabs a, .tabs .tab { padding: 0.4rem 0.8rem; margin-block: 0.2rem; color: var(--muted); text-decoration: none; background: none; border: 0; border-radius: var(--radius-pill); white-space: nowrap; }
+/* Tabs are soft pills: an icon, a label, and the current one has the --surface-2 fill and the text colour. */
+.tabs a, .tabs .tab { position: relative; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; margin-block: 0.2rem; color: var(--muted); text-decoration: none; background: none; border: 0; border-radius: var(--radius-pill); white-space: nowrap; }
 .tabs a:hover, .tabs .tab:hover { color: var(--text); }
 .tabs a.active, .tabs .tab.active { color: var(--text); background: var(--surface-2); }
+.tabs .ui-icon { font-size: 1.1em; flex: none; }
+/* A dot on a tab: neutral accent for something to look at, amber for something that needs attention. */
+.tab-dot { position: absolute; top: 0.2rem; right: 0.35rem; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface); }
+.tab-dot.warn { background: var(--warn); }
+.tabs a.active .tab-dot { box-shadow: 0 0 0 2px var(--surface-2); }
 
 .view { flex: 1; width: 100%; padding: var(--space-4); }
 .page h2 { font-size: var(--text-lg); margin: 1.5rem 0 0.5rem; }
-h1, h2, h3, .note-title { font-family: var(--font-serif); font-weight: var(--weight-semibold); }
+h1, h2, h3, .note-title { font-weight: var(--weight-semibold); }
 
 /* Page widths: every page root is a <Page width=…>; modules never set a page max-width. */
 .page-list { max-width: var(--page-list); margin-inline: auto; }
@@ -107,12 +124,24 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
 
 @media (max-width: 40rem) {
   .topbar { padding: 0 0.5rem; }
-  .brand { display: none; }
-  .topbar-end { flex: 1 1 100%; }
+  .topbar-end { flex: 1 1 0; }
   .tabs { gap: 0; }
   .tabs a, .tabs .tab { padding: 0.55rem 0.5rem; }
   .tab-page { display: none; }
   .view { padding: 0.75rem; }
+}
+/* Icons only: the tab labels, the sync label and the shortcut chip give way, and keep their names for screen readers. */
+@media (max-width: 35rem) {
+  .tabs a, .tabs .tab { min-width: var(--control-h); justify-content: center; padding-inline: 0.6rem; }
+  .tab-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .sync-label, .palette-chip { display: none; }
+  .btn.palette-btn, .btn.sync-btn { min-width: var(--control-h); justify-content: center; }
+  .tab-dot { top: 0.35rem; right: 0.45rem; }
+}
+/* Below 320 px (a side-strip window) there is no room for the logo or the command button; the palette is still on its shortcut. */
+@media (max-width: 19.9rem) { .btn.palette-btn, .brand { display: none; } }
+@media (max-width: 27.5rem) {
+  .brand-name { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 }
 
 .removed-devices ul { margin: 0; padding-left: 1.25rem; }
@@ -128,10 +157,7 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
 .palette-list li.active, .palette-list li:hover { background: var(--surface-2); }
 .palette-empty { color: var(--muted); cursor: default; }
 .palette-keys { display: inline-flex; gap: 0.25rem; color: var(--muted); font-size: var(--text-sm); }
-.palette-btn { padding: 0.2rem 0.5rem; background: transparent; }
-@media (hover: none), (pointer: coarse) { .palette-keys, .palette-help { display: none; } }
-/* Shown on phones (the only way to open the palette there); hidden below 20rem like the Help "?" button (F34). */
-@media (max-width: 20rem) { .btn.palette-btn { display: none; } }
+@media (hover: none), (pointer: coarse) { .palette-keys, .palette-help, .palette-chip { display: none; } }
 
 .welcome { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 .welcome-choice { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }

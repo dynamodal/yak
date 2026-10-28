@@ -31,8 +31,8 @@ const tab = (name) => ({
       await page.locator('.tabs a', { hasText: /^Settings$/ }).click();
       await page.locator('table.st-keeps thead').getByRole('link', { name: 'This device' }).click();
     } else if (name === 'Entries') {
-      await page.locator('.tabs a', { hasText: /^Timer$/ }).click();
-      await page.getByRole('navigation', { name: 'Timer views' }).getByRole('link', { name: 'Week' }).click();
+      await page.locator('.tabs a', { hasText: /^Time$/ }).click();
+      await page.getByRole('navigation', { name: 'Time views' }).getByRole('link', { name: 'Week' }).click();
     } else await page.locator('.tabs a', { hasText: new RegExp(`^${name}$`) }).click();
   },
 });
@@ -139,8 +139,8 @@ check(['Homepage layout', 'Invoices', 'Reading', 'Late deploy', 'Review call', '
 check(week.includes('Meeting, with "quotes"') && week.includes('two lines'), 'quotes, commas and line breaks survived');
 
 // ---- Reports page
-await page.locator('.tabs a', { hasText: /^Timer$/ }).click();
-await page.getByRole('navigation', { name: 'Timer views' }).getByRole('link', { name: 'Reports' }).click();
+await page.locator('.tabs a', { hasText: /^Time$/ }).click();
+await page.getByRole('navigation', { name: 'Time views' }).getByRole('link', { name: 'Reports' }).click();
 await page.locator('#rp-controls .rp-fold').click();
 await page.getByLabel('Range', { exact: true }).selectOption('custom');
 await page.getByLabel('From', { exact: true }).fill('2025-03-10');

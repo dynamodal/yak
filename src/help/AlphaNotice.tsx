@@ -20,7 +20,7 @@ export function AlphaNotice() {
     <div class="notice alpha-notice" role="status" aria-label={`${APP_NAME} is in alpha`}>
       <p>
         <strong>{APP_NAME} is in alpha.</strong> Things will change and some will break. We aim to migrate your data whenever the format changes, but turn on backups
-        so a problem never costs you your work, and tell us when something goes wrong (Help, the <strong>?</strong> in the header).
+        so a problem never costs you your work, and tell us when something goes wrong (Settings, <strong>About &amp; help</strong>).
       </p>
       <p class="row">
         <Button variant="primary" onClick={() => done('#/settings/backup')}>Turn on backups</Button>

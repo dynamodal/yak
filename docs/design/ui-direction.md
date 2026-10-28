@@ -1,7 +1,7 @@
 # UI direction: identity, one responsive shell, header timer, Home
 
 Issue #33.
-Status: agreed with the owner in a design review (2026-10-28, mockups reviewed in chat); not built.
+Status: agreed with the owner in a design review (2026-10-28, mockups reviewed in chat). Built so far: the tokens restyle, all-sans type, the Time rename and the header (slice 3a). The timer pill and the Home tab are not built.
 Settings has its own note: `settings-structure.md` (supersedes the proposal in #22).
 
 ## Problem
@@ -12,10 +12,10 @@ A review of the current screens found:
 | # | Finding | Example |
 | --- | --- | --- |
 | 1 | Little identity | Native selects, default blue links, grey hairline cards; only the logo has character |
-| 2 | An overloaded top bar | Four tabs, running timer, `⌘`, `?` and an unlabelled status dot |
-| 3 | Controls before content | Tasks shows four dropdowns and a view switch above the first task; Timer shows a view switch, a space select and Select above the log |
+| 2 | An overloaded top bar | Four tabs, running timer, `⌘`, `?` and an unlabelled status dot (now: icon tabs, timer, command button, one labelled sync control) |
+| 3 | Controls before content | Tasks shows four dropdowns and a view switch above the first task; Time shows a view switch, a space select and Select above the log |
 | 4 | Repetition | Today and This week cards repeat the day headers; a space pill on every row |
-| 5 | No landing page | Timer is a log; Notes and Tasks open on empty panes |
+| 5 | No landing page | Time is a log; Notes and Tasks open on empty panes |
 | 6 | Settings is a form dump | See `settings-structure.md` |
 
 ## Goals and non-goals
@@ -31,7 +31,7 @@ A review of the current screens found:
 
 ## Visual identity
 
-Warm neutrals and a serif for headings and big numbers (Paper), rounded corners (Soft), one muted sage accent.
+Warm neutrals (Paper), rounded corners (Soft), one muted sage accent, all in the system sans (owner, 2026-10-28: no serif anywhere, the wordmark included).
 Ink (monochrome, sharp) was rejected as too harsh; Soft's indigo as too generic.
 
 | Token | Light | Dark |
@@ -50,7 +50,7 @@ Ink (monochrome, sharp) was rejected as too harsh; Soft's indigo as too generic.
 | `--ok` / `--info` | `#3B7547` / `#3A6EA5` | `#6FBF86` / `#7FB0E8` |
 
 - Radii: controls 9 px (`--radius`), cards 14 px (`--radius-card`), pills, tabs and the view switch fully round.
-- Type: headings and big numbers (clock, totals) in `--font-serif` (`Georgia, 'Times New Roman', serif`); UI text stays the system sans; tabular figures for time.
+- Type: the system sans (`--font-sans`) everywhere; headings semibold; tabular figures for the clock and totals.
   No web font: the CSP and the no-remote-code rule stand.
 - Nav tabs are soft pills (current = `--surface-2` fill), done in CSS without markup changes.
 - Project dot defaults (`palette.ts`, new projects only; existing projects keep their colour): light `#4F86C6 #D9902F #8E6FC4 #3FA58A`, then `#C4617A #6C8F4E #C9693F #6D7F94`.
@@ -61,30 +61,56 @@ Ink (monochrome, sharp) was rejected as too harsh; Soft's indigo as too generic.
 
 ## Shell and navigation
 
-- Tabs at the top on every width: Home, Timer, Notes, Tasks, Settings (Features hides Timer, Notes, Tasks; Home and Settings stay).
+Header, left to right on a wide screen: `[logo + app name]  [tabs]  ····  [timer pill]  [command button]  [sync status]`.
+Only the pill changes width; the command and sync controls stay put to its right.
+
+- Tabs at the top on every width: Home, Time, Notes, Tasks, Settings (Features hides Time, Notes, Tasks; Home and Settings stay).
+  Home is not built yet.
+- The Timer tab is **Time**, at `#/time` (`#/time/list`, `#/time/week`, `#/time/reports[/<section>]`).
+  Only the tab, route and wording changed; stored names stay (F39).
+- Logo and the app name (`APP_NAME`) wide; the logo alone under about 440 px.
+  The logo links to the first tab.
 - Each tab has an icon and a label.
-  Under about 560 px the labels go and the icons stay (with accessible names).
-  Under about 440 px the logo text goes too.
-- The header's right side holds the timer pill and search (`⌘K`, the palette), nothing else.
-  Help (`?`) and the data-status dot move into Settings (the "Needs you" strip and status lines) and the palette; a "What's new" dot shows on the Settings tab.
-- Page headers carry the view switch and one primary action; filters collapse behind one "Filters" control until used (Tasks, Timer).
+  Under about 560 px the labels go and the icons stay (the names stay as hidden text).
+  Below 64 rem the tabs take a second row.
+- Command palette button: the command icon and a chip with the bound shortcut (default `Alt+P`, written as the Shortcuts card does; symbols on a Mac).
+  Icon only under about 560 px and on touch.
+  Name "Command palette", tooltip "Search, go to, run a command".
+- Sync status: a bordered button with a chevron (so it reads as clickable; icon only on narrow screens) that opens a popover.
+  Shape as well as colour, never colour alone:
+
+  | Shape | Colour | Meaning |
+  | --- | --- | --- |
+  | Square | grey | Sync is off, or on but no other device is paired yet. The popover offers "Set up sync". |
+  | Filled circle | accent | Paired and linked to at least one device directly. |
+  | Ring | accent | Linked, but only through the relay (sealed data, slower). |
+  | Triangle | amber | Paired, and no device is linked now. |
+
+  The popover lists each device with its link (Direct, Via relay, Connecting, Not connected) and when it was last connected, a note about the relay, and a link to Settings.
+  What other modules report as health (a stale backup) is listed under "Other" there.
+- Help (`?`) and the data-status dot are gone from the header.
+  Help is reachable from Settings (About & help), the palette ("Go to Help") and the welcome screen.
+  A neutral dot on the Settings tab shows while What's new has unseen entries; it turns amber when a health report is a warning.
+- Banners (No backup yet, backup outdated) stay below the header.
+- Page headers carry the view switch and one primary action; filters collapse behind one "Filters" control until used (Tasks, Time).
 - The space filter shows only when there is more than one space; space pills on rows likewise.
 
 ## Timer pill
 
-The pill is the only timer control; the Timer page is the log.
+The pill is the only timer control; the Time page is the log.
+Not built yet (slice 3b); the header today still has the earlier timer control.
 
 - Shown on every page while the timer feature is on (Features, per device).
-  Off: no pill, no Timer tab, no `Alt+T`, and tracked-time columns disappear from Tasks.
-- Idle: `Start timer · Alt+T` with a round accent play button.
+  Off: no pill, no Time tab, no start/stop key, and tracked-time columns disappear from Tasks.
+- Idle: `Start timer · Alt+S` with a round accent play button.
 - Running: description (shortened), elapsed time, a round `--stop` stop button.
 - Two hit areas: the round button starts or stops at once (a start with no description is valid and can be filled in afterwards); the label opens a popover.
 - Popover: description, project, tags, billable, `Start` (`Update` while running) and `Discard`.
   `Enter` starts, `Esc` closes.
-- `Alt+T` toggles the timer (a registered command, rebindable like every shortcut).
+- `Alt+S` starts or stops the timer and `Alt+T` is Go to Time; both stay as they are (owner, 2026-10-28), rebindable like every shortcut.
 - Narrow: the description goes, time and button stay.
-- Considered: a page bar that replaces the pill on the Timer page (Toggl's look, but the control moves) and both at once (two start buttons).
-- The existing `registerHeaderItem` slot and header-timer decisions (`decisions/header-timer.md`) are the starting point; the Timer page's own start bar is removed.
+- Considered: a page bar that replaces the pill on the Time page (Toggl's look, but the control moves) and both at once (two start buttons).
+- The existing `registerHeaderItem` slot and header-timer decisions (`decisions/header-timer.md`) are the starting point; the Time page's own start bar is removed.
 
 ## Home
 
@@ -98,7 +124,7 @@ A summary of where things stand; read-only apart from checking a task off and op
   - Recent notes.
   - Where the week went: a bar by project.
 - Cards reflow by width: three across, then two, then one.
-- Open: whether Home hides for a Time-tracker-only preset (then Timer is the landing page).
+- Open: whether Home hides for a Time-tracker-only preset (then Time is the landing page).
 
 ## Tasks views
 
@@ -113,7 +139,7 @@ A summary of where things stand; read-only apart from checking a task off and op
 
 1. Fix `scripts/screens.mjs` (test build, Welcome step, current routes) so restyle PRs can show before and after.
 2. Tokens restyle (`tokens.css`, `ui.css`).
-3. Shell: icon tabs, responsive collapse, header pill and popover, Timer page without its bar.
+3. Shell, in parts: (a) header, all-sans, Time rename and route (built); (b) timer pill and popover, Time page without its bar; (c) Tasks without Notes and independent Features switches.
 4. Settings (`settings-structure.md`).
 5. Home.
 6. Tasks view switch and filters.

@@ -87,6 +87,20 @@ export function isUsableShortcut(shortcut: string): boolean {
   return /^F([1-9]|1[0-2])$/.test(key) || (key !== '' && (parts.includes('Ctrl') || parts.includes('Alt')));
 }
 
+/** True on Apple platforms, where Alt is Option and Ctrl (which also stands for Cmd) shows as ⌘. Feature-detected; false when the browser says nothing. */
+export function isMacPlatform(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const platform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform ?? '';
+  return /mac|iphone|ipad|ipod/i.test(platform);
+}
+
+/** How a shortcut is written for people: `Alt P` (words, spaces) elsewhere, `⌥P` on a Mac. */
+export function formatShortcut(shortcut: string, mac = isMacPlatform()): string {
+  if (!mac) return shortcut.replace(/\+/g, ' ');
+  const symbol: Record<string, string> = { Ctrl: '⌘', Alt: '⌥', Shift: '⇧' };
+  return shortcut.split('+').map((part) => symbol[part] ?? part).join('');
+}
+
 // ---- Bindings: the person's changes to the defaults
 
 export type Overrides = Readonly<Record<string, string>>;

@@ -1,6 +1,6 @@
 # Reports
 
-**Reports** is the third view of the Timer page, next to **List** and **Week**. It adds up your entries by project, client, tag or day for a range you pick.
+**Reports** is the third view of the Time page, next to **List** and **Week**. It adds up your entries by project, client, tag or day for a range you pick.
 
 - Choose the range and what to group by (and then by).
 - Hours show as decimals or `H:MM`; change it under **Settings › Preferences**, together with the first day of the week.

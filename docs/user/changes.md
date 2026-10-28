@@ -1,5 +1,14 @@
 # What's new
 
+## 2026-10-29: A tidier header
+
+- Tabs have icons. On a narrow screen only the icons show; each still has its name for screen readers.
+- The **Timer** tab is now **Time**. The address is `#/time`; old `#/timer` bookmarks do not redirect.
+- A **command** button at the right of the header opens the command palette and shows its shortcut (**Alt P** unless you changed it).
+- A **sync** button shows how this device syncs, by shape as well as colour: grey square (off, or no other device yet), green circle (linked directly), green ring (through the relay only), amber triangle (no device linked). Press it for the devices and how each is linked.
+- **Help** moved: open it from **Settings** (About & help), the command palette or the welcome screen. A dot on the **Settings** tab shows when What's new has something you have not seen, or amber when backups or sync need attention.
+- Headings and numbers use the same sans font as the rest; the serif is gone.
+
 ## 2026-10-28: New look
 
 - Warmer colours with a soft green accent, in light and dark.

@@ -95,7 +95,7 @@ function Palette({ commands, onRun, onClose }: { commands: readonly CommandDef[]
         ))}
         {shown.length === 0 && <li class="palette-empty">No command matches.</li>}
       </ul>
-      <p class="hint">↑ ↓ to choose, Enter to run, Esc to close. Shortcuts can be changed in Help › Keyboard shortcuts.</p>
+      <p class="hint palette-help">↑ ↓ to choose, Enter to run, Esc to close. Shortcuts can be changed in Help › Keyboard shortcuts.</p>
     </Dialog>
   );
 }

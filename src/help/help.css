@@ -33,3 +33,8 @@
 .help-btn { position: relative; }
 .help-dot { position: absolute; top: -0.15rem; right: -0.15rem; width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--accent); border: 1px solid var(--surface); }
 .change-date { font-size: var(--text-sm); font-weight: 400; margin-left: 0.4rem; }
+
+/* The alpha banner sits outside any page: keep it off the screen edges on a phone. */
+.alpha-notice { margin: var(--space-2) var(--space-3); }
+.alpha-notice p { margin: 0 0 var(--space-2); }
+.alpha-notice p:last-child { margin-bottom: 0; }

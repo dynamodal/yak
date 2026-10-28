@@ -122,6 +122,13 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 }
 /* A narrow window with a mouse (the "mini" timer): actions float over the end of the row on hover
    instead of taking room from the description. */
+/* Header timer: 44 px tap targets on touch and narrow screens; "Continue" is only its icon on a phone. */
+@media (min-width: 20rem) and ((pointer: coarse) or (max-width: 40rem)) {
+  .header-timer .ht-btn, .header-timer .ht-desc { min-height: 2.75rem; min-width: 2.75rem; justify-content: center; }
+}
+@media (max-width: 40rem) {
+  .ht-continue .ht-continue-label, .ht-continue .ht-text, .ht-continue .swatch { display: none; }
+}
 @media (max-width: 40rem) and (hover: hover) {
   .te-line { position: relative; }
   .te-actions { position: absolute; right: var(--space-1); top: 50%; transform: translateY(-50%); padding: 0.1rem; border-radius: var(--radius); background: var(--surface-2); box-shadow: var(--shadow-float); visibility: hidden; }

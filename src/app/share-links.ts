@@ -121,6 +121,12 @@ export class ShareLinks {
     return d.storage.getItem(NAME_KEY) || deviceName(d.state.doc, d.me) || suggestedName(navigator.userAgent);
   }
 
+  /** The name offered when making a link: remembered, else this device's name you chose; never a guess from the browser. */
+  ownerName(): string {
+    const d = this.d();
+    return d.storage.getItem(NAME_KEY) || deviceName(d.state.doc, d.me) || '';
+  }
+
   rememberName(name: string): void {
     const clean = name.replace(/\s+/g, ' ').trim().slice(0, 80);
     if (clean) this.d().storage.setItem(NAME_KEY, clean);

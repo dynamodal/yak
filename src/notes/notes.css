@@ -236,7 +236,7 @@ li.selected > .tree-row, .search-hits li.selected, .task-list li.selected, .task
 .note-format-bar { display: none; }
 @media (max-width: 48rem) {
   .note-format-bar { display: flex; position: fixed; left: 0; right: 0; z-index: 20; gap: 0.25rem; padding: 0.25rem; overflow-x: auto; background: var(--surface-2); border-top: 1px solid var(--border, currentColor); }
-  .note-format-bar button { flex: 1 0 auto; min-width: 2.5rem; min-height: 2.5rem; }
+  .note-format-bar button { flex: 1 0 auto; min-width: 2.75rem; min-height: 2.75rem; }
 }
 
 /* Typing on a phone with the keyboard up: the page header goes, so the text keeps the room (set by NoteEditor from visualViewport). */

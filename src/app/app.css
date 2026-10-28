@@ -125,6 +125,7 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
 .palette-empty { color: var(--muted); cursor: default; }
 .palette-keys { display: inline-flex; gap: 0.25rem; color: var(--muted); font-size: var(--text-sm); }
 .palette-btn { padding: 0.2rem 0.5rem; background: transparent; }
+@media (hover: none), (pointer: coarse) { .palette-keys, .palette-help { display: none; } }
 /* Shown on phones (the only way to open the palette there); hidden below 20rem like the Help "?" button (F34). */
 @media (max-width: 20rem) { .btn.palette-btn { display: none; } }
 

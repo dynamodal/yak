@@ -4,7 +4,7 @@
 //
 //   npm run e2e reset-device
 //
-import { BASE, launch, startMock, ok, fail, check, watchPage, until, finish, keepAllSpaces, openJoin, startSyncing, joinByInvite } from './lib.mjs';
+import { BASE, launch, startMock, ok, fail, check, watchPage, until, finish, keepAllSpaces, openJoin, startSyncing, joinByInvite, openAdvanced } from './lib.mjs';
 
 const mock = await startMock();
 const browser = await launch();
@@ -30,7 +30,8 @@ await a.evaluate(() => window.__app.append('space/work', 't', 'from A '));
 check((await until(async () => (await text(b)).includes('from A'), 8000)) >= 0, 'B has the text from A');
 
 const openReset = async (p) => {
-  const section = p.locator('details', { hasText: "Reset this device's data" }).first();
+  await openAdvanced(p);
+  const section = p.locator('details', { hasText: "Reset this device's data" }).last();
   if (!(await section.evaluate((d) => d.open))) await section.locator('summary').click();
   return section;
 };

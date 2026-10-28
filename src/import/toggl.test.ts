@@ -221,6 +221,10 @@ describe('parseRow', () => {
     expect(parse({ 'Start time': '' })).toMatchObject({ ok: false });
   });
 
+  it('says "not a valid date" for an impossible date', () => {
+    expect(parse({ 'Start date': '2025-02-31' })).toMatchObject({ ok: false, error: expect.stringContaining('is not a valid date') });
+  });
+
   it('ignores a client when there is no project', () => {
     expect(ok({ Project: '' }).client).toBe('');
   });

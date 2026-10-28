@@ -360,13 +360,16 @@ export function ReportsView({ params }: ViewProps) {
             By {GROUP_BY_OPTIONS.find((o) => o.id === groupBy)?.label.toLowerCase()}
             {thenEffective ? `, then ${GROUP_BY_OPTIONS.find((o) => o.id === thenEffective)?.label.toLowerCase()}` : ''}
           </h2>
-          <Button onClick={() => void doCopy()}>Copy as Markdown</Button>
+          <span class="row">
+            <Button onClick={() => void doCopy()}>Copy as Markdown</Button>
+            <Button onClick={doCsv}>Download CSV</Button>
+          </span>
         </div>
         {fallbackText ? <textarea class="rp-fallback" readOnly rows={8} aria-label="Markdown summary" value={fallbackText} onFocus={(e) => (e.target as HTMLTextAreaElement).select()} /> : null}
         <ReportTable report={report} format={format} groupBy={groupBy} thenBy={thenEffective} />
       </section>
 
-      <Disclosure id="detailed" title="Entries" open={detailOpen} onToggle={setDetailOpen} actions={<Button onClick={doCsv}>Download CSV</Button>}>
+      <Disclosure id="detailed" title="Entries" open={detailOpen} onToggle={setDetailOpen}>
         <DetailedView report={report} format={format} />
       </Disclosure>
       <p class="hint rp-foot">

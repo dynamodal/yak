@@ -439,6 +439,9 @@ export function ProjectsView() {
   return (
     <Page width="list" class={sel.active ? 'projects-page bulk-scope selecting' : 'projects-page'}>
       {sel.active && <MoveSelectedBar sel={sel} handles={handles} data={all.data} spaceIds={movable} />}
+      <p class="hint">
+        <a href="#/settings">← Settings</a>
+      </p>
       <PageHeader title="Organize" space={<SpaceFilter />} />
       <label class="check">
         <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived((e.target as HTMLInputElement).checked)} />

@@ -6,7 +6,7 @@
 //
 //   npm run e2e device-migration
 //
-import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep, joinByInvite, PASS, fillSheet } from './lib.mjs';
+import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep, joinByInvite, PASS, fillSheet, openAdvanced } from './lib.mjs';
 
 const browser = await launch({ fakeCamera: true });
 const mk = async (n) => {
@@ -33,6 +33,7 @@ await append(s, 'before-switch ');
 const idS = await hook(s, () => window.__app.deviceId());
 
 // The banner asks for a passphrase because none is set, refuses a short one, then switches.
+await openAdvanced(a);
 const review = a.locator('section[aria-label="Device keys"]');
 await review.locator(`li[data-device="${idS}"]`).waitFor({ timeout: 30000 });
 check((await review.locator('[data-join-again]').innerText()).includes(idS.slice(0, 8)) || (await review.locator('[data-join-again]').count()) === 1, 'before the press it lists the device that will have to join again');

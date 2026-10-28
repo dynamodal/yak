@@ -20,6 +20,7 @@ Each row says what was decided, why, and how to change it.
 | H13 | Running is marked with the existing `--ok` token (green) | No `--running` token exists yet; the theme-tokens branch plans one | Switch `time.css` to `--running` once `src/app/theme/tokens.css` lands |
 | H14 | The play, stop and continue glyphs are small inline SVGs in `HeaderTimer.tsx` | The shared icon module (`src/app/ui/icons.tsx`) is not on `main` yet | Move them there when it lands |
 | H15 | Header layout (#132, replaces the own-row rule): one row on screens ≥ 64 rem (`name | tabs | timer | status dot`); 40–64 rem: name, timer and dot on row one, tabs on row two; ≤ 40 rem: the name is hidden, the timer and dot are row one, the tabs row two. The header, tabs included, is sticky | The own timer row cost about 50 px on a phone and the banner and chip rows more; the header timer keeps its slot (H1) and sits next to the status dot in `.topbar-end` | `@media` blocks in `app.css`; `.header-timer` in `time.css` |
+| H-21 | **Header start uses the bar's draft (#21).** The Timer bar's draft (description, project, tags, billable) lives in a small module store (`src/time/timer-draft.ts`) instead of the bar's state, so the header ▶ starts with it and clears it, as the bar's own start does. Header buttons are 44 px below 40 rem or on a coarse pointer; below 40 rem "Continue" is its icon only (the name stays in its label and title) | A draft typed on Timer was lost by the header ▶; phone taps missed 32 px targets |
 
 ## Browser assumptions and fallbacks
 

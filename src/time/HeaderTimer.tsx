@@ -8,6 +8,7 @@ import { collection } from '../core/schema';
 import { entryFields, startMs } from './entries';
 import { useCatalogs, useController, useLastStopped, useRecentEntries, useRunning, useSpaceName } from './hooks';
 import { LiveClock, Swatch } from './widgets';
+import { EMPTY_DRAFT, getDraft, setDraft } from './timer-draft';
 
 // Our own glyphs, drawn on a 16-unit grid; move to the shared icon module when it exists.
 function PlayIcon() {
@@ -105,6 +106,13 @@ export function HeaderTimer() {
   const [open, setOpen] = useState(false);
   const statusRef = useRef<HTMLButtonElement>(null);
   const toggle = (): void => setOpen(!open);
+  /** Starts with what is typed in the Timer page's bar (description, project, tags), then clears it, as the bar's own start does. */
+  const startTyped = (): void => {
+    const d = getDraft();
+    const sid = d.project_id && d.spaceId ? d.spaceId : spaceId;
+    controller.start(sid, { description: d.description, project_id: d.project_id, tags: d.tags, billable: d.billable });
+    setDraft(EMPTY_DRAFT);
+  };
 
   if (current) {
     const text = current.entry.description || '(no description)';
@@ -126,7 +134,7 @@ export function HeaderTimer() {
   const lastText = last ? last.entry.description || '(no description)' : '';
   return (
     <div class="header-timer" role="group" aria-label="Timer stopped">
-      <button type="button" class="ht-btn ht-start" aria-label="Start timer" title="Start a new timer" onClick={() => controller.start(spaceId)}>
+      <button type="button" class="ht-btn ht-start" aria-label="Start timer" title="Start a new timer" onClick={startTyped}>
         <PlayIcon />
       </button>
       <button type="button" ref={statusRef} class="ht-desc ht-status" aria-haspopup="dialog" aria-expanded={open} onClick={toggle} title="Switch timer">

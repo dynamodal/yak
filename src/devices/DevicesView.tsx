@@ -163,10 +163,7 @@ export function DevicesView({ params }: ViewProps) {
               }}
             />
           </label>
-          <span class="hint">
-            id <code>{shortId(deviceId)}</code>. Your other devices show this name.
-          </span>
-          <KeyState account={accountDoc} deviceId={deviceId} version={Number(keysVersion)} />
+          <span class="hint">Your other devices show this name.</span>
           <AccountKeyHint account={accountDoc} />
         </div>
       </div>
@@ -199,11 +196,10 @@ export function DevicesView({ params }: ViewProps) {
                   maxLength={40}
                   onChange={(e) => setDeviceName(accountDoc, p.id, (e.target as HTMLInputElement).value)}
                 />{' '}
-                <code class="hint">{shortId(p.id)}</code>
+                {!nameOf(p.id) && <code class="hint">{shortId(p.id)}</code>}
                 <span class="device-state">
                   <StatusDot state={st.dot} /> {st.label}
                 </span>
-                <KeyState account={accountDoc} deviceId={p.id} version={Number(keysVersion)} />
                 {p.sharedKey && <span class="hint">Syncs with the shared key: the key for just these two devices failed (until reload)</span>}
                 {p.state !== 'connected' && p.lastConnectedAt && <span class="hint">Last linked {new Date(p.lastConnectedAt).toLocaleString()}</span>}
               </div>
@@ -309,7 +305,7 @@ export function DevicesView({ params }: ViewProps) {
           : 'Keeping is a choice, not a lock, until the account requires device keys: any device it already trusts can get any space.'}
       </p>
 
-      {status.paired && <DeviceKeysPanel account={accountDoc} deviceId={deviceId} seen={peers.map((p) => p.id)} keysVersion={Number(keysVersion)} />}
+      {status.paired && required && <DeviceKeysPanel account={accountDoc} deviceId={deviceId} seen={peers.map((p) => p.id)} keysVersion={Number(keysVersion)} />}
 
       <div id="add-device-section" />
       {!required && <h2>Add a device to this account</h2>}
@@ -448,108 +444,120 @@ export function DevicesView({ params }: ViewProps) {
         </details>
       )}
 
-      {canReset && (
-        <details class="danger-zone" aria-label="Reset this device's data">
-          <summary>Reset this device's data</summary>
-          <p class="hint">
-            Throw this device's copy away and start again from your other devices or a backup, for example when its copy has drifted or is bad. Other
-            devices are not touched.
-          </p>
-          <div class="row">
-            <label>
-              What to reset{' '}
-              <select
-                aria-label="What to reset"
-                value={resetScope}
-                onChange={(e) => {
-                  setResetScope((e.target as HTMLSelectElement).value);
-                  setSafetyFile('');
-                }}
-              >
-                <option value="">Choose…</option>
-                {spaces.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} only
-                  </option>
-                ))}
-                <option value="all">Everything on this device</option>
-              </select>
-            </label>
-          </div>
-          {resetScope !== '' && (
-            <div class="confirm-panel">
-              <p>
-                {resetAll
-                  ? 'Every space here is erased and this device leaves the account. Join again with a one-time code to get your data back from a linked device.'
-                  : 'The space is erased here and fills again from a linked device that keeps it. This device stays in the account and keeps the space.'}
-              </p>
-              <p role="status">
-                {status.peers.some((p) => p.state === 'connected') ? (
-                  onlyHere.unknown.length > 0 && onlyHere.count === 0 ? (
-                    <>Cannot tell yet which changes exist only on this device. Check again in a moment.</>
-                  ) : onlyHere.count === 0 ? (
-                    <>
-                      <strong>Nothing exists only on this device</strong>: a linked device has all of it.
-                    </>
-                  ) : (
-                    <>
-                      <strong>About {onlyHere.count} change{onlyHere.count === 1 ? '' : 's'} exist only on this device</strong> and are lost by a reset unless
-                      they reach a linked device first. Keep Yak open and check again, or rely on the safety backup.
-                    </>
-                  )
-                ) : (
-                  <>No other device is linked right now, so this device cannot tell which changes exist only here. Use the safety backup.</>
-                )}
-              </p>
-              <div class="row">
-                <Button onClick={() => setCheckTick((n) => n + 1)}>Check again</Button>
-              </div>
-              {nothingToRefillFrom && (
-                <p class="error">No other device keeps {resetAll ? 'these spaces' : 'this space'} and there is no backup, so a reset would lose it for good.</p>
-              )}
-              <div class="row">
-                <Button
-                  disabled={busy}
-                  onClick={() =>
-                    run(async () => {
-                      setSafetyFile(await saveSafetyBackup(store.opened(), deviceId));
-                    })
-                  }
-                >
-                  Save a safety backup first
-                </Button>
-                {safetyFile && <span class="hint">Saved {safetyFile}. Restore it on the Backups page.</span>}
-              </div>
-              <label>
-                <input type="checkbox" checked={resetHistory} onChange={(e) => setResetHistory((e.target as HTMLInputElement).checked)} /> Also clear this
-                device's history log for {resetAll ? 'everything' : 'this space'}
-              </label>
-              <p class="hint">The history log lists earlier versions on this device only. Keep it unless the drift is in the log too.</p>
-              <div class="row">
-                <Button
-                  variant="danger"
-                  disabled={busy || !safetyFile || nothingToRefillFrom}
-                  onClick={() =>
-                    resetDevice({
-                      sync,
-                      storage: safeStorage(),
-                      spaces: resetSpaces,
-                      ...(resetAll ? { accountId } : {}),
-                      clearHistory: resetHistory,
-                    })
-                  }
-                >
-                  Reset and reload
-                </Button>
-                <Button onClick={() => setResetScope('')}>Cancel</Button>
-              </div>
-            </div>
-          )}
-        </details>
-      )}
-
       <details class="advanced">
-        <summary>Advanced: connection server and logs</summary>
+        <summary>Advanced</summary>
+        <h3>Ids and keys</h3>
+        <p class="hint">
+          This device: id <code>{shortId(deviceId)}</code> <KeyState account={accountDoc} deviceId={deviceId} version={Number(keysVersion)} />
+        </p>
+        <ul class="hint device-ids">
+          {peers.map((p) => (
+            <li key={p.id}>
+              {labelOf(p.id)}: id <code>{shortId(p.id)}</code> <KeyState account={accountDoc} deviceId={p.id} version={Number(keysVersion)} />
+            </li>
+          ))}
+        </ul>
+        {status.paired && !required && <DeviceKeysPanel account={accountDoc} deviceId={deviceId} seen={peers.map((p) => p.id)} keysVersion={Number(keysVersion)} />}
+        {canReset && (
+          <details class="danger-zone" aria-label="Reset this device's data">
+            <summary>Reset this device's data</summary>
+            <p class="hint">
+              Throw this device's copy away and start again from your other devices or a backup, for example when its copy has drifted or is bad. Other
+              devices are not touched.
+            </p>
+            <div class="row">
+              <label>
+                What to reset{' '}
+                <select
+                  aria-label="What to reset"
+                  value={resetScope}
+                  onChange={(e) => {
+                    setResetScope((e.target as HTMLSelectElement).value);
+                    setSafetyFile('');
+                  }}
+                >
+                  <option value="">Choose…</option>
+                  {spaces.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} only
+                    </option>
+                  ))}
+                  <option value="all">Everything on this device</option>
+                </select>
+              </label>
+            </div>
+            {resetScope !== '' && (
+              <div class="confirm-panel">
+                <p>
+                  {resetAll
+                    ? 'Every space here is erased and this device leaves the account. Join again with a one-time code to get your data back from a linked device.'
+                    : 'The space is erased here and fills again from a linked device that keeps it. This device stays in the account and keeps the space.'}
+                </p>
+                <p role="status">
+                  {status.peers.some((p) => p.state === 'connected') ? (
+                    onlyHere.unknown.length > 0 && onlyHere.count === 0 ? (
+                      <>Cannot tell yet which changes exist only on this device. Check again in a moment.</>
+                    ) : onlyHere.count === 0 ? (
+                      <>
+                        <strong>Nothing exists only on this device</strong>: a linked device has all of it.
+                      </>
+                    ) : (
+                      <>
+                        <strong>About {onlyHere.count} change{onlyHere.count === 1 ? '' : 's'} exist only on this device</strong> and are lost by a reset unless
+                        they reach a linked device first. Keep Yak open and check again, or rely on the safety backup.
+                      </>
+                    )
+                  ) : (
+                    <>No other device is linked right now, so this device cannot tell which changes exist only here. Use the safety backup.</>
+                  )}
+                </p>
+                <div class="row">
+                  <Button onClick={() => setCheckTick((n) => n + 1)}>Check again</Button>
+                </div>
+                {nothingToRefillFrom && (
+                  <p class="error">No other device keeps {resetAll ? 'these spaces' : 'this space'} and there is no backup, so a reset would lose it for good.</p>
+                )}
+                <div class="row">
+                  <Button
+                    disabled={busy}
+                    onClick={() =>
+                      run(async () => {
+                        setSafetyFile(await saveSafetyBackup(store.opened(), deviceId));
+                      })
+                    }
+                  >
+                    Save a safety backup first
+                  </Button>
+                  {safetyFile && <span class="hint">Saved {safetyFile}. Restore it on the Backups page.</span>}
+                </div>
+                <label>
+                  <input type="checkbox" checked={resetHistory} onChange={(e) => setResetHistory((e.target as HTMLInputElement).checked)} /> Also clear this
+                  device's history log for {resetAll ? 'everything' : 'this space'}
+                </label>
+                <p class="hint">The history log lists earlier versions on this device only. Keep it unless the drift is in the log too.</p>
+                <div class="row">
+                  <Button
+                    variant="danger"
+                    disabled={busy || !safetyFile || nothingToRefillFrom}
+                    onClick={() =>
+                      resetDevice({
+                        sync,
+                        storage: safeStorage(),
+                        spaces: resetSpaces,
+                        ...(resetAll ? { accountId } : {}),
+                        clearHistory: resetHistory,
+                      })
+                    }
+                  >
+                    Reset and reload
+                  </Button>
+                  <Button onClick={() => setResetScope('')}>Cancel</Button>
+                </div>
+              </div>
+            )}
+          </details>
+        )}
+        <h3>Connection</h3>
         <RelayStatsLine paired={status.paired} />
         {!status.paired && (
           <details>

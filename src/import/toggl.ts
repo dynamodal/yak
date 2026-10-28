@@ -229,11 +229,11 @@ function readMoment(cells: readonly string[], dateCol: number | undefined, timeC
   const timeText = cell(cells, timeCol);
   if (combined) {
     const s = parseStamp(combined);
-    return s ? s : { error: `${label} "${combined}" is not a date and time like 2025-03-24 09:30:00.` };
+    return s ? s : { error: `${label} "${combined}" is not a valid date and time.` };
   }
   if (dateText && timeText) {
     const date = parseDate(dateText);
-    if (!date) return { error: `${label} date "${dateText}" is not in the form YYYY-MM-DD.` };
+    if (!date) return { error: `${label} date "${dateText}" is not a valid date.` };
     const time = parseTime(timeText);
     if (!time) return { error: `${label} time "${timeText}" is not in the form HH:MM:SS.` };
     return { date, time, offsetMs: null };
@@ -243,7 +243,7 @@ function readMoment(cells: readonly string[], dateCol: number | undefined, timeC
     const s = parseStamp(dateText);
     if (s) return s;
     const date = parseDate(dateText);
-    if (!date) return { error: `${label} date "${dateText}" is not in the form YYYY-MM-DD.` };
+    if (!date) return { error: `${label} date "${dateText}" is not a valid date.` };
     return { date, time: null, offsetMs: null };
   }
   if (timeText) {

@@ -31,6 +31,8 @@ export interface CommitInputProps {
   selectName?: boolean;
   /** Commit on Enter or blur even when the text is unchanged (a new item keeps its suggested name). */
   commitUnchanged?: boolean;
+  /** Called after Enter has committed; the input keeps focus then (by default it blurs). */
+  onEnter?(): void;
 }
 
 /**
@@ -80,7 +82,8 @@ export function CommitInput(p: CommitInputProps) {
         if (e.key === 'Enter') {
           e.preventDefault();
           commit();
-          (e.target as HTMLInputElement).blur();
+          if (p.onEnter) p.onEnter();
+          else (e.target as HTMLInputElement).blur();
         } else if (e.key === 'Escape') {
           editing.current = false;
           setDraft(p.value);

@@ -139,6 +139,9 @@ export function ImportView() {
       <p class="hint">
         Bring in a Toggl Track Detailed report exported as CSV. Nothing leaves this device. Importing the same file again does not add anything twice.
       </p>
+      <p class="hint">
+        In Toggl Track: Reports › Detailed, pick a date range, then Export › CSV. <a href="#/help/import">Step by step in Help</a>.
+      </p>
 
       {!importing && (
         <label class={`imp-drop${dragging ? ' dragging' : ''}`} onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop}>

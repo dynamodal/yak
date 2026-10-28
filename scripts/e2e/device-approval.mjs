@@ -6,7 +6,7 @@
 //
 //   npm run e2e device-approval
 //
-import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep, openJoin, PASS, fillSheet } from './lib.mjs';
+import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep, openJoin, PASS, fillSheet, openAdvanced } from './lib.mjs';
 
 const browser = await launch({ fakeCamera: true });
 const mk = async (n) => {
@@ -48,6 +48,7 @@ await a.goto(BASE + '?test#/devices');
 await a.waitForFunction(() => window.__app);
 
 // The review: every device listed with its fingerprint; A approves B but not H.
+await openAdvanced(a);
 const review = a.locator('section[aria-label="Device keys"]');
 await review.locator(`li[data-device="${idH}"]`).waitFor({ timeout: 30000 });
 check((await review.locator('li[data-state="ready"]').count()) === 3, 'the review lists all three devices as ready');

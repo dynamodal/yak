@@ -99,8 +99,21 @@ export interface ResolveOptions {
 
 const spaceOf = (spaceId: string, source: ReportSource): string => source.spaceNames[spaceId] ?? spaceId;
 
-function projectDisplay(p: SourceProject, source: ReportSource, multi: boolean): string {
+/** Lower-cased project names used by more than one project; their labels get the client, so the rows can be told apart. */
+function sharedProjectNames(source: ReportSource): Set<string> {
+  const seen = new Set<string>();
+  const shared = new Set<string>();
+  for (const p of source.projects) {
+    const n = (p.name || '').trim().toLowerCase();
+    if (seen.has(n)) shared.add(n);
+    seen.add(n);
+  }
+  return shared;
+}
+
+function projectDisplay(p: SourceProject, source: ReportSource, multi: boolean, clientName?: string): string {
   let label = p.name || '(Unnamed project)';
+  if (clientName !== undefined) label += ` · ${clientName || '(Unnamed client)'}`;
   if (p.deleted) label += ' (deleted)';
   else if (!p.active) label += ' (archived)';
   if (multi) label += ` · ${spaceOf(p.spaceId, source)}`;
@@ -124,6 +137,7 @@ export function resolveEntries(source: ReportSource, opts: ResolveOptions): Reso
   const multi = opts.multiSpace === true;
   const projects = new Map(source.projects.map((p) => [`${p.spaceId}/${p.id}`, p]));
   const clients = new Map(source.clients.map((c) => [`${c.spaceId}/${c.id}`, c]));
+  const shared = sharedProjectNames(source);
   const out: ResolvedEntry[] = [];
   for (const e of source.entries) {
     if (e.deleted) continue;
@@ -147,7 +161,8 @@ export function resolveEntries(source: ReportSource, opts: ResolveOptions): Reso
       projectKey = `${e.spaceId}/${e.projectId}`;
       const p = projects.get(projectKey);
       if (p) {
-        projectLabel = projectDisplay(p, source, multi);
+        const withClient = shared.has((p.name || '').trim().toLowerCase()) && p.clientId ? clients.get(`${e.spaceId}/${p.clientId}`) : undefined;
+        projectLabel = projectDisplay(p, source, multi, withClient ? withClient.name : undefined);
         if (multi) projectSpace = spaceOf(p.spaceId, source);
         projectColor = p.color || null;
         rate = typeof p.rate === 'number' && Number.isFinite(p.rate) ? p.rate : null;

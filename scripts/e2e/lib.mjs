@@ -246,3 +246,10 @@ export async function joinByInvite(host, guest, { keep = true, pass = PASS } = {
   if (keep) await guest.evaluate((h) => { location.hash = h; }, before);
   return code;
 }
+
+/** Open the Devices page's "Advanced" fold (ids, fingerprints, switching to device keys, reset). */
+export async function openAdvanced(page) {
+  const fold = page.locator('details.advanced').first();
+  if (!(await fold.evaluate((d) => d.open))) await fold.locator('summary').first().click();
+  return fold;
+}

@@ -8,7 +8,8 @@ import { useApp } from '../context';
 import { withKey } from '../key-prompt';
 import { linkSettled, shareLinks, shareLinkUrl } from '../share-links';
 import { shares } from '../shares-runtime';
-import { Button } from '../ui';
+import { Button, toast } from '../ui';
+import { copyText } from '../clipboard';
 import { useShares } from '../use-shares';
 
 const short = (fp: string): string => formatFingerprint(fp, 2);
@@ -47,7 +48,7 @@ export function SharePanel(props: {
   const hosting = shareLinks.hosting?.space === space ? shareLinks.hosting : undefined;
   const [yourName, setYourName] = useState(() => {
     try {
-      return shareLinks.displayName();
+      return shareLinks.ownerName();
     } catch {
       return '';
     }
@@ -182,10 +183,10 @@ export function SharePanel(props: {
             </p>
             <label>
               Your name, shown to them{' '}
-              <input type="text" aria-label="Your name" value={yourName} maxLength={80} onInput={(e) => setYourName((e.target as HTMLInputElement).value)} />
+              <input type="text" aria-label="Your name" placeholder="Your name or your account's name" value={yourName} maxLength={80} onInput={(e) => setYourName((e.target as HTMLInputElement).value)} />
             </label>
             <div class="row">
-              <Button variant="primary" disabled={busy} onClick={() => act(() => withKey({ verb: 'make a link', run: () => shareLinks.open(space, yourName) }), () => setForm(undefined))}>
+              <Button variant="primary" disabled={busy || !yourName.trim()} onClick={() => act(() => withKey({ verb: 'make a link', run: () => shareLinks.open(space, yourName) }), () => setForm(undefined))}>
                 Make a link
               </Button>
               <Button onClick={() => setForm(undefined)}>Cancel</Button>
@@ -207,6 +208,15 @@ export function SharePanel(props: {
               <code class="secret" data-share-url>
                 {shareLinkUrl(hosting.code)}
               </code>
+              <div class="row">
+                <Button
+                  onClick={() => {
+                    void copyText(shareLinkUrl(hosting.code)).then((ok) => toast(ok ? 'Copied the link.' : 'The browser blocked copying. Select the link and copy it.'));
+                  }}
+                >
+                  Copy link
+                </Button>
+              </div>
               <TextQrCode text={shareLinkUrl(hosting.code)} label="QR code carrying the share link" />
             </>
           )}

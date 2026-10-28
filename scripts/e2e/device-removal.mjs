@@ -5,7 +5,7 @@
 //
 //   npm run e2e device-removal
 //
-import { BASE, launch, ok, fail, check, watchPage, until, finish, sleep, openJoin, startSyncing, joinByInvite, PASS } from './lib.mjs';
+import { BASE, launch, ok, fail, check, watchPage, until, finish, sleep, openJoin, startSyncing, joinByInvite, PASS, openAdvanced } from './lib.mjs';
 
 const browser = await launch({ fakeCamera: true });
 const open = async (context, n) => {
@@ -67,7 +67,7 @@ const accountSecret = await secret(a);
 await d.close();
 
 // A removes C from Devices: the dialog states the limit; the passphrase is unlocked already.
-const row = a.locator('li.device-row', { has: a.locator(`code:text-is("${idC.slice(0, 8)}")`) });
+const row = a.locator(`li.device-row#device-${idC}`);
 await row.getByRole('button', { name: /^Remove .* from account…$/ }).click();
 const dialog = await row.locator('.confirm-panel').innerText();
 check(/keeps the data it already synced/.test(dialog) && /one-time code/.test(dialog), `the dialog says C keeps what it has and needs a one-time code to come back (${dialog.slice(0, 80)}…)`);

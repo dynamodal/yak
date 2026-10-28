@@ -24,6 +24,8 @@ export const INSERT_EVENT = 'note-editor:insert';
 
 /** Dispatched on a `.note-editor` element with a text offset (the event's `detail`) to move the cursor there and scroll to it. */
 export const GOTO_EVENT = 'note-editor:goto';
+/** Dispatched on the editor element to put the cursor in the text. */
+export const FOCUS_EVENT = 'note-editor:focus';
 
 /** Toolbar buttons (phones): label, accessible name and the command to run. */
 const TOOLS: readonly { label: string; name: string; run(c: typeof import('../editor-commands')): StateCommand }[] = [
@@ -51,11 +53,13 @@ export function NoteEditor(p: NoteEditorProps) {
   const props = useRef(p);
   props.current = p;
   const viewRef = useRef<EditorView | undefined>(undefined);
+  const undoRef = useRef<Y.UndoManager | undefined>(undefined);
 
   useEffect(() => {
     const parent = host.current;
     if (!parent) return;
     const undoManager = new Y.UndoManager(p.ytext);
+    undoRef.current = undoManager;
     let view: EditorView | undefined;
     let disposed = false;
     // CodeMirror is loaded on first use so the rest of the app starts without it.
@@ -89,6 +93,7 @@ export function NoteEditor(p: NoteEditorProps) {
       p.ytext.unobserve(observer);
       disposed = true;
       viewRef.current = undefined;
+      undoRef.current = undefined;
       view?.destroy();
       undoManager.destroy();
     };
@@ -109,10 +114,13 @@ export function NoteEditor(p: NoteEditorProps) {
       void import('../editor').then(({ revealOffset }) => revealOffset(view, pos));
     };
     parent.addEventListener(INSERT_EVENT, insert);
+    const focusText = (): void => viewRef.current?.focus();
     parent.addEventListener(GOTO_EVENT, goto);
+    parent.addEventListener(FOCUS_EVENT, focusText);
     return () => {
       parent.removeEventListener(INSERT_EVENT, insert);
       parent.removeEventListener(GOTO_EVENT, goto);
+      parent.removeEventListener(FOCUS_EVENT, focusText);
     };
   }, []);
 
@@ -197,6 +205,12 @@ export function NoteEditor(p: NoteEditorProps) {
       )}
       {focused && (
         <div class="note-format-bar" role="toolbar" aria-label="Formatting" style={{ bottom: `${lift}px` }}>
+          <button type="button" aria-label="Undo" title="Undo" onMouseDown={(e) => e.preventDefault()} onClick={() => undoRef.current?.undo()}>
+            ↶
+          </button>
+          <button type="button" aria-label="Redo" title="Redo" onMouseDown={(e) => e.preventDefault()} onClick={() => undoRef.current?.redo()}>
+            ↷
+          </button>
           {TOOLS.map((t) => (
             <button type="button" aria-label={t.name} title={t.name} onMouseDown={(e) => e.preventDefault()} onClick={() => run(t)}>
               {t.label}

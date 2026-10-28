@@ -43,7 +43,7 @@ import { searchSpaces } from '../search';
 import { newTaskText, parseQuickAdd, TASK_FOLDER, TASK_TAG } from '../tasks';
 import { CommitInput, useNoteIndexes } from './common';
 import { BulkNotes, useNoteRow } from './NoteBulk';
-import { GOTO_EVENT, NoteEditor } from './NoteEditor';
+import { FOCUS_EVENT, GOTO_EVENT, NoteEditor } from './NoteEditor';
 import { MoveDialog } from './MoveDialog';
 import { ShortcutsDialog } from './ShortcutsDialog';
 import { Properties, readDisplay, writeDisplay, type PropertiesDisplay } from './Properties';
@@ -547,6 +547,12 @@ export function NotesView({ params }: ViewProps) {
         ) : (
           <div class="empty-state">
             <p class="empty">Pick a note, or create one. Press Ctrl+O (⌘O on a Mac) to find a note by name.</p>
+            <div class="row">
+              <Button variant="primary" onClick={() => active.newNote()}>
+                New note
+              </Button>
+              <Button onClick={() => openTodaysNote(app)}>Today's note</Button>
+            </div>
           </div>
         )}
       </div>
@@ -644,6 +650,19 @@ function NotePane({ doc, spaceId, index, resolves, note, autoFocusPath, error, s
     onMoveNotes([{ id: note.id, path }]);
   };
 
+  /** Enter in the title: the typed title is committed, then the cursor goes to the body. */
+  const focusBody = (): void => {
+    // The editor loads on first use, so try for a moment until its view exists.
+    let tries = 0;
+    const tryFocus = (): void => {
+      const host = document.querySelector<HTMLElement>('.note-pane .note-editor');
+      host?.dispatchEvent(new CustomEvent(FOCUS_EVENT));
+      const ready = !!host && host.contains(document.activeElement);
+      if (!ready && ++tries < 20) setTimeout(tryFocus, 50);
+    };
+    setTimeout(tryFocus, 0);
+  };
+
   const check = (on: boolean) => (on ? <IconCheck /> : <span class="menu-spacer" aria-hidden="true" />);
   const menu: MenuItem[] = [
     { label: marked ? 'Remove bookmark' : 'Bookmark', icon: <span class="menu-spacer" aria-hidden="true" />, onSelect: () => setBookmark(app.account, spaceId, note.id, !marked) },
@@ -674,7 +693,7 @@ function NotePane({ doc, spaceId, index, resolves, note, autoFocusPath, error, s
         </nav>
       </div>
       <div class="note-title-row">
-        <CommitInput class="note-title" label="Note title" value={noteTitle(note.path)} autoFocus={autoFocusPath} onCommit={rename} />
+        <CommitInput class="note-title" label="Note title" value={noteTitle(note.path)} autoFocus={autoFocusPath} onCommit={rename} onEnter={focusBody} />
         <IconButton class="note-act" label="Version history" icon={<IconClock />} onClick={() => setHistory(true)} />
         <IconButton class="note-act" label="Move to…" icon={<IconMove />} onClick={onMove} />
         <MenuButton class="note-more" label="More actions for this note" icon={<IconMore />} items={menu} />

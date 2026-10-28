@@ -7,7 +7,7 @@
 //
 //   npm run e2e devices
 //
-import { BASE, launch, sleep, ok, fail, check, watchPage, until, finish, openJoin, startSyncing, joinByInvite, PASS } from './lib.mjs';
+import { BASE, launch, sleep, ok, fail, check, watchPage, until, finish, openJoin, startSyncing, joinByInvite, PASS, openAdvanced } from './lib.mjs';
 
 const browser = await launch({ fakeCamera: true });
 const mk = async (n) => {
@@ -20,7 +20,7 @@ const st = (p) => p.evaluate(() => window.__app?.state());
 const peersOf = (p) => p.evaluate(() => window.__app.peers());
 const connectedIds = async (p) => (await peersOf(p)).filter((x) => x.state === 'connected').map((x) => x.id).sort();
 const idOf = (p) => p.evaluate(() => window.__app.deviceId());
-const row = (p, id) => p.locator('li.device-row', { hasText: id.slice(0, 8) });
+const row = (p, id) => p.locator(`li.device-row#device-${id}`);
 // The status dot's panel lists the sync state of this device (a device that never paired says nothing).
 const chip = async (p) => {
   await p.getByRole('button', { name: /^Backup and sync/ }).click();
@@ -38,8 +38,9 @@ await startSyncing(a);
 await joinByInvite(a, b);
 (await until(async () => (await st(a)) === 'connected' && (await st(b)) === 'connected', 20000)) >= 0 ? ok('A and B paired') : fail('A and B did not pair');
 // Compatible mode (#255): each updated device publishes its keys and the Devices page shows the lock state.
-check((await until(async () => /Has keys/.test(await a.locator('.this-device').innerText()), 10000)) >= 0, 'this device shows that it has keys');
-check((await until(async () => (await a.locator('li.device-row .key-state[data-keys="published"]').count()) >= 1, 15000)) >= 0, 'another device of the account shows that it has keys too');
+await openAdvanced(a);
+check((await until(async () => /Has keys/.test(await a.locator('details.advanced').first().innerText()), 10000)) >= 0, 'this device shows that it has keys (under Advanced)');
+check((await until(async () => (await a.locator('details.advanced .key-state[data-keys="published"]').count()) >= 2, 15000)) >= 0, 'another device of the account shows that it has keys too');
 check((await a.getByRole('button', { name: 'Start syncing my devices' }).count()) === 0, 'a device in an account does not offer to start syncing');
 check((await b.locator('code.secret').count()) === 0, 'a device in the account does not show a sync code');
 await b.getByRole('button', { name: /Make a (new )?one-time code/ }).first().click();

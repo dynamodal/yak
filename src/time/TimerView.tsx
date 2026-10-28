@@ -14,11 +14,10 @@ import { ProjectPicker, TagPicker } from './pickers';
 import { entriesInRange, groupByDay, todayRange, weekRange } from './stats';
 import { TimerPageHeader } from '../app/views/TimerPageHeader';
 import { DescriptionField, LiveClock, Total } from './widgets';
+import { type Draft, EMPTY_DRAFT, setDraft, useDraft } from './timer-draft';
 
 type Fields = Pick<EntryFields, 'description' | 'project_id' | 'tags' | 'billable'>;
-/** What the bar holds before a start. `spaceId` is the project's space; without a project, the page's space. */
-type Draft = Fields & { spaceId: string | null };
-const EMPTY: Draft = { description: '', project_id: null, tags: [], billable: false, spaceId: null };
+const EMPTY = EMPTY_DRAFT;
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 const timeOf = (ms: number): string => `${pad(new Date(ms).getHours())}:${pad(new Date(ms).getMinutes())}`;
@@ -55,7 +54,7 @@ function TimerBar({ data, entries }: { data: TimeData; entries: readonly EntryRe
   const latest = running[running.length - 1];
   // The bar holds the running entry, in whichever space it runs (one running timer across spaces).
   const current = latest;
-  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const draft = useDraft();
   const [manual, setManual] = useState(false);
   const [times, setTimes] = useState(manualDefaults);
   const [error, setError] = useState('');

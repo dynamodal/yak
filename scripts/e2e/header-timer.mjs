@@ -90,6 +90,13 @@ const clockSeconds = async (p) => {
   await bar(p).getByRole('button', { name: 'Start', exact: true }).waitFor();
   check(true, 'Timer page bar follows (shows Start)');
 
+  // The header's start uses what is typed in the bar (#21).
+  await bar(p).getByLabel('Description', { exact: true }).fill('Typed in the bar');
+  await header(p).getByRole('button', { name: 'Start timer' }).click();
+  check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === 'Typed in the bar'; }), 'header start uses the text typed in the bar');
+  await header(p).getByRole('button', { name: 'Stop timer' }).click();
+  check(await poll(async () => (await bar(p).getByLabel('Description', { exact: true }).inputValue()) === ''), 'the bar is empty after the header started it');
+
   await p.evaluate(() => { location.hash = '#/timer/reports'; });
   await header(p).getByRole('button', { name: 'Start timer' }).click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === '' && r[0].space === 'space/personal'; }), 'start from the header: an empty entry in the active space');

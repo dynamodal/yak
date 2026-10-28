@@ -241,6 +241,18 @@ describe('aggregate (Europe/Berlin)', () => {
     });
   });
 
+  describe('same project name', () => {
+    test('shows "Project · Client" only when two projects share a name', () => {
+      const s = source({
+        clients: [client({ id: 'c1', name: 'Acme' }), client({ id: 'c2', name: 'Globex' })],
+        projects: [project({ id: 'p1', name: 'Website', clientId: 'c1' }), project({ id: 'p2', name: 'Website', clientId: 'c2' }), project({ id: 'p3', name: 'Admin', clientId: 'c1' })],
+        entries: ['p1', 'p2', 'p3'].map((id) => entry({ startMs: NOW() - H, projectId: id })),
+      });
+      const labels = resolveEntries(s, { now: NOW() }).map((e) => e.projectLabel);
+      expect(labels).toEqual(['Website · Acme', 'Website · Globex', 'Admin']);
+    });
+  });
+
   describe('grouping', () => {
     test('by project sorts by duration and carries colour and amounts', () => {
       const g = buildReport(base(), opts()).groups;

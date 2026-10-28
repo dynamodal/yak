@@ -2,6 +2,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
+/* Links use the accent; zero specificity, so every component rule (tabs, buttons, view switch) still wins. */
+:where(a:not(.btn)) { color: var(--accent); }
 body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 #app { min-height: 100vh; display: flex; flex-direction: column; }
 
@@ -31,16 +33,17 @@ body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 .tabs { display: flex; gap: 0.25rem; order: 3; flex: 1 1 100%; min-width: 0; overflow-x: auto; }
 @media (min-width: 64rem) {
   .topbar { flex-wrap: nowrap; }
-  .tabs { order: 0; flex: 1 1 auto; align-self: stretch; }
+  .tabs { order: 0; flex: 1 1 auto; align-self: center; }
   .tabs a { display: flex; align-items: center; }
 }
-.tabs a { padding: 0.55rem 0.75rem; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; }
-.tabs a.active { color: var(--text); border-bottom-color: var(--accent); }
-.tabs .tab { padding: 0.55rem 0.75rem; color: var(--muted); background: none; border: 0; border-radius: 0; border-bottom: 2px solid transparent; white-space: nowrap; }
-.tabs .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+/* Tabs are soft pills: the current one has the --surface-2 fill and the text colour. */
+.tabs a, .tabs .tab { padding: 0.4rem 0.8rem; margin-block: 0.2rem; color: var(--muted); text-decoration: none; background: none; border: 0; border-radius: var(--radius-pill); white-space: nowrap; }
+.tabs a:hover, .tabs .tab:hover { color: var(--text); }
+.tabs a.active, .tabs .tab.active { color: var(--text); background: var(--surface-2); }
 
 .view { flex: 1; width: 100%; padding: var(--space-4); }
 .page h2 { font-size: var(--text-lg); margin: 1.5rem 0 0.5rem; }
+h1, h2, h3, .note-title { font-family: var(--font-serif); font-weight: var(--weight-semibold); }
 
 /* Page widths: every page root is a <Page width=…>; modules never set a page max-width. */
 .page-list { max-width: var(--page-list); margin-inline: auto; }
@@ -69,9 +72,10 @@ body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 .hint, .empty { color: var(--muted); margin: 0.25rem 0; }
 .error { color: var(--danger); }
 .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.5rem 0; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 1rem; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 0.75rem 1rem; }
 
 button, input, select, textarea { font: inherit; color: inherit; }
+input[type='checkbox'], input[type='radio'], input[type='range'], progress { accent-color: var(--accent); }
 input, select, textarea { padding: 0.4rem 0.55rem; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); max-width: 100%; }
 details { margin: 1rem 0; }
 summary { cursor: pointer; color: var(--muted); }
@@ -90,7 +94,7 @@ th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var
 th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--text-sm); }
 
 @media (pointer: coarse) {
-  .tabs a, .tabs .tab { display: inline-flex; align-items: center; min-height: var(--control-h); }
+  .tabs a, .tabs .tab { display: inline-flex; align-items: center; min-height: var(--control-h); margin-block: 0; }
   /* iOS Safari zooms the page when a focused field's text is under 16px. */
   input, select, textarea, .cm-content { font-size: max(16px, 1em); }
   /* Tap targets reach --control-h (44 px): selects and inputs already do; the rest are padded or stretched. */
@@ -113,9 +117,9 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
 
 .removed-devices ul { margin: 0; padding-left: 1.25rem; }
 .danger-zone { margin-top: var(--gap); }
-.confirm-panel { border: 1px solid var(--danger); border-radius: var(--radius); padding: var(--gap); margin-top: var(--gap); }
+.confirm-panel { border: 1px solid var(--danger); border-radius: var(--radius-card); padding: var(--gap); margin-top: var(--gap); }
 
-.palette { width: min(36rem, calc(100vw - 2rem)); max-height: 70vh; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+.palette { width: min(36rem, calc(100vw - 2rem)); max-height: 70vh; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); color: var(--text); }
 .palette::backdrop { background: var(--backdrop); }
 .palette-input { width: 100%; font-size: var(--text-lg); }
 .palette[open] { display: flex; flex-direction: column; }

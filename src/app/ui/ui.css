@@ -11,6 +11,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; padding: 0; border-radius: var(--radius-sm); }
 button:disabled { cursor: default; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--control-h); padding: 0 var(--space-3); border-radius: var(--radius); border: 1px solid var(--border); background: transparent; white-space: nowrap; }
+a.btn { color: inherit; text-decoration: none; }
 .btn:hover:not(:disabled) { background: var(--surface-2); }
 .btn:disabled { opacity: 0.5; }
 /* Quiet: no outline or fill until hover; the level for buttons inside rows. */
@@ -19,8 +20,10 @@ button:disabled { cursor: default; }
 /* Primary: filled accent, at most one per page. Disabled, it turns grey rather than pale blue. */
 .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 .btn.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+.btn.primary { font-weight: var(--weight-medium); }
 .btn.primary:disabled { background: var(--surface-2); color: var(--muted); border-color: var(--border); opacity: 1; }
-.btn.danger { color: var(--danger); }
+.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+.btn.danger.quiet { border-color: transparent; }
 .btn.danger.quiet { color: var(--danger); }
 .btn.danger.armed { background: var(--danger); color: var(--on-danger); border-color: var(--danger); }
 .btn.big { min-height: calc(var(--control-h) * 1.3); padding: 0 1.6rem; font-size: var(--text-lg); }
@@ -46,7 +49,7 @@ input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [typ
 }
 
 /* View switch: a row of links, one current. */
-.seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-pill); overflow: hidden; }
 .seg a { display: inline-flex; align-items: center; min-height: calc(var(--control-h) - 2px); padding: 0 var(--space-3); color: var(--text); text-decoration: none; }
 .seg a + a { border-left: 1px solid var(--border); }
 .seg a:hover { background: var(--surface-2); }
@@ -78,7 +81,7 @@ input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [typ
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-float);
 }
 .menu { display: flex; flex-direction: column; }
@@ -102,7 +105,7 @@ input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [typ
 .dialog-close:hover, .dialog-close:focus-visible { background: var(--surface-2); color: var(--text); }
 
 /* Sheet: a modal panel along the bottom of a phone screen; swipe the handle down to close. */
-.sheet { position: fixed; inset: auto 0 0 0; width: 100%; max-width: 100%; max-height: 85dvh; margin: 0; padding: 0; overflow: auto; overscroll-behavior: contain; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0; box-shadow: var(--shadow-float); animation: sheet-in var(--duration) var(--ease-out); }
+.sheet { position: fixed; inset: auto 0 0 0; width: 100%; max-width: 100%; max-height: 85dvh; margin: 0; padding: 0; overflow: auto; overscroll-behavior: contain; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-bottom: 0; border-radius: var(--radius-card) var(--radius-card) 0 0; box-shadow: var(--shadow-float); animation: sheet-in var(--duration) var(--ease-out); }
 .sheet::backdrop { background: var(--backdrop); }
 .sheet-handle { position: sticky; top: 0; z-index: var(--z-raised); display: flex; justify-content: center; padding: var(--space-2) 0; background: var(--surface); touch-action: none; cursor: grab; }
 .sheet-handle::before { content: ''; width: 2.5rem; height: 0.25rem; border-radius: var(--radius-pill); background: var(--border); }

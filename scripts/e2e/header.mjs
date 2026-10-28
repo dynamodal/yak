@@ -117,4 +117,35 @@ for (const width of [320, 375, 768, 1280]) {
   check(width >= 576 || (await p.locator('.sync-label').first().isHidden() && (await p.locator('.palette-chip').isHidden())), `${width} px: the sync label and the chip are hidden when narrow`);
 }
 
+// ---- No two header controls overlap at any width, even with a much wider font (CI's fonts differ from a laptop's)
+const wideCtx = await browser.newContext({ viewport: { width: 1280, height: 800 }, bypassCSP: true });
+const w = await wideCtx.newPage();
+watchPage(w, 'header wide font');
+await w.goto(`${BASE}?test#/time`);
+await w.waitForFunction(() => window.__app?.fakeStatus);
+await w.addStyleTag({ content: 'body, button, input, select { font-family: "DejaVu Sans Mono", monospace !important; letter-spacing: 0.04em; }' });
+const wOverflow = () => w.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+const controls = ['.brand', '.tabs a', '.header-timer', '.palette-btn', '.sync-btn', '.offline-chip'];
+for (const running of [false, true]) {
+  if (running) {
+    await w.setViewportSize({ width: 1280, height: 800 });
+    await w.getByRole('button', { name: 'Start timer' }).first().click().catch(() => {});
+    check(await w.locator('.header-timer.running').waitFor({ timeout: 5000 }).then(() => true, () => false), 'the timer runs for the overlap checks');
+  }
+  for (const width of [180, 320, 360, 375, 414, 480, 560, 640, 768, 1024, 1280]) {
+    await w.setViewportSize({ width, height: 800 });
+    await w.waitForTimeout(100);
+    const boxes = await w.evaluate((sels) => sels.flatMap((sel) => [...document.querySelectorAll(`.topbar ${sel}`)].map((e) => {
+      const r = e.getBoundingClientRect();
+      return { sel, x: r.x, y: r.y, w: r.width, h: r.height, visible: r.width > 2 && r.height > 2 && getComputedStyle(e).visibility !== 'hidden' };
+    }).filter((b) => b.visible)), controls);
+    const clash = [];
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i], b = boxes[j];
+      if (a.x + 0.5 < b.x + b.w && b.x + 0.5 < a.x + a.w && a.y + 0.5 < b.y + b.h && b.y + 0.5 < a.y + a.h) clash.push(`${a.sel}/${b.sel}`);
+    }
+    check(clash.length === 0 && (await wOverflow()) <= 0, `${width} px, wide font${running ? ', timer running' : ''}: no header controls overlap and no sideways scroll (${clash.join(' ')} ${await wOverflow()})`);
+  }
+}
+
 await finish(browser);

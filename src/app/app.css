@@ -46,7 +46,9 @@ body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 .tabs { display: flex; gap: 0.25rem; order: 3; flex: 1 1 100%; min-width: 0; overflow-x: auto; }
 @media (min-width: 64rem) {
   .topbar { flex-wrap: nowrap; }
-  .tabs { order: 0; flex: 1 1 auto; align-self: center; }
+  .tabs { order: 0; flex: none; align-self: center; }
+  /* The tabs keep their width; the timer (the one control with flexible text) gives way. */
+  .topbar-end { flex: 1 1 0; justify-content: flex-end; }
 }
 /* Tabs are soft pills: an icon, a label, and the current one has the --surface-2 fill and the text colour. */
 .tabs a, .tabs .tab { position: relative; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; margin-block: 0.2rem; color: var(--muted); text-decoration: none; background: none; border: 0; border-radius: var(--radius-pill); white-space: nowrap; }
@@ -139,7 +141,7 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
   .tab-dot { top: 0.35rem; right: 0.45rem; }
 }
 /* Below 320 px (a side-strip window) there is no room for the logo or the command button; the palette is still on its shortcut. */
-@media (max-width: 19.9rem) { .btn.palette-btn, .brand { display: none; } }
+@media (max-width: 19.9rem) { .btn.palette-btn, .brand { display: none; } .topbar-end { flex-wrap: wrap; } .topbar-end > .header-timer { flex: 1 1 100%; } }
 @media (max-width: 27.5rem) {
   .brand-name { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 }

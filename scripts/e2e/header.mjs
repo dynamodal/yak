@@ -31,8 +31,8 @@ const overflow = () => p.evaluate(() => document.documentElement.scrollWidth - w
 // ---- Wide: logo and name, tabs with icons, command button with chip, sync control
 check((await p.locator('.brand-name').innerText()) === 'Yak' && (await p.locator('.brand-icon').isVisible()), '1280 px: the logo and the app name show');
 const tabs = p.getByRole('navigation', { name: 'Pages' }).getByRole('link');
-check((await tabs.allInnerTexts()).map((t) => t.trim()).join() === 'Time,Notes,Tasks,Settings', 'the tabs are Time, Notes, Tasks, Settings');
-check((await p.locator('.tabs a .ui-icon').count()) === 4, 'each tab has an icon');
+check((await tabs.allInnerTexts()).map((t) => t.trim()).join() === 'Home,Time,Notes,Tasks,Settings', 'the tabs are Home, Time, Notes, Tasks, Settings');
+check((await p.locator('.tabs a .ui-icon').count()) === 5, 'each tab has an icon');
 check((await p.locator('.topbar').getByRole('link', { name: /^Help/ }).count()) === 0 && (await p.locator('.status-dot-btn').count()) === 0, 'no Help "?" and no status dot in the header');
 const cmd = p.getByRole('button', { name: 'Command palette' });
 check((await cmd.getAttribute('title')) === 'Search, go to, run a command' && (await cmd.locator('.palette-chip').innerText()) === 'Alt P', 'the command button has its tooltip and the Alt P chip');
@@ -82,7 +82,7 @@ await p.locator('.sync-btn').waitFor();
 // ---- Tab order: logo, tabs, timer, commands, sync
 await p.locator('.brand').focus();
 const order = [];
-for (let i = 0; i < 9; i++) {
+for (let i = 0; i < 10; i++) {
   order.push(await p.evaluate(() => {
     const a = document.activeElement;
     return a?.closest('.brand') ? 'logo' : a?.closest('.tabs') ? 'tab' : a?.closest('.timer-pill') ? 'timer' : a?.closest('.palette-btn') || a?.classList.contains('palette-btn') ? 'commands' : a?.classList.contains('sync-btn') ? 'sync' : 'other';
@@ -107,7 +107,7 @@ for (const width of [320, 375, 768, 1280]) {
     check((await overflow()) <= 0, `${width} px, sync ${state}: no sideways scroll (${await overflow()})`);
   }
   const labelsShown = await p.locator('.tabs a .tab-label').first().evaluate((el) => el.getBoundingClientRect().width > 2);
-  check(labelsShown === (width >= 832), `${width} px: tab labels ${width >= 832 ? 'show' : 'are hidden'}`);
+  check(labelsShown === (width >= 928), `${width} px: tab labels ${width >= 928 ? 'show' : 'are hidden'}`);
   check((await p.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: /^Time/ }).count()) === 1, `${width} px: the Time tab keeps its name`);
   const nameShown = await p.locator('.brand-name').evaluate((el) => el.getBoundingClientRect().width > 2);
   check(nameShown === (width >= 448) && (await p.locator('.brand-icon').isVisible()), `${width} px: the logo shows, the name ${width >= 448 ? 'too' : 'is hidden'}`);
@@ -118,15 +118,15 @@ for (const width of [320, 375, 768, 1280]) {
 }
 
 // ---- Row 1 at every width from 360 px: logo, tabs, commands and sync share one line, the tabs never wrap (idle: the whole
-// header is one row). Labels show from 52rem (832 px); the idle pill is the full pill from 60rem (960 px).
-for (const width of [360, 375, 414, 480, 497, 562, 640, 700, 831, 832, 913, 959, 960, 1280]) for (const state of ['direct', 'offline']) {
+// header is one row). Labels show from 58rem (928 px); the idle pill is the full pill from 60rem (960 px).
+for (const width of [360, 375, 414, 480, 497, 562, 640, 700, 831, 832, 927, 928, 959, 960, 1280]) for (const state of ['direct', 'offline']) {
   await p.setViewportSize({ width, height: 800 });
   await show(state);
   const rows = await p.evaluate(() => ['.brand', '.tabs', '.palette-btn', '.sync-btn'].map((s) => { const r = document.querySelector(`.topbar ${s}`).getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; }));
   const bar = await p.locator('.topbar').boundingBox();
   check(bar.height < 56 && rows.every((r) => r.top < rows[0].bottom && r.bottom > rows[0].top), `${width} px, sync ${state}: logo, tabs, commands and sync share row 1; idle, the header is one row (${Math.round(bar.height)} px high)`);
   const labels = await p.locator('.tabs a .tab-label').first().evaluate((el) => el.getBoundingClientRect().width > 2);
-  check(labels === (width >= 832), `${width} px, sync ${state}: tab labels ${width >= 832 ? 'show' : 'are hidden'}`);
+  check(labels === (width >= 928), `${width} px, sync ${state}: tab labels ${width >= 928 ? 'show' : 'are hidden'}`);
   const pillText = await p.locator('.timer-pill .tp-label').isVisible();
   check(pillText === (width >= 960), `${width} px, sync ${state}: the idle timer pill is ${width >= 960 ? 'full' : 'a round button'}`);
 }
@@ -146,7 +146,7 @@ for (const running of [false, true]) {
     await w.getByRole('button', { name: 'Start timer' }).first().click().catch(() => {});
     check(await w.locator('.timer-pill.running').waitFor({ timeout: 5000 }).then(() => true, () => false), 'the timer runs for the overlap checks');
   }
-  for (const width of [180, 320, 360, 375, 414, 480, 560, 640, 700, 831, 832, 863, 900, 959, 960, 1024, 1280]) {
+  for (const width of [180, 320, 360, 375, 414, 480, 560, 640, 700, 831, 832, 863, 900, 927, 928, 959, 960, 1024, 1280]) {
     await w.setViewportSize({ width, height: 800 });
     await w.waitForTimeout(100);
     const boxes = await w.evaluate((sels) => sels.flatMap((sel) => [...document.querySelectorAll(`.topbar ${sel}`)].map((e) => {

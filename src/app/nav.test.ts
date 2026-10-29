@@ -126,7 +126,8 @@ describe('legacyRoute', () => {
     for (const [old, to] of Object.entries(section)) {
       expect(legacyRoute(['settings', old], views)).toEqual(to[1] === old ? undefined : to);
       expect(legacyRoute(['manage', old], views)).toEqual(to);
-      expect(legacyRoute([old], views)).toEqual(to);
+      // A bare `#/home` is the Home page now (F-33p).
+      expect(legacyRoute([old], views)).toEqual(old === 'home' ? undefined : to);
     }
     expect(legacyRoute(['backups'], views)).toEqual(['settings', 'backup']);
     expect(legacyRoute(['history', '1700000000000'], views)).toEqual(['settings', 'backup', '1700000000000']);

@@ -134,6 +134,14 @@ export const IconFolder = () => (
   </Svg>
 );
 
+export const IconHome = () => (
+  <Svg>
+    <path d="M2.5 7.5 8 3l5.5 4.5" />
+    <path d="M4 6.8V13h8V6.8" />
+    <path d="M6.8 13V9.5h2.4V13" />
+  </Svg>
+);
+
 export const IconClock = () => (
   <Svg>
     <circle cx="8" cy="8" r="5.5" />

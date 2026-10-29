@@ -202,7 +202,8 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .tp-round:hover { filter: brightness(1.08); }
 .timer-pill.running .tp-round { background: var(--stop); color: var(--stop-text); }
 .tp-round .ui-icon { width: 1rem; height: 1rem; }
-@media (min-width: 60rem) { .timer-pill.running { min-width: 9rem; } }
+@media (min-width: 60rem) { .timer-pill.running { min-width: 4.5rem; } }
+@media (min-width: 64rem) { .timer-pill.running { min-width: 9rem; } }
 /* Idle, the pill is a round button under 60rem (where the full pill no longer fits beside the controls). */
 @media (max-width: 59.99rem) {
   .timer-pill:not(.running) .tp-label { display: none; }

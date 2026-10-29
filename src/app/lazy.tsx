@@ -8,9 +8,14 @@ import type { ViewProps } from './registry';
  * cached) says so instead of staying blank.
  */
 export function lazyView(load: () => Promise<{ default: ComponentType<ViewProps> }>): ComponentType<ViewProps> {
-  let loaded: ComponentType<ViewProps> | undefined;
+  return lazyComponent(load);
+}
+
+/** The same for any component (a Home card): nothing shows until the code has loaded. */
+export function lazyComponent<P extends object>(load: () => Promise<{ default: ComponentType<P> }>): ComponentType<P> {
+  let loaded: ComponentType<P> | undefined;
   let pending: Promise<void> | undefined;
-  return function LazyView(props: ViewProps) {
+  return function LazyComponent(props: P) {
     const [, rerender] = useState(0);
     const [failed, setFailed] = useState(false);
     useEffect(() => {

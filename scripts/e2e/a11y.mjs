@@ -11,7 +11,7 @@ const axeSource = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 const browser = await launch();
 
 const PAGES = [
-  '#/time/list', '#/time/week', '#/time/reports', '#/notes', '#/tasks', '#/help', '#/help/report',
+  '#/home', '#/time/list', '#/time/week', '#/time/reports', '#/notes', '#/tasks', '#/help', '#/help/report',
   '#/settings', '#/settings/backup', '#/settings/import', '#/settings/devices', '#/organize',
   '#/settings/spaces/PERSONAL', '#/settings/devices-sync/this', '#/settings/advanced', '#/settings/devices/add', '#/note-settings', '#/help/shortcuts', '#/settings/network',
 ];

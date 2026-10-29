@@ -5,6 +5,7 @@ import '../backup';
 import '../devices';
 import '../help';
 import '../history';
+import '../home';
 import '../import';
 import '../mirror';
 import '../notes';

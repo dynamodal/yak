@@ -71,12 +71,12 @@ await goes(`#/tasks/${taskId}`, `#/notes/${taskId}`, 'Both on: #/tasks/<id> goes
 // ---- Notes off, Tasks on
 await hide(['notes']);
 await reload();
-check((await tabs()) === 'Time,Tasks,Settings', `Notes off: no Notes tab, Tasks stays (${await tabs()})`);
-await goes('#/notes', '#/time', '#/notes lands on the first tab');
+check((await tabs()) === 'Home,Time,Tasks,Settings', `Notes off: no Notes tab, Tasks stays (${await tabs()})`);
+await goes('#/notes', '#/home', '#/notes lands on the first tab');
 await goes(`#/notes/${taskId}`, `#/tasks/${taskId}`, '#/notes/<task> opens the task under Tasks');
 await p.locator('.cm-content').waitFor();
 check(await p.locator('input[aria-label="Task title"]').isVisible(), 'the task page has its title and editor');
-await goes(`#/notes/${(await byPath('Zebra plan.md'))[0]}`, '#/time', '#/notes/<plain note> lands on the first tab');
+await goes(`#/notes/${(await byPath('Zebra plan.md'))[0]}`, '#/home', '#/notes/<plain note> lands on the first tab');
 
 // The palette and search.
 await p.keyboard.press('Alt+P');
@@ -134,7 +134,7 @@ check(afterText.startsWith('---\n') && /tags:[\s\S]*task/.test(afterText), 'the 
 // ---- Notes back on: the same task opens in Notes
 await hide([]);
 await reload();
-check((await tabs()) === 'Time,Notes,Tasks,Settings', 'Notes on again: all tabs');
+check((await tabs()) === 'Home,Time,Notes,Tasks,Settings', 'Notes on again: all tabs');
 await goes(`#/tasks/${taskId}`, `#/notes/${taskId}`, 'the task opens in Notes again');
 await p.locator('.cm-content').waitFor();
 check((await byPath(task[1].path))[1].text === afterText, 'the task file is the same in both modes');
@@ -142,11 +142,11 @@ check((await byPath(task[1].path))[1].text === afterText, 'the task file is the 
 // ---- Notes on, Tasks off
 await hide(['tasks']);
 await reload();
-check((await tabs()) === 'Time,Notes,Settings', `Tasks off: Notes stays (${await tabs()})`);
+check((await tabs()) === 'Home,Time,Notes,Settings', `Tasks off: Notes stays (${await tabs()})`);
 await go(`#/notes/${taskId}`);
 await p.locator('.cm-content').waitFor();
 check(await p.locator('.props').count() > 0 && (await p.locator('select[aria-label="Property status"]').inputValue()) === 'in-progress', 'a task still opens in Notes with its properties');
-await goes('#/tasks', '#/time', '#/tasks lands on the first tab');
+await goes('#/tasks', '#/home', '#/tasks lands on the first tab');
 await p.keyboard.press('Alt+P');
 await p.locator('dialog.palette').waitFor();
 const pal2 = await p.locator('dialog.palette').innerText();

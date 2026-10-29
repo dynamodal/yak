@@ -75,7 +75,7 @@ export function legacyRoute(route: readonly string[], views: readonly ViewDef[])
   const joined = first === undefined ? undefined : views.find((v) => v.joins !== undefined && v.path === first);
   const parent = joined ? views.find((v) => v.id === joined.joins) : undefined;
   if (parent) return [parent.path, first as string, ...route.slice(1)];
-  if (first !== undefined && Object.hasOwn(FOLDED, first) && first !== 'settings') return folded(first);
+  if (first !== undefined && Object.hasOwn(FOLDED, first) && first !== 'settings' && first !== 'home') return folded(first); // bare #/home is the Home page (F-33p); #/manage/home and #/settings/home still reach Settings
   if (first === 'backups' || first === 'history') return ['settings', 'backup', ...route.slice(1)];
   return views.some((v) => v.group === 'settings' && v.path === first) ? ['settings', ...route] : undefined;
 }

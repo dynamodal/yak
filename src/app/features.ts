@@ -8,9 +8,10 @@ import { useEffect, useState } from 'preact/hooks';
  * the tab, Reports, the timer pill, the timer commands and the running cue go; a running timer must be
  * stopped first (`setFeatureBlock`), so a timer is never left running out of sight on this device.
  */
-export type FeatureId = 'time' | 'notes' | 'tasks' | 'mirror' | 'import';
+export type FeatureId = 'home' | 'time' | 'notes' | 'tasks' | 'mirror' | 'import';
 
 export const FEATURES: readonly { id: FeatureId; title: string; hint: string }[] = [
+  { id: 'home', title: 'Home', hint: 'A summary page: what needs you, this week, tasks due soon and recent notes.' },
   { id: 'time', title: 'Time', hint: 'The timer, the log, the week and reports' },
   { id: 'notes', title: 'Notes', hint: 'Markdown notes, folders and daily notes.' },
   { id: 'tasks', title: 'Tasks', hint: 'Tasks are notes with a due date or status. They work with Notes off.' },
@@ -23,6 +24,7 @@ const EVENT = 'app:features';
 
 /** The view (by id) each feature owns. */
 const VIEW_FEATURE: Readonly<Record<string, FeatureId>> = {
+  home: 'home',
   timer: 'time',
   entries: 'time',
   notes: 'notes',
@@ -170,6 +172,6 @@ export function landingRoute(
 
 /** The two choices on Welcome. */
 export const PRESETS = {
-  timeTracker: ['notes', 'tasks'] as FeatureId[],
+  timeTracker: ['home', 'notes', 'tasks'] as FeatureId[],
   everything: [] as FeatureId[],
 };

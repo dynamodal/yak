@@ -1,0 +1,48 @@
+/* Home: cards that reflow three across, two, then one (F-33p). Card contents are styled with the card's own module. */
+.hm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); align-items: start; }
+@media (max-width: 64rem) { .hm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 36rem) { .hm-grid { grid-template-columns: minmax(0, 1fr); } }
+.hm-empty { display: none; margin: var(--space-6) 0; text-align: center; }
+.hm-grid:empty + .hm-empty { display: block; }
+
+.hm-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-3) var(--space-4) var(--space-4); min-width: 0; }
+.hm-wide { grid-column: 1 / -1; }
+.hm-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.hm-card-head h2 { margin: 0; font-size: var(--text-lg); }
+.hm-more { font-size: var(--text-sm); white-space: nowrap; }
+.hm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.hm-list li { display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-h); min-width: 0; }
+.hm-list .hm-main { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-list a.hm-main { color: inherit; text-decoration: none; }
+.hm-list a.hm-main:hover { text-decoration: underline; }
+.hm-meta { color: var(--muted); font-size: var(--text-sm); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hm-late { color: var(--danger); font-size: var(--text-sm); font-weight: var(--weight-semibold); white-space: nowrap; }
+.hm-done .hm-main { text-decoration: line-through; color: var(--muted); }
+.hm-big { font-size: var(--text-2xl); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; margin: 0; }
+.hm-sub { color: var(--muted); font-size: var(--text-sm); margin: 0 0 var(--space-2); }
+
+/* This week: one bar per day. */
+.hm-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-1); align-items: end; height: 7rem; margin-top: var(--space-2); }
+.hm-day { display: grid; grid-template-rows: 1fr auto; justify-items: center; height: 100%; gap: var(--space-1); font-size: var(--text-xs); color: var(--muted); }
+.hm-day-track { display: flex; align-items: flex-end; width: 100%; height: 100%; }
+.hm-day-bar { width: 100%; min-height: 2px; background: var(--accent); border-radius: var(--radius-xs) var(--radius-xs) 0 0; }
+.hm-day[data-today] { color: var(--text); font-weight: var(--weight-semibold); }
+.hm-data { margin-top: var(--space-2); font-size: var(--text-sm); }
+.hm-data summary { cursor: pointer; color: var(--muted); }
+.hm-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.hm-table th, .hm-table td { text-align: left; padding: var(--space-1) 0; font-weight: normal; }
+.hm-table td.hm-num, .hm-table th.hm-num { text-align: right; padding-left: var(--space-3); white-space: nowrap; }
+
+/* Where the week went: a bar by project. */
+.hm-projects { table-layout: fixed; }
+.hm-projects th, .hm-projects td { padding: var(--space-1) 0; vertical-align: middle; overflow: hidden; }
+.hm-projects th[scope='row'] { width: auto; }
+.hm-projects .hm-num { width: 6.8rem; }
+.hm-projects .hm-name { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.hm-projects .hm-name span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-dot { flex: none; width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--muted); }
+.hm-bar-cell { width: 4.5rem; padding-left: var(--space-3) !important; }
+.hm-bar { height: 0.55rem; background: var(--surface-2); border-radius: var(--radius-pill); overflow: hidden; }
+.hm-bar > span { display: block; height: 100%; background: var(--accent); border-radius: var(--radius-pill); }
+
+.hm-card[data-card='needs'] { border-color: var(--warn); }

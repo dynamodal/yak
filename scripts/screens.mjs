@@ -45,7 +45,7 @@ const SEED = {
 // A shot is a route, or a name mapped to one in ROUTES. Pages that only redirect are left out.
 const ONLY = process.env.ONLY?.split(','); // ONLY=notes,tasks shoots just those
 const SHOTS = [
-  'timer', 'week', 'reports', 'reports/detailed', 'reports/weekly', 'notes', 'notes-open', 'tasks', 'tasks-board', 'tasks-table',
+  'home', 'timer', 'week', 'reports', 'reports/detailed', 'reports/weekly', 'notes', 'notes-open', 'tasks', 'tasks-board', 'tasks-table',
   'settings', 'settings/backup', 'settings/devices', 'note-settings', 'organize', 'help', 'help/shortcuts', 'help/report', 'import',
   'timer-editing', 'timer-forced', 'tasks-forced',
   // Notes switched off (F-33n): the Tasks tab and a task on its own page.
@@ -89,7 +89,7 @@ async function shoot(outDir) {
     await page.keyboard.type('Kickoff with [[Beta]] about #invoices.');
     await page.waitForTimeout(300);
     await page.goto(`${BASE}?test#/tasks`);
-    for (const t of ['Write report @office due:2026-03-20', 'Call Acme !high', 'Plan sprint']) {
+    for (const t of ['Write report @office due:2026-03-20', 'Send invoice due:2026-03-27', 'Call Acme !high', 'Plan sprint']) {
       await page.locator('input[aria-label="New task"]').fill(t);
       await page.locator('input[aria-label="New task"]').press('Enter');
     }

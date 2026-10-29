@@ -47,6 +47,8 @@ async function scan([scheme, width]) {
   await page.getByRole('button', { name: 'Start timer' }).click();
   await nameRunning(page, 'Still running');
   const personal = await page.evaluate(() => window.__app.spaces().personal);
+  // The pointer rests on the timer's row from the clicks above; a hovered list row reveals its hover-only controls, which the scan is not about.
+  await page.mouse.move(1, 1);
   for (const hash of PAGES) {
     await page.evaluate((h) => { location.hash = h; }, hash.replace('PERSONAL', personal));
     // The page is up when the route is set, the view has content and nothing is still animating (a fade skews contrast).

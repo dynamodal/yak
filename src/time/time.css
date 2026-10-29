@@ -10,7 +10,14 @@
 .billable { display: inline-flex; color: var(--billable); }
 
 .fields { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-.fields .description { flex: 1 1 14rem; min-width: 0; }
+.fields .combo { flex: 1 1 14rem; min-width: 0; }
+.combo { position: relative; min-width: 0; }
+.combo > input { width: 100%; }
+.combo-list { position: fixed; z-index: var(--z-popover); list-style: none; margin: 0; padding: var(--space-1); display: flex; flex-direction: column; max-height: 13rem; overflow-y: auto; box-shadow: var(--shadow-float); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.combo-list[hidden] { display: none; }
+.combo-opt { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--space-2); min-height: var(--control-h); padding: 0.3rem var(--space-2); border-radius: var(--radius-sm); cursor: pointer; }
+.combo-opt:hover, .combo-opt.active { background: var(--surface-2); }
+.combo-opt.active { outline: 2px solid var(--accent); outline-offset: -2px; }
 .clock { font-variant-numeric: tabular-nums; font-size: var(--text-2xl); font-weight: var(--weight-semibold); }
 
 
@@ -132,7 +139,7 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .idle-banner p { margin: 0 0 0.4rem; }
 
 @media (max-width: 40rem) {
-  .fields .description { flex-basis: 100%; }
+  .fields .combo { flex-basis: 100%; }
   .week-nav { flex-wrap: wrap; }
   .week-label { min-width: 0; flex: 1 1 100%; order: -1; text-align: left; }
   .picker-btn { max-width: 11rem; }
@@ -225,7 +232,6 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .manual-dialog { width: min(30rem, calc(100vw - 1rem)); }
 .manual-title { margin: 0 0 var(--space-3); font-size: var(--text-xl); }
 .manual-form { display: flex; flex-direction: column; gap: var(--space-3); }
-.manual-form .description { width: 100%; }
 .manual-times { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .manual-range { display: inline-flex; align-items: center; gap: var(--space-1); }
 .tp-space { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-sm, 0.875rem); }

@@ -85,9 +85,9 @@ function FieldsForm({ value, data, onPatch, idPrefix = '' }: FieldsFormProps) {
     <div class="fields">
       <DescriptionField
         value={value.description}
-        entries={data.entries}
         label={`${idPrefix}Description`}
         onCommit={(t) => onPatch({ description: t })}
+        onPick={(e) => onPatch({ description: e.description, tags: e.tags, billable: e.billable, ...(e.project_id && (e.spaceId ?? data.spaceId) === data.spaceId ? { project_id: e.project_id } : {}) })}
       />
       <ProjectPicker
         spaces={[space]}

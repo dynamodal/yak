@@ -3,13 +3,13 @@ import { useId, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { useApp } from '../app/context';
 import { Button, IconBillable, Popover } from '../app/ui';
 import { ensureTag } from './catalog';
-import { editEntry, entryFields, type RunningRef } from './entries';
+import { editEntry, entryFields, type EntryRecord, type RunningRef } from './entries';
 import { type SpaceCatalog, useCatalogs, useController, useRecents, useSpaceName } from './hooks';
 import { ProjectPicker, TagPicker } from './pickers';
 import { type RecentItem, relativeAgo } from './recents';
 import { EMPTY_DRAFT, type Draft, setDraft, useDraft } from './timer-draft';
 import { startFromDraft, timerSpace } from './timer-start';
-import { Swatch } from './widgets';
+import { DescriptionField, Swatch } from './widgets';
 
 type Fields = Pick<Draft, 'description' | 'project_id' | 'tags' | 'billable'>;
 
@@ -110,6 +110,14 @@ export function TimerPopover({ id, anchor, current, onClose, onEscape }: TimerPo
     done();
   };
 
+  /** A suggestion from the combobox fills description, project (its space), tags and billable; a running entry keeps its space. */
+  const pickSuggestion = (e: EntryRecord): void => {
+    const f = entryFields(e);
+    const from = e.spaceId ?? targetSpace;
+    if (current) patchRunning({ description: f.description, billable: f.billable, tags: f.tags, ...(from === current.spaceId ? { project_id: f.project_id } : {}) });
+    else setDraft((d) => ({ ...d, description: f.description, project_id: f.project_id, tags: f.tags, billable: f.billable, spaceId: f.project_id ? from : d.spaceId }));
+  };
+
   const rows: { item: RecentItem; continues: boolean }[] = [
     ...(recents.last ? [{ item: recents.last, continues: !current }] : []),
     ...recents.others.map((item) => ({ item, continues: false })),
@@ -145,22 +153,18 @@ export function TimerPopover({ id, anchor, current, onClose, onEscape }: TimerPo
           primary();
         }}
       >
-        <input
-          ref={descRef}
-          type="text"
+        <DescriptionField
+          inputRef={descRef}
           class="tp-description"
-          aria-label="Description"
-          placeholder="What are you working on?"
-          autocomplete="off"
           value={text}
-          onInput={(e) => {
-            const v = (e.target as HTMLInputElement).value;
+          onText={(v) => {
             setText(v);
             if (!current) setDraft((d) => ({ ...d, description: v }));
           }}
-          onChange={(e) => {
-            if (current) patchRunning({ description: (e.target as HTMLInputElement).value });
+          onCommit={(v) => {
+            if (current) patchRunning({ description: v });
           }}
+          onPick={pickSuggestion}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown' && rows.length > 0) {
               e.preventDefault();

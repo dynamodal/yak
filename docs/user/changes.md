@@ -3,6 +3,7 @@
 ## 2026-10-29: Timer row, smarter description, Move to space
 
 - A running timer now has a full row of its own in the header at every window width, so its description and clock stay readable.
+- Typing a description now suggests matching past entries (word order and small typos do not matter) with their project and tags; picking one fills the project, tags and billable too. It works in the timer, **Add entry** and when editing an entry.
 - Nothing stored changed.
 
 ## 2026-10-29: Timer keeps its space

@@ -79,7 +79,7 @@ export function relayNotice(input: RelayNoticeInput, locale?: string): string | 
     case 'ours-refused':
       return d.originAllowed === false
         ? `The relay does not accept connections from this page's address.${AFTER}`
-        : `The relay turned this connection away, usually because this network opened too many connections in a minute.${AFTER}`;
+        : `The relay turned this connection away, usually because this network opened too many connections, in a minute or in a day (many devices behind one address add up).${AFTER}`;
     case 'cloudflare':
       return `Cloudflare, which hosts the relay, is refusing requests (its own daily quota or an outage), not Yak.${AFTER}`;
     case 'unreachable':

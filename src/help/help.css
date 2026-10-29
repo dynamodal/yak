@@ -30,6 +30,6 @@
 .change-date { font-size: var(--text-sm); font-weight: 400; margin-left: 0.4rem; }
 
 /* The alpha banner sits outside any page: keep it off the screen edges on a phone. */
-.alpha-notice { margin: var(--space-2) var(--space-3); }
+.alpha-notice { margin: var(--space-1) var(--space-2); font-size: var(--text-sm); }
 .alpha-notice p { margin: 0 0 var(--space-2); }
 .alpha-notice p:last-child { margin-bottom: 0; }

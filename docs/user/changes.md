@@ -6,6 +6,13 @@
 - With several spaces, the start popover has a **Space** picker, so you can choose where the entry goes.
 - Nothing stored changed.
 
+## 2026-10-29: Clearer start-up problems, calmer first screen
+
+- If your browser will not let Yak store data (a private window, a browser set to keep no history, a managed browser), Yak now says so and what to try, instead of showing a blank page.
+- On a phone, the alpha notice and the "No backup yet" bar no longer both push backups: while there is no backup, only the bar has the button. Both are more compact on narrow screens.
+- The alpha notice points to **Settings › Help**.
+- The connection server allows more connections a day from one network, so a team on one office network can sync. Nothing stored changed.
+
 ## 2026-10-29: Fixes before sharing
 
 - The running timer now shows in the **Time** list, so you can edit its start or delete it there. The list no longer says "Nothing tracked" while the first timer runs.

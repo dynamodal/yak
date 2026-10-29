@@ -50,7 +50,7 @@ How sync works today. Decisions and reasons: `decisions/sync.md`.
 - **Kill switch:** `RELAY=off` (a variable in the dashboard or `wrangler.jsonc`) refuses everything at once.
 - `Origin` must be the site, Obsidian or `ALLOWED_ORIGINS`; otherwise 403.
 - New connections a minute: 60 per address and topic (`CONNECT_LIMIT`), 120 per address in all, status checks included (`ADDRESS_LIMIT`); otherwise 429. Accounts behind one VPN or office address do not crowd each other out.
-- Per address and UTC day, kept by `RelayBudget` (as hashes and counts only): accepted sockets may spend 2% of the day's requests (`ADDRESS_DAY_SHARE`, 2 per socket, so 500 at the default) and open 30 different topics (`ADDRESS_DAY_TOPICS`); past either, 429 with `reason: address` and `scope: share` or `topics`. Messages on open sockets are not attributed to an address; the per-socket caps bound them.
+- Per address and UTC day, kept by `RelayBudget` (as hashes and counts only): accepted sockets may spend 10% of the day's requests (`ADDRESS_DAY_SHARE`, 2 per socket, so 2 500 at the default) and open 150 different topics (`ADDRESS_DAY_TOPICS`); past either, 429 with `reason: address` and `scope: share` or `topics`. Messages on open sockets are not attributed to an address; the per-socket caps bound them.
 - A device the relay refuses this way (the status check says so) opens no sockets for 90 s, then starts over; open links stay.
 - Per socket: signaling 20 messages and links 400 frames or 4 MiB per 10 s; a frame is at most 8 KiB (signaling) or 64 KiB (links). Above that the Worker closes the socket.
 - Per room: 100 MiB of link data per UTC day (`RELAY_DAY_BYTES`), a fairness limit, not a cost limit. Past it the room's two devices get `reason":"day"`.

@@ -23,7 +23,7 @@ import { UnlockWindow } from './unlock-window';
 export { KeyTrust } from './key-trust';
 
 /**
- * Keys in the running app (docs/design/device-keys.md, slice 1, compatible mode): the account key,
+ * Keys in the running app (docs/sync.md, "Key model", slice 1, compatible mode): the account key,
  * this device's public keys, and sealing the account key with the passphrase. Nothing here changes
  * who may sync; older builds ignore all of it.
  */

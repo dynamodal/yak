@@ -1,5 +1,11 @@
 # What's new
 
+## 2026-10-29: Obsidian plugin 0.2.1
+
+- The Yak Sync plugin has a first public release on GitHub: add `dynamodal/yak` in BRAT. A vault that installed it from the old private repository must be re-added in BRAT.
+- It carries the sync fixes made since 0.2.0.
+- The plugin and its guide now point to **Settings › Devices and sync**.
+
 ## 2026-10-29: Clearer start-up problems, calmer first screen
 
 - If your browser will not let Yak store data (a private window, a browser set to keep no history, a managed browser), Yak now says so and what to try, instead of showing a blank page.

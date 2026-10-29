@@ -53,21 +53,17 @@ body { font: var(--font-size)/var(--line-height) var(--font-sans); }
   /* The tabs keep their width; the timer (the one control with flexible text) gives way. */
   .topbar-end { flex: 1 1 0; justify-content: flex-end; }
 }
-/* Wide (58rem and up): idle, the pill stays in row one; running, it takes a full-width row of its own, as on narrower screens (#59). */
-@media (min-width: 58rem) {
-  .topbar:has(.timer-pill.running) { flex-wrap: wrap; }
-  .topbar:has(.timer-pill.running) .topbar-end { display: contents; }
-  .topbar:has(.timer-pill.running) .topbar-end > .btn { margin-block: 0.4rem; }
-  .topbar:has(.timer-pill.running) .topbar-end > .timer-pill.running { order: 4; flex: 1 1 100%; margin: 0 0 0.4rem; }
-  .topbar:has(.timer-pill.running) .palette-btn { margin-left: auto; }
-}
+/* Running (#59): the pill takes a full-width row of its own at every width; idle, it stays in row one. */
+.topbar:has(.timer-pill.running) { flex-wrap: wrap; }
+.topbar:has(.timer-pill.running) .topbar-end { display: contents; }
+.topbar:has(.timer-pill.running) .topbar-end > .btn { margin-block: 0.4rem; }
+.topbar-end > .timer-pill.running { order: 4; flex: 1 1 100%; margin: 0 0 0.4rem; }
+.topbar:has(.timer-pill.running) .palette-btn { margin-left: auto; }
 @media (min-width: 22.5rem) and (max-width: 59.99rem) {
   .topbar { flex-wrap: wrap; }
   .topbar-end { display: contents; }
   .topbar-end > .timer-pill { margin: 0.4rem 0 0.4rem auto; flex: 0 1 auto; }
   .topbar-end > .btn { margin-block: 0.4rem; }
-  .topbar-end > .timer-pill.running { order: 4; flex: 1 1 100%; margin: 0 0 0.4rem; }
-  .topbar:has(.timer-pill.running) .palette-btn { margin-left: auto; }
 }
 /* Tabs are soft pills: an icon, a label, and the current one has the --surface-2 fill and the text colour. */
 .tabs a, .tabs .tab { position: relative; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; margin-block: 0.2rem; color: var(--muted); text-decoration: none; background: none; border: 0; border-radius: var(--radius-pill); white-space: nowrap; }
@@ -228,8 +224,6 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
   .topbar-end { display: contents; }
   .topbar-end > .timer-pill { margin: 0.4rem 0 0.4rem auto; flex: 0 1 auto; }
   .topbar-end > .btn { margin-block: 0.4rem; }
-  .topbar-end > .timer-pill.running { order: 4; flex: 1 1 100%; margin: 0 0 0.4rem; }
-  .topbar:has(.timer-pill.running) .palette-btn { margin-left: auto; }
 }
 /* From 22.5rem (360 px) to 58rem the tab labels are gone, so the tab icons fit beside the logo, command and sync: row one is
    logo, tabs, (idle round button), command, sync; row two exists only while a timer runs. Below 22.5rem the tabs keep their own row. */

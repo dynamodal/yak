@@ -130,7 +130,8 @@ export function DescriptionField({ value, placeholder, onText, onCommit, onPick,
           e.stopPropagation();
         }}
       />
-      <ul id={`${id}-list`} class="combo-list" role="listbox" aria-label="Suggested past work" hidden={!shown} style={place ? { top: `${place.top}px`, left: `${place.left}px`, width: `${place.width}px`, maxHeight: `${place.max}px` } : undefined}>
+      {shown && (
+      <ul id={`${id}-list`} class="combo-list" role="listbox" aria-label="Suggested past work" style={place ? { top: `${place.top}px`, left: `${place.left}px`, width: `${place.width}px`, maxHeight: `${place.max}px` } : undefined}>
         {hits.map((c, i) => {
           const e = c.entry;
           const cat = catalogs.find((k) => k.spaceId === c.spaceId);
@@ -151,6 +152,7 @@ export function DescriptionField({ value, placeholder, onText, onCommit, onPick,
           );
         })}
       </ul>
+      )}
       <span class="visually-hidden" role="status">
         {shown ? `${hits.length} suggestion${hits.length === 1 ? '' : 's'}` : ''}
       </span>

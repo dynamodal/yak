@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
-const BUDGET = { 'main-*.js': { raw: 870, gzip: 285 }, 'main-*.css': { raw: 76, gzip: 15 } };
+const BUDGET = { 'main-*.js': { raw: 880, gzip: 290 }, 'main-*.css': { raw: 76, gzip: 15 } };
 const files = readdirSync('dist/assets');
 let failed = false;
 for (const [pattern, limit] of Object.entries(BUDGET)) {

@@ -856,13 +856,14 @@ describe('signed handshake (#256)', () => {
     await new Promise((r) => setTimeout(r, 50));
     a.mesh.start();
     // The first offer may go out before the hellos tell each side the other verified it; a reconnect uses the pair key.
-    await waitFor(() => a.mesh.state === 'connected' && b.mesh.state === 'connected', 5000, 'connected');
+    await waitFor(() => a.mesh.state === 'connected' && b.mesh.state === 'connected', 8000, 'connected');
     net.cut();
-    await waitFor(() => logText(a).includes('pair key failed'), 10000, 'pair key given up');
-    await waitFor(() => a.mesh.state === 'connected' && b.mesh.state === 'connected' && a.opens.length === 2, 10000, 'connected again with the shared key');
+    await waitFor(() => logText(a).includes('pair key failed'), 16000, 'pair key given up');
+    await waitFor(() => a.mesh.state === 'connected' && b.mesh.state === 'connected' && a.opens.length === 2, 12000, 'connected again with the shared key');
     // Shown on the Devices page.
     expect(a.mesh.peers.find((p) => p.id === 'bbb')?.sharedKey).toBe(true);
-  }, 20000);
+    // Deadlines, not a speed check: a loaded runner stretches the 5 s hello-reply interval and the WebCrypto work (#30). The suite limit is 30 s.
+  }, 30000);
 
   it('keys required: a broken pair key never falls back to the shared key', async () => {
     const { keys, hub, net } = await setup();

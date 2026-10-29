@@ -426,7 +426,7 @@ class YakSettings extends PluginSettingTab {
     else if (join?.phase === 'declined' || join?.phase === 'failed') new Setting(el).setName('Not joined').setDesc(join.error ?? 'The other device declined this vault.');
     new Setting(el)
       .setName('Sync code')
-      .setDesc('From Yak, Devices page: the sync code, or a one-time code when your account requires device keys. Adds this vault as a device. Then choose which spaces it keeps on the Devices page.')
+      .setDesc('From Yak, Settings › Devices and sync: the sync code, or a one-time code when your account requires device keys. Adds this vault as a device. Then choose which spaces it keeps in its row there.')
       .addText((t) => t.setPlaceholder('XXXX-XXXX-…').onChange((v) => (code = v)))
       .addButton((b) =>
         b

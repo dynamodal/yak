@@ -1,4 +1,4 @@
-# Obsidian plugin (#64)
+# Obsidian plugin
 
 Makes a vault a device of your Yak account.
 Notes and tasks of the spaces you choose appear as Markdown files and sync both ways, on a phone too.
@@ -11,6 +11,7 @@ With BRAT (Obsidian42 - BRAT, a community plugin; works on phones):
 1. Install BRAT from Community plugins and turn it on.
 2. BRAT, Add beta plugin: `dynamodal/yak`.
 3. BRAT checks for updates at start and installs new releases; "Check for updates to all beta plugins" forces it.
+4. A vault that installed the plugin from the old private repo must be re-added: remove it in BRAT, then Add beta plugin `dynamodal/yak`. The old repo gets no more releases.
 
 By hand:
 
@@ -21,13 +22,13 @@ By hand:
 Then:
 
 1. Settings, Community plugins: turn on "Yak Sync".
-2. Settings, Yak Sync: paste the sync code from the app's Devices page, Join.
-   - When your account requires device keys, make a one-time code on the Devices page instead.
-     A notice in Obsidian shows a code. If the Devices page shows the same, choose "The codes match" in the plugin's settings, then approve the vault on the Devices page.
-3. On the Devices page, tick the spaces "Obsidian (<vault name>)" keeps.
+2. Settings, Yak Sync: paste the sync code or a one-time code from the app (Settings › Devices and sync › + Add a device), Join.
+   - When your account requires device keys, use a one-time code (Make a one-time code).
+     A notice in Obsidian shows a code. If the app shows the same, choose "The codes match" in the plugin's settings, then approve the vault in the app.
+3. In the app, Settings › Devices and sync: open the row "Obsidian (<vault name>)" and tick the spaces it keeps.
    Nothing is written until you do.
 
-An account can require device keys only once every vault runs version 0.2.0 or later of the plugin: until then the Devices page lists the vault as not ready.
+An account can require device keys only once every vault runs version 0.2.0 or later of the plugin: until then Settings › Devices and sync lists the vault as not ready.
 
 ## Folders
 
@@ -43,7 +44,7 @@ An account can require device keys only once every vault runs version 0.2.0 or l
 ## Where your data is stored
 
 - The sync code is in Obsidian's `localStorage`, under a key per vault. Any plugin you install can read it.
-- The vault's device keys (#257) are in protected browser key storage (IndexedDB, keys that cannot be read out) when Obsidian has it.
+- The vault's device keys are in protected browser key storage (IndexedDB, keys that cannot be read out) when Obsidian has it.
   Otherwise they are in the plugin's settings file, `.obsidian/plugins/yak-sync/data.json`, which vault sync copies: whoever reads the vault can then act as this device.
   The settings tab says which, and shows the vault's fingerprint to compare with the app's.
 - Documents (notes, tasks, projects, the account) and the mirror state are files under `<vault>/.obsidian/plugins/yak-sync/`.
@@ -75,4 +76,4 @@ scripts/release-obsidian.sh --publish  # pushes tag obsidian-v<version> from a c
 
 - `npm test`: link translation, the vault adapter against the engine, the vault rules, document saving.
 - `npm run e2e obsidian`: the built bundle in a page with an in-memory stand-in for Obsidian's API, paired with the app through the mock relay.
-- Not covered by a machine: real Obsidian, and the phone's background behaviour (`docs/design/external-editors.md`).
+- Not covered by a machine: real Obsidian, and the phone's background behaviour.

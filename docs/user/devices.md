@@ -2,6 +2,8 @@
 
 Sync is optional and only between your own devices. Everything works without it.
 
+**Both devices must be open at the same time to exchange changes.** Edits made offline sync when they meet.
+
 ## Start syncing and add a device
 
 1. On the first device open **Settings**, choose **+ Add a device**, then **Start syncing my devices**. If you have no passphrase yet, a sheet asks you to create one: Yak suggests words, or you type your own, and you tick **I've written it down**.
@@ -30,7 +32,7 @@ Update Yak on it first if it is old.
 ## What to expect
 
 - Changes travel directly between devices, encrypted. A small connection server only helps them find each other (the relay, this site's own, is the default).
-- Both devices must be open at the same time to exchange changes. Edits made offline sync when they meet.
+- Some networks (company Wi-Fi, some mobile carriers) block direct connections. Devices then fall back to the relay, which is slower and **carries no attachments**: files in notes arrive when a direct link works.
 - The sync button at the right of the header shows the state by its shape as well as its colour, and opens the list of devices and how each is linked:
   - Grey square: sync is off, or no other device is paired yet.
   - Filled green circle: linked to at least one device directly.
@@ -49,6 +51,12 @@ Backups are the safety net for either: see [Backups and history](#/help/backups)
 ## Sharing a space
 
 With device keys required, a space can be shared with another account: open the space's row under **Settings › Spaces** and choose **+ Share <space> with an account** under Shared with (the row also tells which of your devices keep the space). A share does not give them any of your devices or your other spaces. Removing one of your devices from your account also removes it from your shares.
+
+Trust limits, in plain words:
+- Every device you approve is trusted with your whole account. A device you told to keep only some spaces is not stopped from asking for the others, so approve only devices you own.
+- Everyone in a share can read, edit and delete everything in that space, and so can all their devices.
+- Ending a share or removing someone stops new changes; it cannot take back what they already synced.
+- Share a space only with people you would trust with a copy of it.
 
 ## Passphrase
 

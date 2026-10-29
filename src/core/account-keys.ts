@@ -4,7 +4,7 @@ import { decryptBytes, DEFAULT_ITERATIONS, encryptBytes, InvalidParamsError, ite
 import { fingerprint, isPublicKeyJwk, type PublicKeyJwk } from './keys';
 
 /**
- * Key records in the account document's `keys` map (docs/design/device-keys.md, slice 1). Nothing
+ * Key records in the account document's `keys` map (docs/sync.md, Key model, slice 1). Nothing
  * here is enforced yet: compatible mode only publishes keys.
  *
  * Keys are `account:<fingerprint>`, `sealed:<fingerprint>`, `device:<deviceId>` and `chosen` (the

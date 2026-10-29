@@ -4,7 +4,7 @@ import { PAIR_KEY_INFO, SIGNAL_SIGNATURE_LABEL } from '../core/protocol-ids';
 import type { SignalPayload } from './envelope';
 
 /**
- * The signed handshake (docs/design/device-keys.md, slice 2, #256). A device with a certificate signs
+ * The signed handshake (docs/sync.md, Key model, slice 2, #256). A device with a certificate signs
  * every offer and answer with its device key. The signature covers the packed session description,
  * which holds the DTLS fingerprint of the link, so it binds the direct link itself: a replayed or
  * forwarded offer opens a link only to the device that signed it. Through the relay, frames are sealed

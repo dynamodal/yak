@@ -10,21 +10,21 @@
 - Moving a note to another space now also copies files linked with Markdown, `![](photo.png)` and `[text](file.pdf)`.
 - Nothing stored changed.
 
-## 2026-11-02: Organize in Settings, a tidier Home
+## 2026-10-29: Organize in Settings, a tidier Home
 
 - **Organize** (projects, clients, tags, task values) is now a section of **Settings**: open it from the contents row or from **Edit…** in a picker, and it opens in place. Old Organize links and **Go to Organize** in the command palette still work.
 - Settings › Features has a shorter intro; the details sit beside each switch.
 - Home cards fill the width without big gaps; project names in **Where the week went** wrap instead of being cut off; **Recent notes** shows the folder and a line of each note.
 - Nothing stored changed.
 
-## 2026-11-02: Home
+## 2026-10-28: Home
 
 - A new **Home** tab comes first and is where Yak opens: a summary with cards for what needs you (the same rows as Settings), this week's hours with a bar per day, tasks due soon (late ones marked, tick one off right there), recent notes, and where the week went by project.
 - A card hides when its feature is off or it has nothing to show. The cards sit three across, two, or one by width. Each chart has the same numbers as a table.
 - Home is a switch in Settings › Features. The **Time tracker** choice on a new device leaves it off; on a device that already chose it, Home now shows (switch it off in Features if you prefer the old start page).
 - Nothing stored changed.
 
-## 2026-11-02: Tidier Tasks and Time pages
+## 2026-10-28: Tidier Tasks and Time pages
 
 - **Tasks** has one switch: **List**, **Board**, **Table**. The four selects above the list are now behind one **Filters** button that shows how many filters are on. Agenda and Projects are in Filters under **Group**.
 - The **Table** shows Task, Status, Due, Project and, when Time is on, **Tracked** (time from the timer on that task). Other properties, and Checklist, are columns you add under Filters.
@@ -32,7 +32,7 @@
 - **Time**: the Today and This week cards are gone (each day already shows its total; Week shows the week). The space choice moved behind Filters and shows only when you have more than one space. On a phone the switch, Filters, Select and Add entry share one row, so the first entry is near the top.
 - Nothing stored changed.
 
-## 2026-11-01: Settings is one long page
+## 2026-10-28: Settings is one long page
 
 - **Settings** is one page with a row of section chips under the title: Backup and safety, Devices and sync, Spaces, Sharing, Display, Features, Help, Advanced. A **Needs you** section appears first while something waits: a device or account asking to join, or "No backup yet". The Settings tab shows a dot for a request.
 - The Sync, Backup and Passphrase lines are always there, whatever the state ("Sync: Off · Set up").
@@ -42,14 +42,14 @@
 - Searching: a task is still found, as a note, when only Tasks is switched off.
 - Nothing stored changed; old Settings addresses open the right row.
 
-## 2026-10-31: Tasks work without Notes
+## 2026-10-28: Tasks work without Notes
 
 - **Notes** and **Tasks** are separate switches in Settings › Preferences › Tabs shown. Hide Notes and keep Tasks if you only want a task list.
 - With Notes off, a task opens on its own page (**Tasks** › the task) with the same editor and properties. A link to another task opens it; a link to a plain note does nothing and says "Turn on Notes to open this note". The Notes tab, the notes tree, note search results, daily notes and the note commands are hidden.
 - **If you had hidden only Notes before, Tasks now show.** Before, hiding Notes hid Tasks too. Turn Tasks off if you want it hidden.
 - Nothing is deleted or changed: tasks are still note files, in sync and in backups.
 
-## 2026-10-30: One timer in the header
+## 2026-10-28: One timer in the header
 
 - The timer is a **pill** in the header on every page. The round button starts or stops at once. The words beside it open the details: description, **Recent** work (the first row is **Continue**), project, tags and billable, with **Start** or **Update**.
 - **Alt S** starts the timer and opens the details with the cursor in the description. **Esc** closes it and the timer keeps running; **Alt S** again stops it.
@@ -58,7 +58,7 @@
 - The separate **Reports** switch is gone: Reports is part of Time and follows the **Time** switch.
 - **Time** is a switch in Settings › Preferences › Tabs shown. Off hides the tab, Reports, the pill, the shortcut and the title and icon cue; nothing is deleted. A running timer must be stopped first. The app opens on the first tab still shown.
 
-## 2026-10-29: A tidier header
+## 2026-10-28: A tidier header
 
 - Tabs have icons. On a narrow screen only the icons show; each still has its name for screen readers.
 - The **Timer** tab is now **Time**. The address is `#/time`; old `#/timer` bookmarks do not redirect.

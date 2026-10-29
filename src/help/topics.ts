@@ -9,18 +9,18 @@ export interface Topic {
 }
 
 /** Topic ids in reading order. Ids without a file are built by the view. */
-const ORDER = ['getting-started', 'timer', 'reports', 'notes', 'spaces', 'devices', 'backups', 'browsers', 'obsidian', 'import', 'offline', 'shortcuts', 'privacy', 'report'] as const;
+const ORDER = ['getting-started', 'home', 'timer', 'reports', 'notes', 'spaces', 'devices', 'backups', 'browsers', 'obsidian', 'import', 'offline', 'shortcuts', 'privacy', 'report'] as const;
 
 const BUILT: Record<string, string> = { shortcuts: 'Keyboard shortcuts', report: 'Report a problem' };
 
-import { type Change, parseChanges } from './changes';
+import { type Change, changeToken, parseChanges } from './changes';
 
 /** The entries of What's new, newest first. */
 export function allChanges(): Change[] {
   return parseChanges(sourceOf('changes'));
 }
 
-export const latestChange = (): string | undefined => allChanges()[0]?.id;
+export const latestChange = (): string | undefined => changeToken(allChanges()[0]);
 
 /** The raw source of one file in docs/user. */
 function sourceOf(id: string): string {

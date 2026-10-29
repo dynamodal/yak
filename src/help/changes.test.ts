@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { changesSeen, hasNewChanges, markChangesSeen, parseChanges } from './changes';
+import { changeToken, changesSeen, hasNewChanges, markChangesSeen, parseChanges } from './changes';
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -21,6 +21,21 @@ describe('changes', () => {
     expect(hasNewChanges('2026-10-19')).toBe(false);
     expect(changesSeen('2026-10-20')).toBe('2026-10-19');
     expect(hasNewChanges('2026-10-20')).toBe(true);
+  });
+  it('a stored value later than the newest entry is stale, so the dot shows until seen', () => {
+    store.set('app-changes-seen', '2026-11-02');
+    expect(hasNewChanges('2026-10-29')).toBe(true);
+    markChangesSeen('2026-10-29');
+    expect(hasNewChanges('2026-10-29')).toBe(false);
+  });
+  it('a new entry on an already seen date shows the dot', () => {
+    const before = changeToken(parseChanges('## 2026-10-29: First\n\n- a\n')[0]);
+    markChangesSeen(before);
+    expect(hasNewChanges(before)).toBe(false);
+    const after = changeToken(parseChanges('## 2026-10-29: Second\n\n- b\n\n## 2026-10-29: First\n\n- a\n')[0]);
+    expect(hasNewChanges(after)).toBe(true);
+    store.set('app-changes-seen', '2026-10-29');
+    expect(hasNewChanges(after)).toBe(true);
   });
   it('the dot clears once seen', () => {
     store.set('app-changes-seen', '2026-10-17');

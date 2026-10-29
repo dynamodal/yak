@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { Markdown } from './Markdown';
-import { type Change, markChangesSeen } from './changes';
+import { type Change, changeToken, markChangesSeen } from './changes';
 
 /** How many entries the section shows. */
 const SHOWN = 10;
@@ -8,7 +8,7 @@ const SHOWN = 10;
 /** Help › What's new: the latest entries of `docs/user/changes.md`. Seeing it clears the dot on the Settings tab. */
 export function WhatsNew({ changes }: { changes: Change[] }) {
   const ref = useRef<HTMLDivElement>(null);
-  const newest = changes[0]?.id;
+  const newest = changeToken(changes[0]);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;

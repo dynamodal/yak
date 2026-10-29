@@ -107,7 +107,7 @@ for (const width of [320, 375, 768, 1280]) {
     check((await overflow()) <= 0, `${width} px, sync ${state}: no sideways scroll (${await overflow()})`);
   }
   const labelsShown = await p.locator('.tabs a .tab-label').first().evaluate((el) => el.getBoundingClientRect().width > 2);
-  check(labelsShown === (width >= 576), `${width} px: tab labels ${width >= 576 ? 'show' : 'are hidden'}`);
+  check(labelsShown === (width >= 800), `${width} px: tab labels ${width >= 800 ? 'show' : 'are hidden'}`);
   check((await p.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: /^Time/ }).count()) === 1, `${width} px: the Time tab keeps its name`);
   const nameShown = await p.locator('.brand-name').evaluate((el) => el.getBoundingClientRect().width > 2);
   check(nameShown === (width >= 448) && (await p.locator('.brand-icon').isVisible()), `${width} px: the logo shows, the name ${width >= 448 ? 'too' : 'is hidden'}`);
@@ -117,14 +117,16 @@ for (const width of [320, 375, 768, 1280]) {
   check(width >= 576 || (await p.locator('.sync-label').first().isHidden() && (await p.locator('.palette-chip').isHidden())), `${width} px: the sync label and the chip are hidden when narrow`);
 }
 
-// ---- One row from 50rem (800 px): logo, tabs, timer, commands and sync share one line; the full pill from 60rem (960 px)
-for (const width of [1280, 960, 959, 913, 800]) for (const state of ['direct', 'offline']) {
-  await show(state);
+// ---- Row 1 at every width from 360 px: logo, tabs, commands and sync share one line, the tabs never wrap (idle: the whole
+// header is one row). Labels show from 50rem (800 px); the idle pill is the full pill from 60rem (960 px).
+for (const width of [360, 375, 414, 480, 497, 562, 640, 700, 799, 800, 913, 959, 960, 1280]) for (const state of ['direct', 'offline']) {
   await p.setViewportSize({ width, height: 800 });
-  const rows = await p.evaluate(() => ['.brand', '.tabs', '.timer-pill', '.palette-btn', '.sync-btn'].map((s) => { const r = document.querySelector(`.topbar ${s}`).getBoundingClientRect(); return [r.top, r.bottom]; }));
-  const top = Math.min(...rows.map((r) => r[0])), bottom = Math.max(...rows.map((r) => r[1]));
+  await show(state);
+  const rows = await p.evaluate(() => ['.brand', '.tabs', '.palette-btn', '.sync-btn'].map((s) => { const r = document.querySelector(`.topbar ${s}`).getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; }));
   const bar = await p.locator('.topbar').boundingBox();
-  check(bar.height < 56 && rows.every((r) => r[0] >= top && r[1] <= bottom && r[0] < rows[0][1]), `${width} px, sync ${state}: the header is one row (${Math.round(bar.height)} px high)`);
+  check(bar.height < 56 && rows.every((r) => r.top < rows[0].bottom && r.bottom > rows[0].top), `${width} px, sync ${state}: logo, tabs, commands and sync share row 1; idle, the header is one row (${Math.round(bar.height)} px high)`);
+  const labels = await p.locator('.tabs a .tab-label').first().evaluate((el) => el.getBoundingClientRect().width > 2);
+  check(labels === (width >= 800), `${width} px, sync ${state}: tab labels ${width >= 800 ? 'show' : 'are hidden'}`);
   const pillText = await p.locator('.timer-pill .tp-label').isVisible();
   check(pillText === (width >= 960), `${width} px, sync ${state}: the idle timer pill is ${width >= 960 ? 'full' : 'a round button'}`);
 }

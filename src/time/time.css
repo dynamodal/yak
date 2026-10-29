@@ -231,3 +231,4 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .manual-form .description { width: 100%; }
 .manual-times { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .manual-range { display: inline-flex; align-items: center; gap: var(--space-1); }
+.tp-space { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-sm, 0.875rem); }

@@ -4,7 +4,7 @@
 //
 //   npm run e2e settings-rows
 //
-import { BASE, launch, ok, check, watchPage, until, finish, startSyncing, joinByInvite, openRow } from './lib.mjs';
+import { BASE, launch, ok, check, watchPage, until, finish, startSyncing, joinByInvite, openRow, openAdvanced } from './lib.mjs';
 
 const browser = await launch();
 const mk = async (name, size = { width: 1100, height: 900 }) => {
@@ -97,6 +97,27 @@ const mk = async (name, size = { width: 1100, height: 900 }) => {
   await a.keyboard.press('Escape');
   await a.context().close();
   await b.context().close();
+}
+
+// ---- 360 px, a syncing device: no section is wider than the screen, Advanced with every fold open included (#81)
+{
+  const p = await mk('phone', { width: 360, height: 740 });
+  await p.evaluate(() => { location.hash = '#/devices'; });
+  await startSyncing(p);
+  const fits = () => p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+  for (const slug of ['needs-you', 'backup-safety', 'devices-sync', 'spaces', 'sharing', 'organize', 'notes', 'display', 'features', 'help']) {
+    await p.evaluate((h) => { location.hash = h; }, `#/settings/${slug}`);
+    await p.waitForTimeout(150);
+    check(await fits(), `360 px: Settings › ${slug} fits the screen`);
+  }
+  await p.evaluate(() => { location.hash = '#/settings/advanced'; });
+  const fold = await openAdvanced(p);
+  await fold.locator('.st-adv[data-adv="connection"]').waitFor();
+  for (const d of await fold.locator('details').all()) if (!(await d.evaluate((e) => e.open))) await d.locator('summary').first().click();
+  await p.waitForTimeout(500);
+  const wide = await p.evaluate(() => [...document.querySelectorAll('details.advanced *')].filter((e) => e.getBoundingClientRect().right > window.innerWidth + 1).map((e) => `${e.tagName}.${e.className}`).slice(0, 5));
+  check((await fits()) && wide.length === 0, `360 px: Settings › Advanced with every fold open fits the screen (${wide.join(', ')})`);
+  await p.context().close();
 }
 
 await finish(browser);

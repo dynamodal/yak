@@ -25,3 +25,8 @@ If the preview says start and end do not match the duration, the time zone is pr
 - Use the same time zone each time for the same Toggl account.
 - Import on one device and let it sync to the others. Importing on two devices before they sync adds entries twice.
 - Dates must be `YYYY-MM-DD` (or `DD.MM.YYYY`); set Toggl to that format if rows are reported.
+
+## Known limits
+
+- A Toggl team export can hold identical entries from different people (same description, project and times). They collapse into one.
+- Importing the same data again with a **different time zone** shifts every time, so the entries count as new and appear twice.

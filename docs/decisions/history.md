@@ -1,6 +1,11 @@
 # Decisions: version history
 
-Built in #52. Unbuilt parts: `../design/backups-next.md`.
+Built in #52. Incremental backups, restore points, restore to a time and encrypted mode are built (`../backups.md`, `backup.md`).
+
+Not built:
+- Edit attribution (Yjs client id to device) and "undo what one device did since T".
+- Sending the log to a new device.
+- Encrypt files already in the folder when the mode is switched on.
 
 | # | Decision | Why |
 | --- | --- | --- |

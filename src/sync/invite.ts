@@ -7,7 +7,7 @@ import { compareDigest, freshness, isStr, MAILBOX_TTL_MS, openMessage, sealMessa
 import type { SignalingTransport } from './signaling';
 
 /**
- * One-time invites (docs/design/device-keys.md, "Pairing a new device", #257). In a keys-required
+ * One-time invites (docs/sync.md, Key model, "Pairing a new device", #257). In a keys-required
  * account the code an owner shows opens a mailbox for a join request and nothing else:
  *
  *   new device ── join (its id, name, public keys) ──▶ approving device

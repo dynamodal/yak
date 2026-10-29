@@ -13,5 +13,13 @@ Your notes are Markdown. Two ways to also use them in other editors:
 ## Obsidian plugin
 
 The **Yak Sync** plugin is a device: it pairs like any other (see [Devices and sync](#/help/devices)) and keeps your notes in an Obsidian vault.
-Install it with BRAT. Tick the spaces it may keep in the table on **Settings**; it keeps nothing until you do.
-Version 0.2.0 gives the vault its own device keys, so it can join an account that requires them; its settings say where the keys are kept.
+Install it with BRAT (Obsidian42 - BRAT, a community plugin; works on phones):
+
+1. In Obsidian, install **BRAT** from Community plugins and turn it on.
+2. In BRAT choose **Add beta plugin** and enter `dynamodal/yak`.
+3. Turn on **Yak Sync** under Community plugins, open its settings and join with a code from **Settings › Devices and sync › + Add a device** in Yak.
+4. In Yak, open the vault's row ("Obsidian (<vault name>)") in **Settings › Devices and sync** and tick the spaces it may keep. It keeps nothing until you do.
+
+BRAT installs new versions by itself.
+A vault that installed the plugin from the old private repository must be re-added: remove it in BRAT, then add `dynamodal/yak`.
+Version 0.2.0 gave the vault its own device keys, so it can join an account that requires them; its settings say where the keys are kept.

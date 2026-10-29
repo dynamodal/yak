@@ -8,7 +8,7 @@ import { BASE, launch, ok, fail, watchPage, until, finish, keepAllSpaces, openJo
 
 const RELAY = BASE.replace(/^http/, 'ws').replace(/\/$/, '') + '/signal';
 
-const browser = await launch({ fakeCamera: true });
+const browser = await launch({ fakeCamera: true, fastTimers: true });
 let ntfyRequests = 0;
 const mk = async (n) => {
   const context = await browser.newContext({ permissions: ['camera'] });

@@ -6,11 +6,11 @@
 //
 //   npm run e2e sharing
 //
-import { BASE, launch, ok, fail, check, watchPage, until, finish, sleep, startSyncing, joinByInvite } from './lib.mjs';
+import { BASE, launch, ok, fail, check, watchPage, until, finish, sleep, waitFor, startSyncing, joinByInvite } from './lib.mjs';
 
 const PASS_A = 'e2e passphrase for sharing A';
 const PASS_B = 'e2e passphrase for sharing B';
-const browser = await launch({ fakeCamera: true });
+const browser = await launch({ fakeCamera: true, fastTimers: true });
 const mk = async (n) => {
   const page = await (await browser.newContext({ permissions: ['camera'] })).newPage();
   watchPage(page, n);
@@ -112,7 +112,7 @@ await hook(a1, ([s, f]) => window.__app.shareEnd(s, f), [spaceS, fpB]);
 check(!(await view(a1, spaceS)).members.includes(fpB), 'A no longer lists B as a member');
 await append(a1, docS, 'A-after-end ');
 await append(b1, docS, 'B-after-end ');
-await sleep(12000);
+await sleep(waitFor(12000));
 check(!((await text(b1, docS)) ?? '').includes('A-after-end'), 'B gets no change after the end');
 check(!((await text(a1, docS)) ?? '').includes('B-after-end'), 'A gets no change from B after the end');
 check(((await text(b1, docS)) ?? '').includes('A2-edit') && ((await text(a1, docS)) ?? '').includes('B-edit'), 'both keep what they had');
@@ -120,7 +120,7 @@ check(((await text(b1, docS)) ?? '').includes('A2-edit') && ((await text(a1, doc
 // Deleting the end record re-admits nobody (A1 pinned it).
 await hook(a1, ([i, f]) => window.__app.mapDelete(i, 'share', `end:${f}:1`), [docS, fpB]);
 await append(a1, docS, 'A-after-delete ');
-await sleep(10000);
+await sleep(waitFor(10000));
 check(!(await view(a1, spaceS)).members.includes(fpB), 'a deleted end record re-admits nobody');
 check(!((await text(b1, docS)) ?? '').includes('A-after-delete'), 'and nothing crosses');
 
@@ -144,7 +144,7 @@ await hook(a1, ([i]) => window.__app.addFile(i, 'shared.txt', 'hello member'), [
 await hook(b1, (s) => window.__app.shareLeave(s), spaceS);
 check((await view(b1, spaceS)) === undefined, 'B no longer treats the space as a share');
 await append(a1, docS, 'A-after-leave ');
-await sleep(10000);
+await sleep(waitFor(10000));
 check(!((await text(b1, docS)) ?? '').includes('A-after-leave'), 'after B left nothing more reaches it');
 check(((await text(b1, docS)) ?? '').includes('B-readded'), 'B keeps the space as its own');
 

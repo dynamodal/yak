@@ -5,9 +5,9 @@
 //
 //   npm run e2e device-removal
 //
-import { BASE, launch, ok, fail, check, watchPage, until, finish, sleep, openJoin, startSyncing, joinByInvite, PASS, openAdvanced } from './lib.mjs';
+import { BASE, launch, ok, fail, check, watchPage, until, finish, sleep, waitFor, openJoin, startSyncing, joinByInvite, PASS, openAdvanced } from './lib.mjs';
 
-const browser = await launch({ fakeCamera: true });
+const browser = await launch({ fakeCamera: true, fastTimers: true });
 const open = async (context, n) => {
   const page = await context.newPage();
   watchPage(page, n);
@@ -79,7 +79,7 @@ check((await secret(a)) === accountSecret && (await secret(b)) === accountSecret
 await append(a, 'after-removal ');
 (await until(async () => (await text(b)).includes('after-removal'), 40000)) >= 0 ? ok('A and B keep syncing') : fail('A and B stopped syncing');
 await hook(c, () => window.__app.dropLink());
-await sleep(8000);
+await sleep(waitFor(8000));
 check(!(await text(c)).includes('after-removal'), 'the removed device gets nothing new');
 check((await connected(c)).length === 0, `the removed device has no link (${JSON.stringify(await connected(c))})`);
 check((await text(c)).includes('before'), 'and keeps what it already had');
@@ -88,7 +88,7 @@ check((await text(c)).includes('before'), 'and keeps what it already had');
 d = await open(dContext, 'D again');
 (await until(async () => (await text(d)).includes('after-removal'), 60000)) >= 0 ? ok('D, off during the removal, syncs again on return') : fail('D got nothing after coming back');
 (await until(async () => !(await keys(d)).certs.includes(idC), 20000)) >= 0 ? ok('D also stops counting C') : fail('D still counts C');
-await sleep(4000);
+await sleep(waitFor(4000));
 check(!(await text(c)).includes('after-removal') && (await connected(c)).length === 0, 'C still gets nothing after D came back');
 
 // C gets the account document with its removal (here handed over directly): it cuts itself off and says how to come back.

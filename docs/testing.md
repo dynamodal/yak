@@ -11,8 +11,14 @@ Prove as much as possible without a person; real devices check only what a lapto
 | Browser suites | `npm run e2e [suite…]` | Isolated profiles as devices, pairing via mock relay or ntfy, every page, offline, real CSP |
 | Real devices | Checklist below | Sleep, Wi-Fi change, a restricted network, the real relay |
 
-CI (F-6 in `docs/decisions/app.md`):
-- Every non-draft PR and every push to `main`: types, unit tests, build and the browser suites (job `Checks`). Docs-only changes run it too, so the required check always reports. Also by hand (Actions → CI → Run workflow).
+CI (F-6 and F-41 in `docs/decisions/app.md`):
+- Every non-draft PR and every push to `main`, side by side:
+  - `Build`: `npm run build:ci` (vite only, with `YAK_TEST_BUILD=1`), `check:bundle`; uploads `dist/` once as the `dist-test` artifact.
+  - `Types and unit tests`: `typecheck`, `typecheck:worker`, `npm test`, `check:prod-bundle` (a normal build holds none of the test hooks).
+  - `Browser suites (1/2)` and `(2/2)`: download `dist-test`, run `npm run e2e -- --no-build --shard i/2`. Playwright's Chromium comes from the cache (`.github/actions/chrome`); `playwright-core install --with-deps` (apt, about 38 s) runs only on a cache miss. The runner's preinstalled Google Chrome was tried and rejected: it requests `/favicon.ico`, and the suites fail on that 404 console error.
+  - `Checks`: waits for all of them and is green only if each succeeded. It is the one status branch rules require, so keep its name. Docs-only changes run it too, so it always reports.
+- Pushes to `main` and manual runs also run `Browser suites (real timers)`: `npm run e2e -- --no-build --real-timers`, the suites that shorten product timers, with the real ones (60 s direct-path retry and so on). It is part of `Checks` on those runs.
+- Also by hand (Actions → CI → Run workflow).
 - Hosted CI is the record; run suites locally while working.
 - Only if Actions is unavailable (F38b):
   - Push the branch, commit everything, then run `scripts/ci-local.sh` from the checkout (needs `gh` logged in with repo access; about 7 minutes with the browser suites).
@@ -33,6 +39,9 @@ CI (F-6 in `docs/decisions/app.md`):
 - `?test` in the URL exposes test hooks (`window.__app`, `__backup`, `__history`, `__reports`; `__app.fakeStatus(status)` shows a sync status in the header without real devices, as the `header` and `a11y` suites do) only in a test build (`YAK_TEST_BUILD=1`, which `npm run e2e` sets and marks with `dist/.test-build`); a production build ignores `?test`. They name spaces `personal` and `work` (`src/core/test-ids.ts`).
 - `scripts/screens.mjs` is a dev tool for styling changes: `shoot <dir>` screenshots every page at 1280, 768 and 375 px, light and dark, from a test build with fixed seed data, a fixed clock, UTC and `en-US`; `compare <a> <b>` lists files whose pixels differ. Build with `YAK_TEST_BUILD=1`, serve with `scripts/serve-dist.mjs`, set `TARGET`; the header comment has the steps. Keep the output outside the repo and never commit it.
 - Chromium: `npx playwright-core install chromium` once, or set `CHROME_PATH`.
+- Order and shards: `scripts/e2e/durations.json` (run label to seconds) drives both. The queue runs longest first (`offline` stays in front); `--shard i/n` gives each shard a balanced share (greedy: longest run to the lightest shard), and `--shard 1/2` plus `2/2` cover every run exactly once (`scripts/e2e/schedule.test.ts`). A run missing from the map counts as the median, so a new suite needs no entry. Refresh after a suite gets much slower or faster: run `npm run e2e -- --no-build --write-durations` (full, green, on a quiet machine) and commit the file. A stale map costs wall time, never coverage.
+- Test-build timers: a suite that waits out a long product timer opens its browser with `launch({ fastTimers: true })`. Each page then gets `window.__yakTimerScale = 4`, which a test build reads in `scaledMs()` (`src/core/test-build.ts`) for the direct-path retry (60 s), the link retry delays (15 s, 60 s) and the relay stats refresh (60 s). A production build has neither the flag nor the code (`npm run check:prod-bundle` builds normally and looks for the markers). In those suites a negative check ("nothing arrives") is still a time-based wait: `sleep(waitFor(ms))`, with `ms` the real-timer wait, shortened by the same factor 4 but never below 4 s (a link needs a few seconds to open, so a shorter wait proves nothing). Never turn a negative check into a state wait.
+- Real timers: `E2E_REAL_TIMERS=1` (or `npm run e2e -- --real-timers`, which also picks only the suites that use `fastTimers`) switches the factor to 1 and the waits back to their full length. Run it locally after touching a timer in `src/sync`.
 - Never run suites against public ntfy.sh; use `scripts/mock-ntfy.mjs`.
 - While working, run only the suites you touch; run them all once before the PR.
 - Worker: `npx --yes wrangler@4.151.0 dev --port 8787 --ip 127.0.0.1` runs the real relay locally; `node scripts/check-worker.mjs` does that and checks the Origin rule, the room and address limits, the request budget, the kill switch and `/signal/status` (needs `npm run build` first; takes about 2 minutes).

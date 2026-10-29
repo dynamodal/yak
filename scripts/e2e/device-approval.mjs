@@ -6,9 +6,9 @@
 //
 //   npm run e2e device-approval
 //
-import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep, openJoin, PASS, fillSheet, openAdvanced } from './lib.mjs';
+import { BASE, launch, ok, fail, check, watchPage, until, finish, keepAllSpaces, sleep, waitFor, openJoin, PASS, fillSheet, openAdvanced } from './lib.mjs';
 
-const browser = await launch({ fakeCamera: true });
+const browser = await launch({ fakeCamera: true, fastTimers: true });
 const mk = async (n) => {
   const page = await (await browser.newContext({ permissions: ['camera'] })).newPage();
   watchPage(page, n);
@@ -73,7 +73,7 @@ check(!(await keys(a)).certs.includes(idH), 'H, certified only on first use, no 
 
 await append(a, 'after-switch ');
 (await until(async () => (await text(b)).includes('after-switch'), 30000)) >= 0 ? ok('A and B keep syncing') : fail('A and B stopped syncing');
-await sleep(4000);
+await sleep(waitFor(4000));
 check(!(await text(h)).includes('after-switch'), 'the unapproved device gets nothing new');
 
 // A one-time invite: the new device asks, both screens show the same code, the owner approves.
@@ -89,7 +89,7 @@ const aCompare = await a.locator('[data-compare]').first().innerText({ timeout: 
 check(/^[0-9a-f]{4} [0-9a-f]{4} [0-9a-f]{4} [0-9a-f]{4}$/.test(nCompare) && nCompare === aCompare, `both screens show the same 64-bit code (${nCompare} / ${aCompare})`);
 // Approved before the new device confirmed: it waits for its person to say the codes match.
 await a.locator('.invite-requests').getByRole('button', { name: 'Approve' }).click();
-await sleep(3000);
+await sleep(waitFor(3000));
 check((await accountId(n)) !== account, 'the new device does not follow an approval before its person confirmed the codes');
 await n.getByRole('button', { name: 'The codes match' }).click();
 await loaded;
@@ -111,7 +111,7 @@ for (const [label, c] of [['old sync code', code], ['spent invite', invite]]) {
     // A decline does not unpair by itself (#291): the person chooses another code.
     await l.locator('[data-join="declined"]').getByRole('button', { name: 'Use another code' }).click();
     check(await l.locator('input[aria-label="One-time code"]').waitFor({ timeout: 10000 }).then(() => true, () => false), 'after "Use another code" the code box is back');
-  } else await sleep(12000);
+  } else await sleep(waitFor(12000));
   check((await accountId(l)) !== account && !(await text(l)).includes('after-switch'), `the ${label} alone gets no account and no data`);
   await l.context().close();
 }

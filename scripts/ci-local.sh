@@ -52,7 +52,7 @@ post local-ci/checks pending "running"
 
 build_flag=; [[ $e2e -eq 1 ]] && build_flag=1
 start=$SECONDS
-if run npm ci && run npm run typecheck && run npm run typecheck:worker && run npm test && run env YAK_TEST_BUILD="$build_flag" npm run build && run npm run check:bundle; then
+if run npm ci && run npm run typecheck && run npm run typecheck:worker && run npm test && run env YAK_TEST_BUILD="$build_flag" npm run build:ci && run npm run check:bundle && run npm run check:prod-bundle; then
   post local-ci/checks success "passed in $((SECONDS - start))s"
 else
   post local-ci/checks failure "failed after $((SECONDS - start))s"

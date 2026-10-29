@@ -5,6 +5,14 @@
 //   npm run e2e -- --no-build    # skip the staleness check and use dist/ as it is
 //   E2E_BROWSER=webkit npm run e2e   # the same suites in Playwright's WebKit (local only; install: npx playwright-core install webkit)
 //   npm run e2e -- --jobs 1      # one suite at a time (default: E2E_JOBS, else min(CPUs, 3))
+//   npm run e2e -- --shard 1/2   # the first of two balanced halves of the runs (CI runs 1/2 and 2/2 in two jobs)
+//   npm run e2e -- --real-timers # only the suites that shorten product timers, with the real timers (E2E_REAL_TIMERS=1)
+//   npm run e2e -- --write-durations   # after a full run, store each run's seconds in durations.json (see below)
+//
+// Order and shards come from scripts/e2e/durations.json (run label -> seconds): longest first, so the last run to
+// start does not decide the wall time; a shard takes the longest remaining run for the lightest shard. A run with
+// no entry counts as the median. Refresh the file with `--write-durations` on a quiet machine after a suite gets
+// much slower or faster, or a suite is added; commit it. A stale map costs time, never coverage.
 //
 // Builds first when dist/ is older than the sources. For each suite it starts
 // scripts/serve-dist.mjs (SITE_RELAY=1, so /signal is a mock relay) on a port the server picks
@@ -20,12 +28,13 @@
 // e2e-logs/<suite>.log.
 //
 import { spawn, spawnSync } from 'node:child_process';
-import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { availableParallelism, setPriority, tmpdir } from 'node:os';
 import { createServer } from 'node:net';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findChrome, WEBKIT } from './lib.mjs';
+import { longestFirst, parseShard, shardOf } from './schedule.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const suiteDir = join(root, 'scripts', 'e2e');
@@ -40,12 +49,26 @@ const args = process.argv.slice(2);
 const jobsAt = args.indexOf('--jobs');
 const jobs = Math.max(1, Number(jobsAt >= 0 ? args[jobsAt + 1] : process.env.E2E_JOBS) || Math.min(availableParallelism(), 3));
 if (jobsAt >= 0) args.splice(jobsAt, 2);
+const shardAt = args.indexOf('--shard');
+let shard;
+try {
+  shard = shardAt >= 0 ? parseShard(args[shardAt + 1]) : undefined;
+} catch (e) {
+  console.error(e.message);
+  process.exit(2);
+}
+if (shardAt >= 0) args.splice(shardAt, 2);
+const writeDurations = args.includes('--write-durations');
+const realTimers = args.includes('--real-timers');
+if (realTimers) process.env.E2E_REAL_TIMERS = '1';
+const durationsFile = join(dirname(fileURLToPath(import.meta.url)), 'durations.json');
+const durations = existsSync(durationsFile) ? JSON.parse(readFileSync(durationsFile, 'utf8')) : {};
 const logDir = process.env.E2E_LOG_DIR || join(root, 'e2e-logs');
 const build = !args.includes('--no-build');
 const wanted = args.filter((a) => !a.startsWith('--')).map((a) => a.replace(/\.mjs$/, ''));
 
 const available = readdirSync(suiteDir)
-  .filter((f) => f.endsWith('.mjs') && !['lib.mjs', 'run.mjs'].includes(f))
+  .filter((f) => f.endsWith('.mjs') && !['lib.mjs', 'run.mjs', 'schedule.mjs'].includes(f))
   .map((f) => f.slice(0, -4))
   .sort();
 // Dev tools: run only when named (`npm run e2e ux-shots`), never in the full run.
@@ -58,11 +81,16 @@ if (unknown.length) {
 
 // app-mesh runs twice: over the mock ntfy, and over the site relay (the relay keeps no history,
 // which once caught a real bug).
-const runs = (wanted.length ? wanted : available.filter((n) => !DEV_TOOLS.includes(n))).flatMap((name) =>
+// --real-timers: only the suites that opt into shortened timers (they call launch({ fastTimers: true })).
+const usesFastTimers = (name) => /fastTimers:\s*true/.test(readFileSync(join(suiteDir, `${name}.mjs`), 'utf8'));
+const chosen = wanted.length ? wanted : available.filter((n) => !DEV_TOOLS.includes(n) && (!realTimers || usesFastTimers(n)));
+const allRuns = chosen.flatMap((name) =>
   name === 'app-mesh'
     ? [{ name, label: 'app-mesh' }, { name, label: 'app-mesh (relay)', env: (site) => ({ SIGNAL_URL: `ws://127.0.0.1:${site}/signal` }) }]
     : [{ name, label: name }],
 );
+const runs = shard ? shardOf(allRuns, durations, shard.index, shard.count) : allRuns;
+if (shard) console.log(`shard ${shard.index}/${shard.count}: ${runs.length} of ${allRuns.length} runs`);
 
 function newestMtime(path) {
   if (!existsSync(path)) return 0;
@@ -203,7 +231,8 @@ const report = (r) => {
   console.log(`${verdict}  ${r.run.label.padEnd(20)} ${String(r.checks).padStart(3)} checks  ${r.seconds.toFixed(1).padStart(5)} s`);
   if (!r.passed || r.flaky) console.log((r.flaky ? 'passed on a retry; see e2e-logs for the failed attempt' : r.detail).replace(/^/gm, '      '));
 };
-// Longest suites first so the last one to start does not decide the wall time.
+// Longest runs first so the last one to start does not decide the wall time; `offline` stays in front (it was there before the map).
+queue.splice(0, queue.length, ...longestFirst(queue, durations));
 queue.sort((x, y) => (x.name === 'offline' ? -1 : y.name === 'offline' ? 1 : 0));
 await Promise.all(
   Array.from({ length: Math.min(jobs, queue.length) }, async () => {
@@ -223,8 +252,16 @@ if (process.env.GITHUB_STEP_SUMMARY) {
   const rows = [...results].sort((x, y) => y.seconds - x.seconds).map((r) => `| ${r.run.label} | ${r.passed ? (r.flaky ? 'flaky' : 'pass') : 'FAIL'} | ${r.checks} | ${r.seconds.toFixed(1)} |`);
   appendFileSync(
     process.env.GITHUB_STEP_SUMMARY,
-    `## Browser suites\n\n${flaky.length ? `**Flaky (passed only on a retry): ${flaky.map((r) => r.run.label).join(', ')}**\n\n` : ''}| Suite | Result | Checks | Seconds |\n| --- | --- | --- | --- |\n${rows.join('\n')}\n`,
+    `## Browser suites${shard ? ` (shard ${shard.index}/${shard.count})` : ''}${realTimers ? ' (real timers)' : ''}\n\n${flaky.length ? `**Flaky (passed only on a retry): ${flaky.map((r) => r.run.label).join(', ')}**\n\n` : ''}| Suite | Result | Checks | Seconds |\n| --- | --- | --- | --- |\n${rows.join('\n')}\n`,
   );
+}
+if (writeDurations) {
+  if (failed.length || shard || wanted.length) console.error('--write-durations needs a full, green run (no --shard, no suite names); durations.json left as it was');
+  else {
+    const next = Object.fromEntries(results.map((r) => [r.run.label, Math.round(r.seconds)]).sort(([a], [b]) => a.localeCompare(b)));
+    writeFileSync(durationsFile, `${JSON.stringify(next, null, 2)}\n`);
+    console.log(`wrote ${durationsFile}`);
+  }
 }
 for (const r of flaky) console.log(`::warning::browser suite ${r.run.label} was flaky (passed on a retry)`);
 process.exit(failed.length ? 1 : 0);

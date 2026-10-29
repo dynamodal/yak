@@ -1,0 +1,18 @@
+name: Chromium for the browser suites
+description: Playwright's headless Chromium from the cache; the OS packages (apt, about 38 s) are installed only on a cache miss.
+# The runner's preinstalled Google Chrome was tried and rejected: unlike headless-shell it requests /favicon.ico,
+# and the suites fail on that 404 console error (scripts/e2e/lib.mjs watchPage).
+runs:
+  using: composite
+  steps:
+    - id: playwright
+      shell: bash
+      run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+    - id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+    - if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npx playwright-core install --with-deps chromium

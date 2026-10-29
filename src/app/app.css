@@ -157,6 +157,19 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
   .sync-label, .palette-chip { display: none; }
   .btn.palette-btn, .btn.sync-btn { min-width: var(--control-h); justify-content: center; }
 }
+/* Touch phones: every target is --control-h (44 px), which puts five tabs, the round timer button, the command and the sync
+   buttons wider than row 1 below about 30rem. The tabs share what is left (36 to 44 px each) and the logo gives way under
+   25rem; the buttons keep 44 px. Row 1 holds everything; only a running timer takes row 2. */
+@media (pointer: coarse) and (max-width: 29.99rem) {
+  .topbar { column-gap: 0; }
+  .tabs { min-width: 0; overflow: hidden; }
+  .tabs a, .tabs .tab { flex: 1 1 0; min-width: 2.25rem; max-width: var(--control-h); padding-inline: 0; }
+  .topbar-end > .timer-pill:not(.running) { margin-left: 0; }
+  .topbar-end { gap: 0; }
+}
+@media (pointer: coarse) and (max-width: 24.99rem) {
+  .brand { display: none; }
+}
 /* Below 320 px (a side-strip window) there is no room for the logo or the command button; the palette is still on its shortcut. */
 @media (max-width: 19.9rem) { .btn.palette-btn, .brand { display: none; } .topbar-end { flex-wrap: wrap; } .topbar-end > .timer-pill { flex: 1 1 100%; } }
 @media (max-width: 27.5rem) {

@@ -1,5 +1,10 @@
 # What's new
 
+## 2026-10-29: Timer row, smarter description, Move to space
+
+- A running timer now has a full row of its own in the header at every window width, so its description and clock stay readable.
+- Nothing stored changed.
+
 ## 2026-10-29: Timer keeps its space
 
 - A timer started without a project now goes to the space of your latest entry, not the space of the note you have open.

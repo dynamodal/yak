@@ -302,4 +302,20 @@ const clockSeconds = async (p) => {
   await p.close();
 }
 
+// ---- Running: the pill has a row of its own at every width (#59) ----
+for (const width of [800, 1100, 1280]) {
+  const p = await open(`own-row-${width}`, { viewport: { width, height: 900 } });
+  await startRound(p).click();
+  await p.locator('.timer-pill.running').waitFor();
+  const [tabs, cmd, sync, box, header] = await Promise.all(['.tabs', '.palette-btn', '.sync-btn', '.timer-pill', '.topbar'].map((sel) => p.locator(sel).boundingBox()));
+  check(box.y >= Math.max(tabs.y + tabs.height, cmd.y + cmd.height, sync.y + sync.height) - 1, `${width} px running: the pill has a row below the tabs, command and sync`);
+  check(box.width > width - 60 && box.x >= 0 && box.x + box.width <= width, `${width} px running: the pill is full width (${Math.round(box.width)})`);
+  check(Math.abs(cmd.y - sync.y) < 14 && cmd.x + cmd.width <= sync.x && tabs.x + tabs.width <= cmd.x + 1, `${width} px running: tabs, command and sync do not overlap on row one`);
+  check(header.height < 130 && (await overflow(p)) <= 0, `${width} px running: header two rows (${Math.round(header.height)} px), no horizontal scroll`);
+  await stopRound(p).click();
+  await p.locator('.timer-pill:not(.running)').waitFor();
+  check((await p.locator('.topbar').boundingBox()).height < 70, `${width} px idle after stop: one row`);
+  await p.close();
+}
+
 await finish(browser);

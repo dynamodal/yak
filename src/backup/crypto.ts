@@ -6,7 +6,7 @@ import { DEFAULT_ITERATIONS, decryptBytes, encryptBytes, InvalidParamsError, isE
 export { DEFAULT_ITERATIONS, decryptBytes, encryptBytes, InvalidParamsError, isEncrypted, iterationsValid, MAX_ITERATIONS, MIN_ITERATIONS, WrongPassphraseError, type EncryptionParams };
 
 /**
- * Encrypted backups (docs/design/backups-next.md): one passphrase per account, a PBKDF2-SHA256 key,
+ * Encrypted backups (docs/backups.md): one passphrase per account, a PBKDF2-SHA256 key,
  * AES-GCM per file. Every file a backup writes is encrypted; the folder then holds opaque files
  * under document ids that carry no names.
  */

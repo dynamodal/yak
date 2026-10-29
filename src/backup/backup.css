@@ -5,11 +5,11 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 0.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
 }
-.backup-banner span { flex: 1 1 16rem; }
+.backup-banner span { flex: 1 1 10rem; }
 .backup-banner.warn { border-left: 4px solid var(--warn); }
 .backup-banner.warn span { color: var(--text); font-weight: var(--weight-semibold); }
 .backup-banner.info { border-left: 4px solid var(--info); }

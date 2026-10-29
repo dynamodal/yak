@@ -1,5 +1,12 @@
 # What's new
 
+## 2026-10-29: Obsidian plugin 0.2.1
+
+- The Yak Sync plugin has a first public release on GitHub: add `dynamodal/yak` in BRAT. A vault that installed it from the old private repository must be re-added in BRAT.
+- It carries the sync fixes made since 0.2.0.
+- The plugin and its guide now point to **Settings › Devices and sync**.
+- Nothing stored changed.
+
 ## 2026-10-29: Organize in Settings, a tidier Home
 
 - **Organize** (projects, clients, tags, task values) is now a section of **Settings**: open it from the contents row or from **Edit…** in a picker, and it opens in place. Old Organize links and **Go to Organize** in the command palette still work.

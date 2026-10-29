@@ -143,6 +143,38 @@ describe('RelayLink', () => {
   });
 });
 
+describe('RelayLink refused by the relay (close codes)', () => {
+  it('reports the refusal once and waits the relay\'s retry time before connecting again', async () => {
+    relay.refuse('rate', { retry: 60 });
+    const refusals: unknown[] = [];
+    const a = new RelayLink(
+      { baseUrl: relay.url, topic: keys.topic, selfId: 'aaa', peerId: 'bbb', key: keys.key, log: new EventLog(), retryMs: 20, maxRetryMs: 60, keepaliveMs: 0 },
+      { onOpen() {}, onClose() {}, onMessage() {}, onRefused: (r) => refusals.push(r) },
+    );
+    links.push(a);
+    a.start();
+    await waitFor(() => refusals.length === 1, 3000, 'refusal');
+    expect(refusals[0]).toMatchObject({ kind: 'rate', retryMs: 60_000 });
+    const attempts = relay.state.refused;
+    await new Promise((r) => setTimeout(r, 300));
+    expect(relay.state.refused).toBe(attempts);
+  });
+
+  it('a plain drop is not a refusal and reconnects soon', async () => {
+    const refusals: unknown[] = [];
+    const a = new RelayLink(
+      { baseUrl: relay.url, topic: keys.topic, selfId: 'aaa', peerId: 'bbb', key: keys.key, log: new EventLog(), retryMs: 20, maxRetryMs: 60, keepaliveMs: 0 },
+      { onOpen() {}, onClose() {}, onMessage() {}, onRefused: (r) => refusals.push(r) },
+    );
+    links.push(a);
+    a.start();
+    await waitFor(() => relay.state.links >= 1);
+    relay.dropAll();
+    await waitFor(() => relay.state.links >= 2, 3000, 'reconnect');
+    expect(refusals).toEqual([]);
+  });
+});
+
 const aesKey = (): Promise<CryptoKey> => crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 const text = (d: Uint8Array | undefined): string => new TextDecoder().decode(d);
 

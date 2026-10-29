@@ -1,5 +1,6 @@
 import type { EventLog } from './event-log';
 import { RELAY_CONTEXT_PREFIX, RELAY_PAIR_DIGEST } from '../core/protocol-ids';
+import { parseRelayRefusal, type RelayRefusal } from './relay-refusal';
 
 /**
  * A data path between two devices through the site's relay, for when no direct WebRTC path opens.
@@ -56,6 +57,8 @@ export interface RelayLinkEvents {
   onMessage(data: Uint8Array): void;
   /** The relay refused more data: `day` = the room's daily budget is spent, `rate` = too fast. Direct sync is unaffected. */
   onLimit?(reason: 'day' | 'rate' | 'service'): void;
+  /** The relay turned this network away when the socket opened (see relay-refusal.ts); the link waits out the pause. */
+  onRefused?(refusal: RelayRefusal): void;
   /** The pair key did not work with the other device; the link went on with the shared key. */
   onPairFailed?(): void;
 }
@@ -252,7 +255,15 @@ export class RelayLink {
       if (current()) this.dropped(socket, this.socketUp ? 'connection error' : 'could not connect');
     };
     socket.onclose = (event: CloseEvent) => {
-      if (current()) this.dropped(socket, event.reason || `closed (${event.code})`);
+      if (!current()) return;
+      const refusal = parseRelayRefusal(event.code, event.reason);
+      if (!refusal) {
+        this.dropped(socket, event.reason || `closed (${event.code})`);
+        return;
+      }
+      this.pauseMs = refusal.retryMs;
+      this.dropped(socket, `refused by the relay (${refusal.kind})`);
+      this.events.onRefused?.(refusal);
     };
   }
 

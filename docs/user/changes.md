@@ -1,5 +1,11 @@
 # What's new
 
+## 2026-10-29: Honest connection messages
+
+- A dropped connection to the relay (waking a laptop, a Wi-Fi change) now says "The relay cannot be reached right now" and retries, instead of claiming too many connections and waiting 90 seconds.
+- A real limit on your network is now reported by the relay itself, with how long it waits (a minute, or the day's reset time).
+- Devices page: the note about the connection server's limits no longer says it limits only very heavy use. Nothing stored changed.
+
 ## 2026-10-29: Timer keeps its space
 
 - A timer started without a project now goes to the space of your latest entry, not the space of the note you have open.

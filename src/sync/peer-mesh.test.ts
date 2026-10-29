@@ -5,6 +5,7 @@ import type { LinkEndpoint } from './types';
 import { deriveKeys, generateSecret, type DerivedKeys } from './pairing-secret';
 import { PeerMesh, type RelayEndpoint } from './peer-mesh';
 import type { RelayLinkEvents } from './relay-link';
+import type { RelayRefusal } from './relay-refusal';
 import type { PeerLinkEvents } from './peer-link';
 import type { PeerKeys, SyncIdentity } from './handshake';
 import { generateDeviceKeys, type DeviceKeyPairs } from '../core/keys';
@@ -34,6 +35,14 @@ class MemoryHub implements SignalingTransport {
     const entry = { id: String(++this.counter), time: serverTimeSeconds, message, mailbox };
     this.history.push(entry);
     for (const w of this.watchers) if (w.mailbox === mailbox) queueMicrotask(() => w.handlers.onMessage(entry));
+  }
+
+  /** The relay closes every watch naming a limit (close code 4429/4430). */
+  refuse(refusal: RelayRefusal): void {
+    for (const w of [...this.watchers]) {
+      w.handlers.onStatus?.('disconnected', 'refused');
+      w.handlers.onRefused?.(refusal);
+    }
   }
 
   subscribe(mailbox: string, handlers: SubscribeHandlers): () => void {
@@ -541,6 +550,34 @@ describe('PeerMesh', () => {
     expect(a.mesh.signalingPausedUntil).toBeUndefined();
     a.mesh.reconnect('reconnect button', { force: true });
     await waitFor(() => hub.publishes > 0, 1000, 'publishing again');
+  });
+
+  it('a refusal naming a limit pauses connections for the time the relay gave, and shows it meanwhile', async () => {
+    const { keys, hub, net } = await setup();
+    const a = makeDevice('aaa', keys, hub, net, { knownPeers: ['bbb'] });
+    running.push(a);
+    a.mesh.start();
+    hub.refuse({ kind: 'rate', retryMs: 250 });
+    expect(a.mesh.relayRefusal).toMatchObject({ kind: 'rate' });
+    expect(a.mesh.signalingPausedUntil).toBeDefined();
+    const tried = hub.attempts;
+    a.mesh.reconnect('reconnect button', { force: true });
+    expect(hub.attempts).toBe(tried);
+    await waitFor(() => a.mesh.signalingPausedUntil === undefined, 1500, 'pause over');
+    await waitFor(() => a.mesh.relayRefusal === undefined, 500, 'refusal cleared');
+    await waitFor(() => hub.attempts > tried, 1000, 'publishing again');
+  });
+
+  it('a plain signaling drop pauses nothing and shows no limit', async () => {
+    const { keys, hub, net } = await setup();
+    const a = makeDevice('aaa', keys, hub, net, { knownPeers: ['bbb'] });
+    running.push(a);
+    a.mesh.start();
+    for (const w of [...(hub as unknown as { watchers: Set<{ handlers: SubscribeHandlers }> }).watchers]) w.handlers.onStatus?.('disconnected', 'closed (1006)');
+    expect(a.mesh.signalingPausedUntil).toBeUndefined();
+    expect(a.mesh.relayRefusal).toBeUndefined();
+    a.mesh.reconnect('online', { force: true });
+    await waitFor(() => hub.publishes > 0, 1000, 'publishing');
   });
 
   it('meshes devices that join one after another on a mailbox without history (the relay)', async () => {

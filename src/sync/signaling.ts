@@ -4,6 +4,8 @@
  * opaque text: encryption lives above this layer and is identical for every backend.
  */
 
+import type { RelayRefusal } from './relay-refusal';
+
 export interface InboxMessage {
   /** Backend message id, usable to resume after a gap. */
   id: string;
@@ -18,6 +20,8 @@ export interface SubscribeHandlers {
   onStatus?(status: 'connected' | 'disconnected', detail?: string): void;
   /** Anything arrived on the watch, including keepalives: the stream is alive. Server time in seconds, when known. */
   onActivity?(serverTime?: number): void;
+  /** The relay closed the connection saying this network is over a limit (see relay-refusal.ts). Follows `disconnected`. */
+  onRefused?(refusal: RelayRefusal): void;
 }
 
 export interface SubscribeOptions {

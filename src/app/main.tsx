@@ -21,6 +21,7 @@ import { shareLinks } from './share-links';
 import { keyPrompt } from './key-prompt';
 import { requestPersistence } from '../core/persistence';
 import { completePendingReplace, replacePending } from '../backup/replace';
+import { STORAGE_PREFIX } from '../constants';
 import { startOffline } from '../offline/client';
 import { logSharingOn, onLogSharingChange } from '../sync/log-sharing';
 import { SharedLogWriter } from '../sync/shared-log';
@@ -38,6 +39,7 @@ import { createAttachmentHost } from '../core/blobs/host';
 import { blobStore } from '../core/blobs/store';
 import { applyPendingErase } from './leave';
 import { applyPendingReset } from './reset';
+import type { EraseStorage } from './erase-device';
 import { historyStore } from '../core/history/store';
 import { adoptAccount, addPendingLocalSpaces, safeStorage, takeRestoredAccount } from './join';
 import { App } from './App';
@@ -236,6 +238,8 @@ async function boot(root: HTMLElement, started: () => void): Promise<void> {
   startFileSweep(store);
   render(<App store={store} sync={sync} bus={bus} deviceId={me} account={accountState} welcome={welcome} />, root);
   started();
+  const eraseStore = rawStorage();
+  if (eraseStore?.getItem(`${STORAGE_PREFIX}-erase-report`) != null) void import('./erase-device').then((m) => ((t) => t && toast(t, { timeout: 0 }))(m.takeEraseReport(eraseStore)));
 
   // Offline support: production builds only, so `npm run dev` is never served from a cache.
   if (import.meta.env.PROD) void startOffline();
@@ -344,6 +348,15 @@ async function boot(root: HTMLElement, started: () => void): Promise<void> {
 /** Longest the first start-up may take before the screen says so (a stuck IndexedDB never answers). */
 const BOOT_WATCHDOG_MS = 60_000;
 
+/** `localStorage` when this browser allows it. */
+function rawStorage(): EraseStorage | undefined {
+  try {
+    return typeof localStorage === 'undefined' ? undefined : localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 async function start(): Promise<void> {
   const root = document.getElementById('app');
   if (!root) return;
@@ -355,6 +368,14 @@ async function start(): Promise<void> {
     clearTimeout(watchdog);
     renderBootFailure(root, problem, detail);
   };
+  // "Erase everything on this device" chosen before the reload: first of all, before any module reads or opens a store (docs/decisions/sync.md S-61).
+  const eraseStorage = rawStorage();
+  if (eraseStorage?.getItem(`${STORAGE_PREFIX}-erase-everything`) != null) {
+    // Loaded only when an erase is pending (the main bundle is on a budget).
+    await (await import('./erase-device')).applyPendingEraseAll(eraseStorage);
+    location.reload();
+    return;
+  }
   // Feature-detect the one thing nothing works without, before touching anything else.
   const storage = await checkStorage();
   if (!storage.ok) return fail('no-storage', storage.detail);

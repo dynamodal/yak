@@ -41,3 +41,5 @@ Pick what to bring back; everything else stays as it is.
 Notes also have a version history of their own.
 
 The folder layout is documented for developers in `docs/backups.md`.
+
+Before you erase a device (**Settings › Advanced › Erase everything on this device**), save the zip backup it offers: it holds your files too. Restore it on this page. See Devices and sync.

@@ -49,6 +49,20 @@ On a device page you can remove a device from the account or leave it from this 
 A removed device, or one that no longer finds your other devices, comes back with **Join again with a one-time code**: it keeps its data, and you approve it from another device.
 Backups are the safety net for either: see [Backups and history](#/help/backups).
 
+## Start again on one device
+
+Two actions in **Settings › Advanced** clear a device. Neither touches your other devices.
+
+- **Re-sync this device (keeps settings and files)** throws away this device's copy of one space, or of everything, and fills it again from a linked device or a backup.
+  - It erases the records of the space you choose (everything also erases the account document and the sync code), and the history log if you tick that.
+  - It keeps this device's id, settings, files in notes, the backup folder choice, restore points and the offline copy of the app.
+  - Use it when this device's copy has drifted or is bad.
+- **Erase everything on this device** removes every trace of Yak from this browser, so it starts as on a first visit (the Welcome screen).
+  - It erases all documents, files, history, restore points, the sync code and keys, settings, the backup folder choice, and the offline copy.
+  - It keeps other devices, backup files you saved, and any Mirror folder.
+  - Yak first offers a safety backup (a zip with your files) and says if this device has data that is not backed up or not yet on another device.
+  - Other open Yak tabs reload. If the browser keeps anything, Yak says what; use the browser's "Clear site data" for this site to remove the rest.
+
 ## Sharing a space
 
 With device keys required, a space can be shared with another account: open the space's row under **Settings › Spaces** and choose **+ Share <space> with an account** under Shared with (the row also tells which of your devices keep the space). A share does not give them any of your devices or your other spaces. Removing one of your devices from your account also removes it from your shares.

@@ -34,3 +34,9 @@
   .backup-history th:nth-child(3), .backup-history td:nth-child(3),
   .backup-history th:nth-child(5), .backup-history td:nth-child(5) { display: none; }
 }
+
+/* On a phone the bar stays to a line or two so it does not take half the first screen. */
+@media (max-width: 40rem) {
+  .backup-banner { padding: 0.35rem 0.75rem; gap: 0.35rem 0.5rem; font-size: var(--text-sm); }
+  .backup-banner span { flex-basis: 10rem; }
+}

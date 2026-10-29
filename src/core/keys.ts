@@ -1,7 +1,7 @@
 import { base64, base64url, unbase64, unbase64url } from './bytes';
 
 /**
- * Key pairs of the account and its devices (docs/design/device-keys.md, S-76a–c, S-76o): WebCrypto
+ * Key pairs of the account and its devices (docs/sync.md, "Key model", S-76a–c, S-76o): WebCrypto
  * P-256 only, no dependency. The account key pair signs (ECDSA); a device has one pair to sign and
  * one to agree keys (ECDH) whose private halves are non-extractable. A key is published as a JWK
  * holding only `x` and `y`; its fingerprint is a SHA-256 over those coordinates.

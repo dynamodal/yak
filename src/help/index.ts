@@ -6,7 +6,7 @@ import { AlphaNotice } from './AlphaNotice';
 import { HelpButton, useHasNewChanges } from './HelpButton';
 import { lazyView } from '../app/lazy';
 
-// Help is a page of its own at `#/help[/<section>]`, opened from Settings (About & help), the palette ("Go to Help") and the welcome screen; it is not a tab or a Settings page.
+// Help is a page of its own at `#/help[/<section>]`, opened from Settings › Help, the palette ("Go to Help") and the welcome screen; it is not a tab or a Settings page.
 // (`#/settings/help/<x>` redirects here: see App.tsx.)
 registerView({ id: 'help', title: 'Help & About', commandTitle: 'Help', path: 'help', order: 99, hidden: true, component: lazyView(() => import('./HelpView').then((m) => ({ default: m.HelpView }))) });
 registerHeaderItem({ id: 'help', order: 95, where: 'welcome', component: HelpButton });

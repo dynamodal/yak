@@ -6,6 +6,7 @@ import { useKeyTrust } from '../app/key-hooks';
 import { hasBackup, resetDevice, resetDocIds, saveSafetyBackup } from '../app/reset';
 import { safeStorage } from '../app/join';
 import { Button } from '../app/ui';
+import { lazyComponent } from '../app/lazy';
 import { keysMap } from '../core/account-keys';
 import { devicesMap, readDevices } from '../core/devices';
 import { keeps } from '../core/keeps';
@@ -159,7 +160,7 @@ export function ConnectionPart() {
   );
 }
 
-/** Advanced: reset this device's data, offered only while there is something to start again from. */
+/** Advanced: re-sync this device (the old "reset"), offered only while there is something to start again from. */
 export function ResetPart() {
   const { sync, store, spaces, accountId } = useApp();
   const { status, peers, account, deviceId } = useLinkedPeers();
@@ -186,9 +187,14 @@ export function ResetPart() {
     }
   };
   return (
-    <details class="danger-zone" aria-label="Reset this device's data" data-adv="reset">
-      <summary>Reset this device's data</summary>
-      <p class="hint">Throw this device's copy away and start again from your other devices or a backup, for example when its copy has drifted or is bad. Other devices are not touched.</p>
+    <details class="danger-zone" aria-label="Re-sync this device" data-adv="reset">
+      <summary>Re-sync this device (keeps settings and files)</summary>
+      <p class="hint">Throw this device's copy of the documents away and start again from your other devices or a backup, for example when its copy has drifted or is bad. Other devices are not touched.</p>
+      <p class="hint">
+        Erases: the notes, time entries and other records of the space you choose (or of every space, with the account document and the sync code, when you choose everything), and optionally their history log.
+        Keeps: this device's id, settings, files in notes, the backup folder choice, restore points and the offline copy of the app.
+        To remove all of it, use "Erase everything on this device" below.
+      </p>
       <div class="row">
         <label>
           What to reset{' '}
@@ -278,3 +284,6 @@ export function ResetPart() {
     </details>
   );
 }
+
+/** Advanced: erase every store of Yak on this device. Loads when Advanced opens it (the main bundle is on a budget). */
+export const EraseDevicePart = lazyComponent(() => import('./EraseDevice'));

@@ -31,7 +31,7 @@ check((await until(async () => (await text(b)).includes('from A'), 8000)) >= 0, 
 
 const openReset = async (p) => {
   await openAdvanced(p);
-  const section = p.locator('details', { hasText: "Reset this device's data" }).last();
+  const section = p.locator('details', { hasText: "Re-sync this device" }).last();
   if (!(await section.evaluate((d) => d.open))) await section.locator('summary').click();
   return section;
 };
@@ -80,5 +80,43 @@ await b.locator('input[aria-label="Connection server"]').fill(mock.url);
 await a.evaluate(() => { location.hash = '#/devices'; });
 await joinByInvite(a, b, { keep: false });
 check((await until(async () => (await text(b)).includes('from A'), 30000)) >= 0, 'rejoined with a one-time code and refilled from A');
+
+// 4. Erase everything on this device: every store goes, the app starts as on a first visit.
+await b.goto(BASE + '?test#/devices');
+const oldId = await b.evaluate(() => window.__app.deviceId());
+await b.evaluate(async () => {
+  localStorage.setItem('app-e2e-marker', '1');
+  await new Promise((res, rej) => { const r = indexedDB.open('app-e2e-marker-db', 1); r.onsuccess = () => { r.result.close(); res(); }; r.onerror = () => rej(r.error); });
+  if (window.caches) await caches.open('e2e-cache');
+});
+await openAdvanced(b);
+const erase = b.locator('details[data-adv="erase"]');
+// The Settings view can re-render once after it loads and fold the section again: open it until the button shows.
+const eraseBtn = erase.getByRole('button', { name: 'Erase everything…' });
+check((await until(async () => {
+  if (await eraseBtn.isVisible()) return true;
+  if (!(await erase.evaluate((d) => d.open).catch(() => true))) await erase.locator('summary').click({ timeout: 2000 }).catch(() => undefined);
+  return eraseBtn.isVisible();
+}, 15000)) >= 0, 'the erase action is offered');
+await eraseBtn.click();
+check(await erase.getByRole('button', { name: 'Erase everything and reload' }).isDisabled(), 'erase waits for a safety backup');
+const [zip] = await Promise.all([b.waitForEvent('download'), erase.getByRole('button', { name: /Save a safety backup/ }).click()]);
+check(/\.zip$/.test(zip.suggestedFilename()), `safety backup is a zip (${zip.suggestedFilename()})`);
+await erase.getByRole('button', { name: 'Erase everything and reload' }).waitFor();
+await Promise.all([b.waitForEvent('load', { timeout: 30000 }), erase.getByRole('button', { name: 'Erase everything and reload' }).click()]);
+await b.waitForFunction(() => window.__app);
+await b.waitForFunction(() => !localStorage.getItem('app-erase-everything'));
+await b.waitForTimeout(1500);
+const after = await b.evaluate(async () => ({
+  id: window.__app.deviceId(),
+  marker: localStorage.getItem('app-e2e-marker'),
+  dbs: (await indexedDB.databases()).map((d) => d.name),
+  caches: window.caches ? await caches.keys() : [],
+  text: window.__app.text('space/work', 't'),
+}));
+check(after.id !== oldId, 'the device has a new id');
+check(after.marker === null && !after.dbs.includes('app-e2e-marker-db') && !after.caches.includes('e2e-cache'), 'marker key, database and cache are gone');
+check(after.text === '', 'no data left');
+check((await b.evaluate(() => localStorage.getItem('app-erase-report'))) === null, 'nothing was left over');
 
 await finish(browser, mock);

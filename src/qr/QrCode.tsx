@@ -1,3 +1,4 @@
+import './qr.css';
 import { useMemo } from 'preact/hooks';
 import { encodePairingPayload } from './payload';
 import { makeQr, matrixPath, QUIET_ZONE } from './render';

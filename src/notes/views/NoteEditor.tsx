@@ -3,6 +3,7 @@ import * as Y from 'yjs';
 import type { EditorView } from '@codemirror/view';
 import type { StateCommand } from '@codemirror/state';
 import type { AttachmentHost } from '../../core/blobs/host';
+import { INSERT_EVENT } from '../editor-events';
 import { FileButton, toast } from '../../app/ui';
 
 export interface NoteEditorProps {
@@ -21,8 +22,8 @@ export interface NoteEditorProps {
   onLocalEdit(): void;
 }
 
-/** Dispatched on a `.note-editor` element to insert text at the cursor. */
-export const INSERT_EVENT = 'note-editor:insert';
+/** `INSERT_EVENT` (insert text at the cursor) lives in `../editor-events` so the shell can use it without this file. */
+export { INSERT_EVENT };
 
 /** Dispatched on a `.note-editor` element with a text offset (the event's `detail`) to move the cursor there and scroll to it. */
 export const GOTO_EVENT = 'note-editor:goto';

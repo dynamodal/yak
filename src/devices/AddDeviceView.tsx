@@ -11,7 +11,7 @@ import { Button, Page, PageHeader } from '../app/ui';
 import { SyncDot } from '../app/views/SyncDot';
 import { overallShape } from '../app/sync-state';
 import { UndecidedNotice } from '../app/views/UndecidedNotice';
-import { groupSecret } from '../qr';
+import { groupSecret } from '../qr/payload';
 import { deviceStatus } from '../sync/device-status';
 import { defaultSignalingUrl, NTFY_SIGNALING_URL } from '../sync/transport-factory';
 import { AddDevicePanel } from './AddDevicePanel';

@@ -1,3 +1,4 @@
+import '../notes.css';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type * as Y from 'yjs';

@@ -107,7 +107,7 @@ check(/^\d+:\d\d$/.test((await page.locator('.section-head .total').innerText())
 await go('#/time/reports', '.rp-range');
 check((await reportsWeekStartsOn()) === 0, 'reports: week starts on Sunday');
 await go('#/time/list', '.tl-list');
-check(!/ h\b/.test(await page.locator('.tl-list .day-head').first().innerText()), 'timer: no decimal hours in the day totals');
+check(!/ h\b/.test(await page.locator('.tl-list').innerText()), 'timer: no decimal hours in the list');
 
 // ---- Theme
 await go('#/settings', 'h1');

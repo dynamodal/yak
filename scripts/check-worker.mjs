@@ -130,6 +130,18 @@ await withWorker({ ALLOWED_ORIGINS: 'https://relay.example', RELAY_DAY_REQUESTS:
   check(statuses.filter((s) => s === 101).length === 5 && statuses[7] === 429, `an address spends at most its share of the day's budget (${statuses.join(' ')})`);
 });
 
+// The default per-address share is 10% of the day's budget (an office of 10 to 20 people behind one address).
+await withWorker({ ALLOWED_ORIGINS: 'https://relay.example', RELAY_DAY_REQUESTS: 100 }, async () => {
+  const statuses = [];
+  for (let i = 0; i < 7; i++) {
+    const r = await connect(topic(900));
+    statuses.push(r.status ?? 101);
+    r.ws?.close();
+    await sleep(50);
+  }
+  check(statuses.filter((s) => s === 101).length === 5 && statuses[6] === 429, `by default an address spends 10% of the day's budget (${statuses.join(' ')})`);
+});
+
 // Phase 2: the account-wide request budget. 40 requests a day; the budget object is told every 4.
 await withWorker({ RELAY_DAY_REQUESTS: 40, RELAY_FLUSH_REQUESTS: 4 }, async () => {
   const early = await connect(`${topic(3)}/link/${pair}`);

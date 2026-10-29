@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { hasNewChanges, onChangesSeen } from './changes';
 import { latestChange } from './topics';
 
-/** Help in the bare header of the welcome screen, where no tab leads to it. In the app, Help is in Settings (About & help), the palette and Welcome. */
+/** Help in the bare header of the welcome screen, where no tab leads to it. In the app, Help is in Settings › Help, the palette and Welcome. */
 export function HelpButton() {
   return (
     <a class="help-btn" href="#/help" title="Help">

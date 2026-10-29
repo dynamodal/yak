@@ -45,13 +45,12 @@ import { setPendingJoins } from './needs';
 import { captureErrors } from './error-capture';
 import { toast } from './ui/Toast';
 import { REPORT_HASH } from '../constants';
+import { checkStorage, describeProblem, renderBootFailure } from './boot-failure';
 
 declare const __APP_VERSION__: string | undefined;
 import './modules';
 
-async function boot(): Promise<void> {
-  const root = document.getElementById('app');
-  if (!root) return;
+async function boot(root: HTMLElement, started: () => void): Promise<void> {
   const store = new DocumentStore(undefined, (step, detail) => sync.log.log('migration', `${step}: ${detail}`));
   const me = deviceId();
   // The account and its spaces (docs/sync.md). Set up before sync starts; a device that is
@@ -106,6 +105,14 @@ async function boot(): Promise<void> {
       if (state) setLeft(state.doc, me, false);
     },
   });
+  // As early as the log exists, so a failure in the rest of start-up is recorded too.
+  captureErrors({
+    log: sync.log,
+    version: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'development',
+    page: () => location.hash || '#/',
+    notify: () => toast('Something went wrong.', { action: { label: 'Report it', run: () => void (location.hash = REPORT_HASH) }, timeout: 15000 }),
+  });
+
   const storage = safeStorage();
   // A backup replace started before the reload is applied first, so the restored account document is
   // what the app starts from (the documents are empty until then).
@@ -170,13 +177,6 @@ async function boot(): Promise<void> {
   openSpaceLogs();
   accountState.subscribe(openSpaceLogs);
 
-  captureErrors({
-    log: sync.log,
-    version: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'development',
-    page: () => location.hash || '#/',
-    notify: () => toast('Something went wrong.', { action: { label: 'Report it', run: () => void (location.hash = REPORT_HASH) }, timeout: 15000 }),
-  });
-
   // A document written by a newer app stays untouched here (F39): it stops syncing and a notice says to update.
   store.onTooNew((docId) => {
     addNotice({ key: `update-needed:${docId}`, kind: 'update-needed', text: 'Another device has a newer version of Yak. Reload this page to update; until then this device does not sync some data.' });
@@ -235,6 +235,7 @@ async function boot(): Promise<void> {
 
   startFileSweep(store);
   render(<App store={store} sync={sync} bus={bus} deviceId={me} account={accountState} welcome={welcome} />, root);
+  started();
 
   // Offline support: production builds only, so `npm run dev` is never served from a cache.
   if (import.meta.env.PROD) void startOffline();
@@ -340,4 +341,33 @@ async function boot(): Promise<void> {
   }
 }
 
-void boot();
+/** Longest the first start-up may take before the screen says so (a stuck IndexedDB never answers). */
+const BOOT_WATCHDOG_MS = 60_000;
+
+async function start(): Promise<void> {
+  const root = document.getElementById('app');
+  if (!root) return;
+  let done = false;
+  let watchdog: ReturnType<typeof setTimeout> | undefined;
+  const fail = (problem: 'no-storage' | 'slow' | 'error', detail: string): void => {
+    if (done) return;
+    done = true;
+    clearTimeout(watchdog);
+    renderBootFailure(root, problem, detail);
+  };
+  // Feature-detect the one thing nothing works without, before touching anything else.
+  const storage = await checkStorage();
+  if (!storage.ok) return fail('no-storage', storage.detail);
+  watchdog = setTimeout(() => fail('slow', `start-up did not finish in ${BOOT_WATCHDOG_MS / 1000} s`), BOOT_WATCHDOG_MS);
+  try {
+    await boot(root, () => {
+      done = true;
+      clearTimeout(watchdog);
+    });
+  } catch (e) {
+    // The error capture, if it was already installed, has logged this too.
+    fail('error', describeProblem(e));
+  }
+}
+
+void start();

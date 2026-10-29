@@ -160,6 +160,29 @@ await ap.waitForFunction(() => window.__app);
 check((await ap.getByRole('status', { name: 'Yak is in alpha' }).count()) === 0, 'and does not come back');
 await alpha.close();
 
+// With the "No backup yet" bar up, the alpha notice leaves out its own backup button (one call to action).
+const both = await browser.newContext({ viewport: { width: 375, height: 700 } });
+const bp = await both.newPage();
+await bp.goto(BASE + '?test&alpha&backupbar#/time');
+await bp.waitForFunction(() => window.__backup !== undefined);
+await bp.evaluate(async () => { await window.__backup.ready(); window.__backup.seed('personal', 'Personal'); });
+await bp.locator('[data-backup-never]').waitFor();
+const notice = bp.getByRole('status', { name: 'Yak is in alpha' });
+await notice.waitFor();
+check((await notice.getByRole('button', { name: 'Turn on backups' }).count()) === 0 && (await bp.locator('[data-backup-never]').getByRole('button', { name: 'Set up' }).count()) === 1, 'bar and notice together: only the bar has the backup button');
+check(/Settings › Help/.test(await notice.innerText()), 'the notice names Settings › Help');
+await both.close();
+
+// A browser that blocks IndexedDB gets a plain explanation, not a blank page.
+const blocked = await browser.newContext({ viewport: { width: 600, height: 800 } });
+await blocked.addInitScript(() => { Object.defineProperty(window, 'indexedDB', { value: undefined, configurable: true }); });
+const blp = await blocked.newPage();
+await blp.goto(BASE + '?test#/time');
+await blp.locator('[data-boot-failure="no-storage"]').waitFor();
+const failText = await blp.locator('[data-boot-failure]').innerText();
+check(/can't store data in this browser/.test(failText) && /private/.test(failText) && /yak@/.test(failText), 'no IndexedDB: the page says why, what to try and how to report');
+await blocked.close();
+
 // The header fits.
 for (const [w, hidden] of [[375, false], [180, true]]) {
   await page.setViewportSize({ width: w, height: 800 });

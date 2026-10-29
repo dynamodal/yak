@@ -61,7 +61,7 @@ interface Env {
   ALLOWED_ORIGINS?: string;
   /** Data a room may carry through its links per UTC day, in bytes. Default 100 MiB. */
   RELAY_DAY_BYTES?: string;
-  /** One address's share of RELAY_DAY_REQUESTS a day (default 0.02) and its limit of different topics a day (default 30). */
+  /** One address's share of RELAY_DAY_REQUESTS a day (default 0.1: 2 requests a socket, so 2 500 sockets at the default budget) and its limit of different topics a day (default 150), sized for a team behind one office address. */
   ADDRESS_DAY_SHARE?: string;
   ADDRESS_DAY_TOPICS?: string;
   /** Workers Analytics Engine dataset for operator stats (wrangler.jsonc `analytics_engine_datasets`). Absent: nothing is recorded. */
@@ -86,8 +86,8 @@ const DEFAULT_DAY_BYTES = 100 * 1024 * 1024;
  * WebSocket messages bill 20 to 1. Bytes are not billed, so they are not the budget.
  */
 const DEFAULT_DAY_REQUESTS = 50_000;
-const DEFAULT_ADDRESS_SHARE = 0.02;
-const DEFAULT_ADDRESS_TOPICS = 30;
+const DEFAULT_ADDRESS_SHARE = 0.1;
+const DEFAULT_ADDRESS_TOPICS = 150;
 /** Past this share of the budget new data links are refused; signaling goes on until the whole budget is spent. */
 const LINKS_OFF_SHARE = 0.8;
 /** This Worker adds up its own requests and tells the budget object after this many, or this long. */

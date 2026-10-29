@@ -1,7 +1,7 @@
 {
   "id": "yak-sync",
   "name": "Yak Sync",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "minAppVersion": "1.6.6",
   "description": "Edit Yak notes and tasks in this vault. The vault joins your Yak account as a device and keeps a folder per space in step.",
   "author": "Yak",

@@ -8,7 +8,7 @@ import { type SpaceCatalog, useCatalogs, useController, useRecents, useSpaceName
 import { ProjectPicker, TagPicker } from './pickers';
 import { type RecentItem, relativeAgo } from './recents';
 import { EMPTY_DRAFT, type Draft, setDraft, useDraft } from './timer-draft';
-import { startFromDraft } from './timer-start';
+import { startFromDraft, timerSpace } from './timer-start';
 import { Swatch } from './widgets';
 
 type Fields = Pick<Draft, 'description' | 'project_id' | 'tags' | 'billable'>;
@@ -51,7 +51,7 @@ export function TimerPopover({ id, anchor, current, onClose, onEscape }: TimerPo
   }, []);
 
   const runSpace = current?.spaceId;
-  const targetSpace = runSpace ?? draft.spaceId ?? spaceId;
+  const targetSpace = runSpace ?? draft.spaceId ?? timerSpace(privateDocs, spaceId);
   const value: Fields = current
     ? { description: text, project_id: current.entry.project_id, tags: current.entry.tags, billable: current.entry.billable }
     : { description: text, project_id: draft.project_id, tags: draft.tags, billable: draft.billable };
@@ -80,7 +80,7 @@ export function TimerPopover({ id, anchor, current, onClose, onEscape }: TimerPo
   const setProject = (sid: string, id: string | null): void => {
     const project = id ? catalogs.find((c) => c.spaceId === sid)?.projectById.get(id) : undefined;
     // A project just made here is not in the catalogs yet; keep its id and only copy `billable` when it is known.
-    patch({ spaceId: id ? sid : null, project_id: id, ...(project ? { billable: project.billable } : {}) });
+    patch({ spaceId: sid, project_id: id, ...(project ? { billable: project.billable } : {}) });
   };
 
   const done = (): void => {
@@ -196,6 +196,26 @@ export function TimerPopover({ id, anchor, current, onClose, onEscape }: TimerPo
               })}
             </ul>
           </>
+        )}
+        {multi && !current && (
+          <label class="tp-space">
+            <span>Space</span>
+            <select
+              aria-label="Space for this entry"
+              value={targetSpace}
+              onChange={(e) => {
+                const sid = (e.target as HTMLSelectElement).value;
+                // A project belongs to one space: changing space drops it.
+                patch({ spaceId: sid, project_id: sid === targetSpace ? draft.project_id : null });
+              }}
+            >
+              {catalogs.map((c) => (
+                <option key={c.spaceId} value={c.spaceId}>
+                  {spaceName(c.spaceId)}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
         <div class="tp-fields">
           <ProjectPicker spaces={offered} spaceId={targetSpace} projectId={value.project_id} onChange={setProject} showSpace={multi} />

@@ -6,6 +6,18 @@
 - A real limit on your network is now reported by the relay itself, with how long it waits (a minute, or the day's reset time).
 - Devices page: the note about the connection server's limits no longer says it limits only very heavy use. Nothing stored changed.
 
+## 2026-10-29: Timer keeps its space
+
+- A timer started without a project now goes to the space of your latest entry, not the space of the note you have open.
+- With several spaces, the start popover has a **Space** picker, so you can choose where the entry goes.
+- Nothing stored changed.
+
+## 2026-10-29: Obsidian plugin 0.2.1
+
+- The Yak Sync plugin has a first public release on GitHub: add `dynamodal/yak` in BRAT. A vault that installed it from the old private repository must be re-added in BRAT.
+- It carries the sync fixes made since 0.2.0.
+- The plugin and its guide now point to **Settings › Devices and sync**.
+
 ## 2026-10-29: Clearer start-up problems, calmer first screen
 
 - If your browser will not let Yak store data (a private window, a browser set to keep no history, a managed browser), Yak now says so and what to try, instead of showing a blank page.

@@ -48,7 +48,7 @@ export function TimerView({ params }: ViewProps) {
             </Button>
           }
         />
-        {adding && <ManualEntryDialog data={data} entries={all.entries} onClose={() => setAdding(false)} />}
+        {adding && <ManualEntryDialog data={data} onClose={() => setAdding(false)} />}
         {mode === 'week' ? (
           <WeekEntries all={all} />
         ) : (

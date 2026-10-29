@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import { useApp } from '../app/context';
 import { Button, Dialog, IconBillable, toast } from '../app/ui';
 import { ensureTag } from './catalog';
-import { addManualEntry, type EntryRecord } from './entries';
+import { addManualEntry } from './entries';
 import { type TimeData, useCatalogs } from './hooks';
 import { endsNextDay, manualDefaults, manualProblem, manualRange } from './manual-entry';
 import { ProjectPicker, TagPicker } from './pickers';
@@ -23,7 +23,7 @@ const EMPTY: Form = { description: '', project_id: null, tags: [], billable: fal
  * "Add entry" on the Time page (F-33m): the form for a finished entry that the timer bar used to hold as its clock mode.
  * Description, project, tags, billable, a date and a from and to time; a to time before from means the next day; equal times are rejected.
  */
-export function ManualEntryDialog({ data, entries, onClose }: { data: TimeData; entries: readonly EntryRecord[]; onClose(): void }) {
+export function ManualEntryDialog({ data, onClose }: { data: TimeData; onClose(): void }) {
   const { setSpaceId } = useApp();
   const catalogs = useCatalogs();
   const [form, setForm] = useState<Form>(EMPTY);
@@ -63,7 +63,6 @@ export function ManualEntryDialog({ data, entries, onClose }: { data: TimeData; 
       >
         <DescriptionField
           value={form.description}
-          entries={entries}
           placeholder="What did you work on?"
           onText={(t) => patch({ description: t })}
           onCommit={(t) => patch({ description: t })}

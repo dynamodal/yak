@@ -5,7 +5,7 @@
 //   npm run e2e time
 //
 import { join } from 'node:path';
-import { BASE, launch, startMock, sleep, ok, fail, check, watchPage, until, finish, keepAllSpaces, startSelecting, pickSpace, openJoin, startSyncing, joinByInvite, pill, startRound, stopRound, detailsDialog, openDetails } from './lib.mjs';
+import { BASE, launch, startMock, sleep, ok, fail, check, watchPage, until, finish, keepAllSpaces, startSelecting, pickSpace, openJoin, startSyncing, joinByInvite, pill, startRound, stopRound, detailsDialog, openDetails, poll } from './lib.mjs';
 
 
 const mock = await startMock();
@@ -460,6 +460,104 @@ const addTag = async (p, scope, name) => {
   await p.getByRole('link', { name: 'Time', exact: true }).click();
   await until(async () => (await lines(p).filter({ hasText: 'focus' }).count()) >= 1);
   check((await lines(p).filter({ hasText: 'focus' }).count()) >= 1, 'renaming a tag updates the entries');
+  await p.close();
+}
+
+// ---- description combobox: fuzzy suggestions of past work (#60) ----
+{
+  const p = await open('combo', { clock: 'noon' });
+  await p.evaluate(() => { location.hash = '#/settings/organize'; });
+  await p.locator('.projects-page').waitFor();
+  await p.getByLabel('New project name').fill('Website');
+  await p.getByRole('button', { name: 'Add project' }).click();
+  await p.evaluate(() => { location.hash = '#/time'; });
+  let d = await openDetails(p);
+  await desc(p).fill('Review onboarding');
+  await pickProject(p, d, 'Website');
+  await addTag(p, d, 'ux');
+  await desc(p).press('Enter');
+  await stopRound(p).waitFor();
+  await sleep(1100);
+  await stopRound(p).click();
+  await startRound(p).waitFor();
+  await startRound(p).click();
+  await stopRound(p).click();
+  await startRound(p).waitFor();
+
+  d = await openDetails(p);
+  const box = desc(p);
+  check((await box.getAttribute('role')) === 'combobox' && (await box.getAttribute('aria-autocomplete')) === 'list' && (await box.getAttribute('aria-expanded')) === 'false', 'description is a combobox, closed while nothing is typed');
+  await box.fill('rev onb');
+  const suggestions = (scope) => scope.getByRole('listbox', { name: 'Suggested past work' }).getByRole('option');
+  const opts = suggestions(d);
+  check(await poll(async () => (await opts.count()) === 1), 'typing "rev onb" offers one suggestion');
+  const text = await opts.first().innerText();
+  check(text.includes('Review onboarding') && text.includes('Website') && text.includes('ux'), `the suggestion shows description, project and tags (${text.replace(/\s+/g, ' ')})`);
+  check((await box.getAttribute('aria-expanded')) === 'true' && (await box.getAttribute('aria-controls')) === (await d.getByRole('listbox').getAttribute('id')), 'aria-expanded and aria-controls point at the open listbox');
+  await box.fill('reveiw onbaording');
+  check(await poll(async () => (await opts.count()) === 1), 'a typo in each word still finds it');
+  await box.fill('rev onb');
+  await box.press('Escape');
+  check(!(await opts.count()) || !(await opts.first().isVisible()), 'Esc closes the list');
+  check((await detailsDialog(p).count()) === 1, 'the first Esc leaves the popover open');
+  await box.fill('onb rev');
+  await box.press('ArrowDown');
+  const activeId = await box.getAttribute('aria-activedescendant');
+  check(activeId && (await p.locator('#' + activeId).getAttribute('aria-selected')) === 'true', 'ArrowDown makes the first suggestion active (aria-activedescendant)');
+  await box.press('Enter');
+  check((await box.inputValue()) === 'Review onboarding' && (await detailsDialog(p).count()) === 1 && (await stopRound(p).count()) === 0, 'Enter picks: the field is filled, the popover stays open and nothing started');
+  check((await d.getByRole('button', { name: /^Project/ }).first().innerText()).includes('Website') && (await d.getByRole('button', { name: /^Tags/ }).first().innerText()).includes('ux'), 'the pick fills the project and tags');
+  await box.press('Enter');
+  await stopRound(p).waitFor();
+  const started = await all(p).then((a) => a.find((e) => e.stop === null));
+  check(started && started.description === 'Review onboarding' && started.project_id && started.tags.includes('ux'), 'starting after the pick uses the picked project and tags');
+  await stopRound(p).click();
+  await startRound(p).waitFor();
+
+  // A click picks too, and Add entry has the same field.
+  d = await openDetails(p);
+  await desc(p).fill('onboarding');
+  await suggestions(d).first().click();
+  check((await desc(p).inputValue()) === 'Review onboarding', 'a click on a suggestion picks it');
+  await p.keyboard.press('Escape');
+  await p.getByRole('button', { name: 'Add entry' }).click();
+  const dlg = p.getByRole('dialog', { name: 'Add entry' });
+  await dlg.getByLabel('Description', { exact: true }).fill('rev onb');
+  check(await poll(async () => (await suggestions(dlg).count()) === 1), 'Add entry offers suggestions as well');
+  await dlg.getByLabel('Description', { exact: true }).press('ArrowDown');
+  await dlg.getByLabel('Description', { exact: true }).press('Enter');
+  check((await dlg.getByRole('button', { name: /^Project/ }).first().innerText()).includes('Website'), 'picking in Add entry fills the project');
+  await p.close();
+}
+
+// ---- entry menu: Move to space (#64) ----
+{
+  const p = await open('move', { clock: 'noon' });
+  await p.evaluate(() => { location.hash = '#/settings/organize'; });
+  await p.locator('.projects-page').waitFor();
+  await p.getByLabel('New project name').fill('Moveable');
+  await p.getByRole('button', { name: 'Add project', exact: true }).click();
+  await p.evaluate(() => { location.hash = '#/time'; });
+  const d = await openDetails(p);
+  await desc(p).fill('Move me');
+  await pickProject(p, d, 'Moveable');
+  await desc(p).press('Enter');
+  await stopRound(p).waitFor();
+  await sleep(1100);
+  await stopRound(p).click();
+  await startRound(p).waitFor();
+  const mine = (page) => page.evaluate(() => ['space/personal/time', 'space/work/time'].flatMap((id) => Object.values(window.__app.json(id, 'time_entries')).filter((e) => !e.deleted && e.description === 'Move me').map((e) => ({ ...e, space: id }))));
+  check((await mine(p)).length === 1 && (await mine(p))[0].space === 'space/personal/time', 'the entry starts in Personal');
+  const row = line(p, 'Move me');
+  await row.hover();
+  await row.getByRole('button', { name: 'More actions: Move me' }).click();
+  check((await p.getByRole('menuitem', { name: 'Move to Personal' }).count()) === 0 && (await p.getByRole('menuitem', { name: 'Move to Work' }).count()) === 1, 'the menu offers the other space only');
+  await p.getByRole('menuitem', { name: 'Move to Work' }).click();
+  check(await poll(async () => { const m = await mine(p); return m.length === 1 && m[0].space === 'space/work/time' && m[0].project_id; }), 'Move to Work: one live entry in Work, with its project made there');
+  const toast = p.getByRole('status').filter({ hasText: 'Moved 1 entry to Work' });
+  check((await toast.count()) >= 1, 'a message confirms the move');
+  await p.getByRole('button', { name: 'Undo' }).click();
+  check(await poll(async () => { const m = await mine(p); return m.length === 1 && m[0].space === 'space/personal/time'; }), 'Undo puts it back');
   await p.close();
 }
 

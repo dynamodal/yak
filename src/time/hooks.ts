@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type * as Y from 'yjs';
 import { useApp } from '../app/context';
 import { useSettings } from '../app/hooks';
@@ -17,6 +17,7 @@ import { type LastEntry, lastStopped } from './cue';
 import type { WeekStart } from './dates';
 import { compareRunning, type EntryRecord, findRunning, isRunning, liveEntries, type RunningRef, startMs } from './entries';
 import { repeatKey } from './grouping';
+import { buildCandidates, type Candidate } from './fuzzy';
 import { buildRecents, type Recents } from './recents';
 import type { HoursFormat } from './format';
 
@@ -75,6 +76,25 @@ export function useRecentEntries(limit: number): EntryRecord[] {
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [privateDocs, version, limit]);
+}
+
+/** Past work to suggest while typing a description, across every space; built on first use and again after entries change. */
+export function useCandidates(): () => Candidate[] {
+  const { privateDocs, spaceDocs } = useApp();
+  const version = useAllEntriesVersion();
+  const cache = useRef<{ key: unknown; list: Candidate[] }>({ key: null, list: [] });
+  return () => {
+    const key = [privateDocs, spaceDocs, version];
+    const c = cache.current;
+    if (!Array.isArray(c.key) || c.key[0] !== privateDocs || c.key[1] !== spaceDocs || c.key[2] !== version) {
+      const names = (sid: string, pid: string): string => {
+        const doc = spaceDocs.get(sid);
+        return (doc && (collection(doc, 'projects').get(pid)?.get('name') as string | undefined)) || '';
+      };
+      cache.current = { key, list: buildCandidates(privateDocs, names) };
+    }
+    return cache.current.list;
+  };
 }
 
 /** The pill popover's recent list: the entry that stopped last, then distinct recent work, across every space (never the running one). */

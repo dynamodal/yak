@@ -13,7 +13,7 @@
 
 ## Projects, clients and tags
 
-**Organize** holds them: press **Edit…** in the project or tag picker, use the command palette (**Go to Organize**), or **Organize…** on Settings.
+**Organize** holds them: press **Edit…** in the project or tag picker, use the command palette (**Go to Organize**), or the **Organize** section of Settings.
 It also lists tags across entries, notes and tasks, and the task rules.
 Deleting one hides it; entries that used it keep their data.
 

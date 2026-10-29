@@ -44,8 +44,9 @@ A chip scrolls to its section; every section heading has a link icon, and `#/set
 | Devices and sync | Sync (always: "Off · Set up", "On · waiting for your first device", "On · 2 devices"); one row per device; "Add a device" |
 | Spaces | One row per space; "New space" |
 | Sharing | Other accounts (F-334), "Share a space" |
+| Organize | Projects, clients, tags and task values: one fold that opens in place (`#/settings/organize`); its body is the Organize UI from the time module (`registerSettingsPart`). Old `#/organize`, `#/projects` and `#/manage/organize` redirect here (`legacyRoute`) |
 | Display | Theme, week start, hours format |
-| Features | Switches for Timer, Notes, Tasks, Import and mirror (`features.ts`); the timer switch also controls the header pill |
+| Features | Switches for Home, Time, Notes, Tasks, Mirror and Import (`features.ts`); the timer switch also controls the header pill |
 | Help | Guide, What's new, Keyboard shortcuts, Report a problem, About |
 | Advanced | Connection server, STUN and network stats, device keys and ids, debug log, Reset this device's data |
 
@@ -115,6 +116,6 @@ The Settings page and the new look are separate PRs: build the page on the old l
 | 3 Add a device | Built: `#/settings/devices/add` (bare `#/settings/devices` is the same page); a join request shows above the code and in Needs you |
 | 4 One-time code A+ | Built (above) |
 
-Section addresses: `needs-you`, `backup-safety`, `devices-sync`, `spaces`, `sharing`, `display`, `features`, `help`, `advanced`; `#/settings/<section>/<row id>` also opens a row (`this` or a device id, a space id, an account fingerprint).
+Section addresses: `needs-you`, `backup-safety`, `devices-sync`, `spaces`, `sharing`, `organize`, `display`, `features`, `help`, `advanced`; `#/settings/<section>/<row id>` also opens a row (`this` or a device id, a space id, an account fingerprint).
 The Settings tab dot: neutral for a join or share request that waits, amber for a health warning.
 Not built: the unnamed-device prompt at join (#20) is unchanged; the connection server field stays on Add a device while a device has not synced yet, with the value shown in Advanced.

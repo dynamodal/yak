@@ -16,7 +16,7 @@ registerSearchSource({
     const clientById = new Map(clients.map((c) => [c.id, c]));
     const goProjects = (kind: string, id: string): void => {
       setSearchTarget({ kind, spaceId, id });
-      location.hash = '#/organize';
+      location.hash = '#/settings/organize';
     };
     const out: SearchEntry[] = [
       ...projects.map((p) => ({

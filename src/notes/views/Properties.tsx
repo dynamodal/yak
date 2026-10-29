@@ -354,7 +354,7 @@ function ListValue({ name, items, suggestions, known, onChange, onOpenLink, onTa
         onBlur={() => add()}
       />
       {(isTags || name === 'projects') && (
-        <a class="prop-edit" href="#/organize" title={isTags ? 'Rename, merge or remove tags' : 'Edit projects'}>
+        <a class="prop-edit" href="#/settings/organize" title={isTags ? 'Rename, merge or remove tags' : 'Edit projects'}>
           Edit…
         </a>
       )}

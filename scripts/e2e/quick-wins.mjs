@@ -1,4 +1,4 @@
-// End-to-end for the mobile and newcomer quick wins (#21): Organize back link, empty Notes page actions, Enter in a
+// End-to-end for the mobile and newcomer quick wins (#21): Organize in Settings, empty Notes page actions, Enter in a
 // note's title, Reports CSV button, Import help link, touch-sized header buttons with an icon-only idle pill, and
 // the palette without keyboard hints on a touch screen. No CSP violations or page errors.
 //
@@ -13,10 +13,9 @@ const browser = await launch();
   const context = await browser.newContext({ viewport: { width: 1100, height: 900 } });
   const p = await context.newPage();
   watchPage(p, 'desktop', { consoleErrors: true });
-  await p.goto(`${BASE}?test#/organize`);
-  await p.getByRole('link', { name: '← Settings' }).waitFor();
-  await p.getByRole('link', { name: '← Settings' }).click();
-  check(await poll(async () => p.url().endsWith('#/settings')), 'Organize: "← Settings" goes back to Settings');
+  await p.goto(`${BASE}?test#/settings/organize`);
+  await p.locator('details.st-open[open] .projects-page').waitFor();
+  check(await p.getByRole('link', { name: '← Settings' }).count() === 0, 'Organize is a section of Settings: no back link needed');
 
   await p.evaluate(() => { location.hash = '#/notes'; });
   await p.getByRole('button', { name: "Today's note" }).waitFor();

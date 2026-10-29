@@ -14,9 +14,10 @@ export const NAV_GROUPS: readonly NavGroupDef[] = [
   { id: 'settings', title: 'Settings', order: 80, landing: true },
 ];
 
-/** Pages that left Settings or never existed in it: Projects & tags is Organize (F-325), Notes and Mirror are the note settings, Shortcuts are in Help. */
+/** Pages that left Settings or never existed in it: Projects & tags is Organize, a section of Settings (F-325, F-33x), Notes and Mirror are the note settings, Shortcuts are in Help. */
 const MOVED: Readonly<Record<string, string[]>> = {
-  projects: ['organize'],
+  projects: ['settings', 'organize'],
+  organize: ['settings', 'organize'],
   'notes-settings': ['note-settings'],
   'note-settings': ['note-settings'],
   mirror: ['note-settings'],
@@ -40,7 +41,7 @@ const FOLDED: Readonly<Record<string, string | undefined>> = {
 };
 
 /** The sections of the Settings page, in order (`#/settings/<section>` scrolls to one). Detail routes must not reuse these names. */
-export const SETTINGS_SECTIONS = ['needs-you', 'backup-safety', 'devices-sync', 'spaces', 'sharing', 'display', 'features', 'help', 'advanced'] as const;
+export const SETTINGS_SECTIONS = ['needs-you', 'backup-safety', 'devices-sync', 'spaces', 'sharing', 'organize', 'display', 'features', 'help', 'advanced'] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
 const folded = (name: string): string[] => ['settings', ...(FOLDED[name] ? [FOLDED[name] as string] : [])];
@@ -54,8 +55,10 @@ const folded = (name: string): string[] => ['settings', ...(FOLDED[name] ? [FOLD
  */
 export function legacyRoute(route: readonly string[], views: readonly ViewDef[]): string[] | undefined {
   const [first, second, ...rest] = route;
-  const moved = (name: string | undefined, bare: boolean): string[] | undefined => (name === 'note-settings' && bare ? undefined : name === undefined || !Object.hasOwn(MOVED, name) ? undefined : MOVED[name]);
-  const gone = first === 'manage' || first === 'settings' ? moved(second, false) : moved(first, true);
+  // `#/note-settings` and `#/settings/organize` are current; the same names anywhere else are old addresses.
+  const moved = (name: string | undefined, where: 'bare' | 'settings' | 'manage'): string[] | undefined =>
+    name === undefined || !Object.hasOwn(MOVED, name) || (name === 'note-settings' && where === 'bare') || (name === 'organize' && where === 'settings') ? undefined : MOVED[name];
+  const gone = first === 'manage' || first === 'settings' ? moved(second, first) : moved(first, 'bare');
   if (gone) return gone;
   // A join link (`#/join/<code>`, option A+) opens Add a device, which takes the code from the address.
   if (first === 'join') return ['settings', 'devices', 'add', ...(second ? [second, ...rest] : [])];

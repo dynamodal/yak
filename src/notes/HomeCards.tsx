@@ -4,7 +4,7 @@ import { useApp } from '../app/context';
 import { effectiveHidden, useHiddenModules } from '../app/features';
 import { HomeCard } from '../app/home-cards';
 import { useNow, useYVersion } from '../app/hooks';
-import { changedLabel, dueLabel, dueSoon, recentNotes } from './home';
+import { changedLabel, dueLabel, dueSoon, noteExcerpt, noteFolder, recentNotes } from './home';
 import { setNoteProperties } from './note-store';
 import { readTaskRules } from './task-rules';
 import { completionChanges, isCompleted, isRecurring, recurringCompletion, tasksFrom, type Task } from './tasks';
@@ -96,14 +96,21 @@ export function RecentNotesCard() {
   return (
     <HomeCard id="notes" title="Recent notes" link={{ href: '#/notes', label: 'Notes' }}>
       <ul class="hm-list">
-        {notes.map((n) => (
-          <li key={n.id} data-note={n.id}>
-            <a class="hm-main" href={`#/notes/${encodeURIComponent(n.id)}`} title={n.title}>
-              {n.title}
-            </a>
-            <span class="hm-meta">{changedLabel(n.updated_at, now)}</span>
-          </li>
-        ))}
+        {notes.map((n) => {
+          // The folder and a line of the text tell notes apart; either is left out when there is none.
+          const sub = [noteFolder(n.path), noteExcerpt(n.parsed.body, n.title)].filter(Boolean).join(' · ');
+          return (
+            <li key={n.id} data-note={n.id} class={sub ? 'hm-two' : undefined}>
+              <div class="hm-stack">
+                <a class="hm-main" href={`#/notes/${encodeURIComponent(n.id)}`} title={n.title}>
+                  {n.title}
+                </a>
+                {sub ? <span class="hm-sub-line">{sub}</span> : null}
+              </div>
+              <span class="hm-meta">{changedLabel(n.updated_at, now)}</span>
+            </li>
+          );
+        })}
       </ul>
     </HomeCard>
   );

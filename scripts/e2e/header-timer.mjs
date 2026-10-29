@@ -226,7 +226,7 @@ const clockSeconds = async (p) => {
     await d.getByRole('button', { name: 'Update' }).click();
   }
   await poll(async () => (await running(p))[0]?.description?.startsWith('A long'));
-  for (const view of ['time', 'time/week', 'notes', 'tasks', 'time/reports', 'organize', 'settings', 'settings/devices']) {
+  for (const view of ['time', 'time/week', 'notes', 'tasks', 'time/reports', 'settings/organize', 'settings', 'settings/devices']) {
     await p.evaluate((v) => { location.hash = `#/${v}`; }, view);
     await sleep(300);
     const o = await overflow(p);

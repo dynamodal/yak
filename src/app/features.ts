@@ -11,9 +11,9 @@ import { useEffect, useState } from 'preact/hooks';
 export type FeatureId = 'home' | 'time' | 'notes' | 'tasks' | 'mirror' | 'import';
 
 export const FEATURES: readonly { id: FeatureId; title: string; hint: string }[] = [
-  { id: 'home', title: 'Home', hint: 'A summary page: what needs you, this week, tasks due soon and recent notes.' },
-  { id: 'time', title: 'Time', hint: 'The timer, the log, the week and reports' },
-  { id: 'notes', title: 'Notes', hint: 'Markdown notes, folders and daily notes.' },
+  { id: 'home', title: 'Home', hint: 'A summary page: what needs you, this week, tasks due soon and recent notes. It opens first.' },
+  { id: 'time', title: 'Time', hint: 'The timer (also in the header), the log, the week and Reports. Hiding Time hides all of them; stop a running timer first.' },
+  { id: 'notes', title: 'Notes', hint: 'Markdown notes, folders and daily notes. Tasks stay when Notes is off.' },
   { id: 'tasks', title: 'Tasks', hint: 'Tasks are notes with a due date or status. They work with Notes off.' },
   { id: 'mirror', title: 'Mirror', hint: 'Keep a folder of Markdown files in step with your notes. Needs folder access in the browser.' },
   { id: 'import', title: 'Import', hint: 'Bring in a Toggl or CSV export.' },

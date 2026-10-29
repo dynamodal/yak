@@ -96,7 +96,7 @@ a.st-fold-link { display: flex; align-items: center; justify-content: space-betw
 a.st-fold-link::after { content: '›'; color: var(--muted); font-size: var(--text-lg); }
 .st-adv { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
 .st-adv h3 { margin: 0; font-size: 1rem; }
-details.advanced > summary { min-height: var(--control-h); display: flex; align-items: center; cursor: pointer; }
+details:is(.advanced, .st-open) > summary { min-height: var(--control-h); display: flex; align-items: center; cursor: pointer; }
 
 /* Accounts (#334): shares listed in an account row, and in a space row. */
 .st-accounts { display: grid; gap: var(--space-3); }
@@ -107,6 +107,6 @@ details.advanced > summary { min-height: var(--control-h); display: flex; align-
 .st-share-list li, .share-members li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: var(--control-h); padding: var(--space-1) 0; }
 .share-member-main { display: grid; min-width: 0; }
 .st-warning { border-left: 4px solid var(--warn); padding-left: var(--space-2); }
-details.advanced > summary { justify-content: space-between; }
-details.advanced > summary::after { content: '›'; color: var(--muted); font-size: var(--text-lg); }
-details.advanced[open] > summary::after { content: '⌄'; }
+details:is(.advanced, .st-open) > summary { justify-content: space-between; }
+details:is(.advanced, .st-open) > summary::after { content: '›'; color: var(--muted); font-size: var(--text-lg); }
+details:is(.advanced, .st-open)[open] > summary::after { content: '⌄'; }

@@ -1,5 +1,10 @@
-/* Home: cards that reflow three across, two, then one (F-33p). Card contents are styled with the card's own module. */
-.hm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); align-items: start; }
+/* Home: cards that reflow three across, two, then one (F-33p). Card contents are styled with the card's own module.
+   Cards stretch to their row; This week is two rows tall and Where the week went two columns wide, so a row has no hole (F-33y). */
+.hm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row dense; gap: var(--gap); align-items: stretch; }
+@media (min-width: 36.01rem) {
+  .hm-card[data-card='week'] { grid-row: span 2; }
+  .hm-card[data-card='projects'] { grid-column: span 2; }
+}
 @media (max-width: 64rem) { .hm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 36rem) { .hm-grid { grid-template-columns: minmax(0, 1fr); } }
 .hm-empty { display: none; margin: var(--space-6) 0; text-align: center; }
@@ -13,6 +18,10 @@
 .hm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
 .hm-list li { display: flex; align-items: center; gap: var(--space-2); min-height: var(--control-h); min-width: 0; }
 .hm-list .hm-main { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-list li.hm-two { min-height: calc(var(--control-h) + var(--space-3)); padding: var(--space-1) 0; }
+.hm-stack { flex: 1 1 auto; min-width: 0; display: grid; }
+.hm-stack .hm-main { display: block; }
+.hm-sub-line { color: var(--muted); font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hm-list a.hm-main { color: inherit; text-decoration: none; }
 .hm-list a.hm-main:hover { text-decoration: underline; }
 .hm-meta { color: var(--muted); font-size: var(--text-sm); white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -39,7 +48,8 @@
 .hm-projects th[scope='row'] { width: auto; }
 .hm-projects .hm-num { width: 6.8rem; }
 .hm-projects .hm-name { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
-.hm-projects .hm-name span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-projects .hm-name span:last-child { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; line-height: 1.25; }
+@media (max-width: 36rem) { .hm-projects .hm-num { width: 6.2rem; } .hm-bar-cell { width: 3rem; padding-left: var(--space-2) !important; } }
 .hm-dot { flex: none; width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--muted); }
 .hm-bar-cell { width: 4.5rem; padding-left: var(--space-3) !important; }
 .hm-bar { height: 0.55rem; background: var(--surface-2); border-radius: var(--radius-pill); overflow: hidden; }

@@ -12,7 +12,7 @@ const browser = await launch();
 
 const PAGES = [
   '#/home', '#/time/list', '#/time/week', '#/time/reports', '#/notes', '#/tasks', '#/help', '#/help/report',
-  '#/settings', '#/settings/backup', '#/settings/import', '#/settings/devices', '#/organize',
+  '#/settings', '#/settings/backup', '#/settings/import', '#/settings/devices', '#/settings/organize',
   '#/settings/spaces/PERSONAL', '#/settings/devices-sync/this', '#/settings/advanced', '#/settings/devices/add', '#/note-settings', '#/help/shortcuts', '#/settings/network',
 ];
 

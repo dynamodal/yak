@@ -127,7 +127,7 @@ if ((await page.locator('.rp-controls select').count()) === 0) await page.locato
 await record('Reports (this year)', () => settle(() => page.locator('.rp-controls select').first().selectOption('this_year')));
 await record('Notes', () => settle('#/notes'));
 await record('Tasks', () => settle('#/tasks'));
-await record('Organize', () => settle('#/organize'));
+await record('Organize', () => settle('#/settings/organize'));
 await settle('#/time');
 
 // Typing in a note with 3,200 notes around it: the time each key takes to reach the screen.

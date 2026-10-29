@@ -2,7 +2,7 @@ import { useApp } from '../app/context';
 import { type SelectionApi, useSelection } from '../app/selection';
 import { useSearchTarget } from '../app/search-sources';
 import { useState } from 'preact/hooks';
-import { Button, IconArchive, IconEdit, IconMore, IconRestore, IconTrash, MenuButton, Page, PageHeader, Pill, toast, usePageSelect } from '../app/ui';
+import { Button, IconArchive, IconEdit, IconMore, IconRestore, IconTrash, MenuButton, Pill, toast, usePageSelect } from '../app/ui';
 import { Sections } from '../app/views/Sections';
 import { TagManager } from '../app/views/TagManager';
 import { bulkEdit } from '../core/bulk';
@@ -382,7 +382,8 @@ function ClientRow({ client, data, space, env, sel, editing, onEdit }: { client:
   );
 }
 
-export function ProjectsView() {
+/** Organize (F-33x): the body of the Organize section of Settings; projects, clients, tags and the sections other modules register. */
+export function OrganizeBody() {
   const all = useAllTime();
   const { spaces } = useApp();
   const spaceName = useSpaceName();
@@ -437,12 +438,11 @@ export function ProjectsView() {
   ) : null;
 
   return (
-    <Page width="list" class={sel.active ? 'projects-page bulk-scope selecting' : 'projects-page'}>
+    <div class={sel.active ? 'projects-page bulk-scope selecting' : 'projects-page'}>
       {sel.active && <MoveSelectedBar sel={sel} handles={handles} data={all.data} spaceIds={movable} />}
-      <p class="hint">
-        <a href="#/settings">← Settings</a>
-      </p>
-      <PageHeader title="Organize" space={<SpaceFilter />} />
+      <div class="row">
+        <SpaceFilter />
+      </div>
       <label class="check">
         <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived((e.target as HTMLInputElement).checked)} />
         <span>Show archived</span>
@@ -505,6 +505,6 @@ export function ProjectsView() {
       <TagManager spaceIds={shown.map((d) => d.spaceId)} selection={sel} />
 
       <Sections page="organize" />
-    </Page>
+    </div>
   );
 }

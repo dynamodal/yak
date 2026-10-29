@@ -118,7 +118,11 @@ check(await poll(() => fresh.locator('.tab-dot').count().then((n) => n === 0)) >
 check((await fresh.evaluate(() => localStorage.getItem('app-changes-seen'))) > '2020', 'and remembers it');
 const changes = await fresh.locator('#help-whats-new .change').count();
 check(changes >= 1 && changes <= 10, `What's new lists the latest entries (${changes})`);
-const newest = (await import('node:fs')).readFileSync(new URL('../../docs/user/changes.md', import.meta.url), 'utf8').match(/^## (\d{4}-\d\d-\d\d):/m)?.[1] ?? '';
+// The newest date over the archive and the fragment files (`docs/user/changes/`).
+const fs = await import('node:fs');
+const dir = new URL('../../docs/user/changes/', import.meta.url);
+const sources = [fs.readFileSync(new URL('../../docs/user/changes.md', import.meta.url), 'utf8'), ...(fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /^\d{4}-\d\d-\d\d-\d{4}-[a-z0-9-]+\.md$/.test(f)).map((f) => fs.readFileSync(new URL(f, dir), 'utf8')) : [])];
+const newest = sources.flatMap((t) => [...t.matchAll(/^## (\d{4}-\d\d-\d\d):/gm)].map((m) => m[1])).sort().pop() ?? '';
 check(newest !== '' && (await fresh.locator('#help-whats-new .change').first().innerText()).includes(newest), 'newest first');
 const dates = await fresh.locator('#help-whats-new .change .change-date').allInnerTexts();
 check(dates.length > 1 && dates.every((d, i) => i === 0 || dates[i - 1] >= d), `What's new is in date order (${dates.join(', ')})`);

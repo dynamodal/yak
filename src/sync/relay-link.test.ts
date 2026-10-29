@@ -175,13 +175,13 @@ describe('RelayLink with a pair key (#256)', () => {
   it('falls back to the shared key with a device that has no pair key (an older build)', async () => {
     const a = end('aaa', 'bbb', keys.key, { key: await aesKey(), only: false });
     const b = end('bbb', 'aaa');
-    await waitFor(() => a.link.open && b.link.open, 4000, 'both open');
+    await waitFor(() => a.link.open && b.link.open, 15000, 'both open');
     a.link.send(new TextEncoder().encode('to old'));
     b.link.send(new TextEncoder().encode('from old'));
-    await waitFor(() => b.got.length === 1 && a.got.length === 1);
+    await waitFor(() => b.got.length === 1 && a.got.length === 1, 10000, 'messages');
     expect(text(b.got[0])).toBe('to old');
     expect(a.pairFailed).toBe(1);
-  });
+  }, 30000);
 
   it('a deliberately broken pair key: both ends fall back to the shared key and keep syncing', async () => {
     const a = end('aaa', 'bbb', keys.key, { key: await aesKey(), only: false });

@@ -1,6 +1,6 @@
 import type * as Y from 'yjs';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { allCommands, type CommandDef, registerCommand, eventShortcut, findByShortcut, formatShortcut, readOverrides, shortcutsOf } from '../commands';
+import { allCommands, paletteCommands, type CommandDef, registerCommand, eventShortcut, findByShortcut, formatShortcut, readOverrides, shortcutsOf } from '../commands';
 import { useApp } from '../context';
 import { useYVersion } from '../hooks';
 import { registerGlobal, registerHeaderItem } from '../registry';
@@ -23,9 +23,9 @@ export function useOverrides(): Readonly<Record<string, string>> {
   return useMemo(() => readOverrides(account), [account, v]);
 }
 
-/** Matches words of the query in order, anywhere in the title ("go ti" finds "Go to Timer"). */
-function matches(title: string, query: string): boolean {
-  const t = title.toLowerCase();
+/** Matches words of the query, in any order, anywhere in the title or the keywords ("go ti" finds "Go to Timer"). */
+function matches(c: Pick<CommandDef, 'title' | 'keywords'>, query: string): boolean {
+  const t = [c.title, ...(c.keywords ?? [])].join(' ').toLowerCase();
   return query
     .toLowerCase()
     .split(/\s+/)
@@ -37,7 +37,10 @@ function Palette({ commands, onRun, onClose }: { commands: readonly CommandDef[]
   const overrides = useOverrides();
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
-  const shown = commands.filter((c) => matches(c.title, query));
+  // A title that holds every word comes before one found only through its keywords.
+  const inTitle = (c: CommandDef): boolean => matches({ title: c.title }, query);
+  const found = commands.filter((c) => matches(c, query));
+  const shown = [...found.filter(inTitle), ...found.filter((c) => !inTitle(c))];
   useEffect(() => setActive(0), [query]);
   const choose = (i: number): void => {
     const c = shown[i];
@@ -128,7 +131,7 @@ export function CommandHost() {
     };
   }, []);
 
-  return open ? <Palette commands={allCommands()} onRun={(c) => c.run({ app: latest.current.app })} onClose={() => setOpen(false)} /> : null;
+  return open ? <Palette commands={paletteCommands()} onRun={(c) => c.run({ app: latest.current.app })} onClose={() => setOpen(false)} /> : null;
 }
 
 /** The header's command button: the command icon and, on a wide screen with a keyboard, a chip with the bound shortcut. */

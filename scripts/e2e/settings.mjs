@@ -37,11 +37,11 @@ check((await page.getByLabel('Hours shown as').inputValue()) === 'decimal', 'hou
 check((await page.getByRole('link', { name: 'Import from Toggl' }).count()) === 0, 'Settings does not repeat the Toggl import in Preferences');
 check((await page.locator('details > summary', { hasText: 'History warnings' }).count()) === 1, 'Settings folds the history warnings');
 check((await page.locator('.manage-list, .manage-tabs').count()) === 0, 'Settings has no sub-menu');
-check((await page.locator('section.st-section > h2').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backup and safety|Devices and sync|Spaces|Sharing|Organize|Display|Features|Help|Advanced', 'Settings sections in order (no Needs you while nothing waits)');
-check((await page.locator('nav.st-toc a').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backup and safety|Devices and sync|Spaces|Sharing|Organize|Display|Features|Help|Advanced', 'the contents row has one chip per section');
+check((await page.locator('section.st-section > h2').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backup and safety|Devices and sync|Spaces|Sharing|Organize|Notes|Display|Features|Help|Advanced', 'Settings sections in order (no Needs you while nothing waits)');
+check((await page.locator('nav.st-toc a').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backup and safety|Devices and sync|Spaces|Sharing|Organize|Notes|Display|Features|Help|Advanced', 'the contents row has one chip per section');
 check((await page.locator('[data-line="sync"], [data-line="backup"], [data-line="passphrase"]').count()) === 3, 'Sync, Backup and Passphrase lines are shown on a device that never synced');
 check(/Off/.test(await page.locator('[data-line="sync"]').innerText()) && /Not set/.test(await page.locator('[data-line="passphrase"]').innerText()), 'the lines say "Off" and "Not set"');
-check((await page.locator('table').count()) === 0, 'no spaces-by-devices table');
+check((await page.locator('section.st-section:not([data-section="notes"]) table').count()) === 0, 'no spaces-by-devices table (the periodic notes table is in Notes)');
 // A section link scrolls to the section; a row link opens the row.
 await page.goto(`${BASE}?test#/settings/display`);
 await page.locator('#st-display').waitFor();

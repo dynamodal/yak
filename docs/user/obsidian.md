@@ -4,7 +4,7 @@ Your notes are Markdown. Two ways to also use them in other editors:
 
 ## Mirror to a folder
 
-**Mirror** (the gear on Notes, then note settings) keeps a folder of `.md` files in step with your notes, two ways (it needs folder access; where the browser has none, Mirror says it is not available, see [Browsers and phones](#/help/browsers)).
+**Mirror** (**Settings › Notes**, also the gear on Notes) keeps a folder of `.md` files in step with your notes, two ways (it needs folder access; where the browser has none, Mirror says it is not available, see [Browsers and phones](#/help/browsers)).
 
 - One sub-folder per space. Edit a file outside Yak and the note changes, and the other way round.
 - If both sides changed the same note, nothing is lost: the file's version is kept as `<name> (conflict).md`.

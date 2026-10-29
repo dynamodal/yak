@@ -46,7 +46,7 @@ export function PeriodicNotesTable() {
         </tbody>
       </table>
       <p class="hint">“Today's note” (the “+” menu in Notes, or the command) makes the note from its template when it does not exist yet.</p>
-      <details class="advanced">
+      <details class="st-open">
         <summary>Name tokens and templates (advanced)</summary>
         <p class="hint">
           Name tokens: YYYY YY MM DD ddd dddd GGGG (week year) WW (ISO week); put other text in [brackets]. Weeks follow ISO 8601: they start on Monday, and week 1 holds the year's first Thursday. A template is a note in the same space; use {'{{date}}'}, {'{{time}}'}, {'{{title}}'} or {'{{date:DD/MM}}'}. Without one, a new note is empty.

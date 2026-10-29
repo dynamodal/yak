@@ -46,7 +46,7 @@ const SEED = {
 const ONLY = process.env.ONLY?.split(','); // ONLY=notes,tasks shoots just those
 const SHOTS = [
   'home', 'timer', 'week', 'reports', 'reports/detailed', 'reports/weekly', 'notes', 'notes-open', 'tasks', 'tasks-board', 'tasks-table',
-  'settings', 'settings/backup', 'settings/devices', 'settings/organize', 'note-settings', 'help', 'help/shortcuts', 'help/report', 'import',
+  'settings', 'settings/backup', 'settings/devices', 'settings/organize', 'settings/notes', 'help', 'help/shortcuts', 'help/report', 'import',
   'timer-editing', 'timer-forced', 'tasks-forced', 'tasks-filters', 'tasks-table-filters', 'timer-filters',
   // Notes switched off (F-33n): the Tasks tab and a task on its own page.
   'tasks-no-notes', 'tasks-board-no-notes', 'tasks-table-no-notes', 'task-detail-no-notes',

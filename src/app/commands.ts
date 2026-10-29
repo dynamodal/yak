@@ -2,6 +2,7 @@ import type * as Y from 'yjs';
 import type { AppContextValue } from './context';
 import { commandHidden } from './features';
 import { allViews } from './registry';
+import { settingsCommands } from './settings-index';
 
 /**
  * Commands: named actions with default shortcuts. Modules register them from their `index.ts`, the way
@@ -16,6 +17,8 @@ interface CommandContext {
 export interface CommandDef {
   id: string;
   title: string;
+  /** Further words the palette matches besides the title (`mirror`, `folder`, `obsidian` find Mirror). */
+  keywords?: readonly string[];
   /** Default key combinations, for example `Alt+S`. */
   shortcuts?: readonly string[];
   run(ctx: CommandContext): void;
@@ -47,6 +50,11 @@ export function allCommands(): CommandDef[] {
       }),
     );
   return [...registered, ...go].filter((c) => !commandHidden(c.id));
+}
+
+/** The commands the palette lists: every command, then one per Settings section and row (`settings-index.ts`). Not the shortcuts list: a place in Settings has no key. */
+export function paletteCommands(): CommandDef[] {
+  return [...allCommands(), ...settingsCommands()];
 }
 
 // ---- Shortcut strings

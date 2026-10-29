@@ -24,7 +24,7 @@ await app.goto(`${BASE}?test#/devices`);
 await app.waitForFunction(() => window.__app?.spaces().personal && window.__app?.spaces().work, null, { timeout: 15000 });
 
 // Notes made in the app before the plugin exists. The mirror test hook lives on the Mirror route.
-await app.evaluate(() => (location.hash = '#/note-settings'));
+await app.evaluate(() => (location.hash = '#/settings/notes'));
 await app.waitForFunction(() => window.__mirror !== undefined, null, { timeout: 15000 });
 const A = (fn, arg) => app.evaluate(fn, arg);
 await A(() => {
@@ -287,7 +287,7 @@ check(vaultKeys.length === 1, `the pairing is stored under a vault-specific key 
 check((await P(() => window.__plugin.keys.storage)) === 'protected', 'the vault keeps its device keys in protected browser storage');
 check(await plugged(() => window.__plugin.keys.trust.required() && window.__plugin.keys.trust.proof !== undefined, 30000) >= 0, 'the vault is approved and knows keys are required');
 await A(() => window.__mirror.appendToNote('personal', 'Inbox.md', ' + keys'));
-await A(() => (location.hash = '#/note-settings'));
+await A(() => (location.hash = '#/settings/notes'));
 await A(() => window.__mirror.run());
 const signed = await plugged(async () => (await window.__plugin.mirror.run(), window.__vault.text('Yak/Personal/Inbox.md')?.endsWith('+ keys')), 40000);
 check(signed >= 0, 'notes keep syncing to the vault with keys required');

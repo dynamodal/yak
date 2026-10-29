@@ -4,8 +4,8 @@ import type { ViewProps } from './registry';
 
 /**
  * Pages assembled from sections that other modules register, so a page can show work of several
- * features without importing them: the Organize page (`#/organize`) and the note settings page
- * (`#/note-settings`).
+ * features without importing them: the Organize section and the Notes section
+ * of Settings (`#/settings/organize`, `#/settings/notes`).
  */
 export type SectionPage = 'organize' | 'note-settings';
 

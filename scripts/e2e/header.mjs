@@ -131,6 +131,55 @@ for (const width of [360, 375, 414, 480, 497, 562, 640, 700, 831, 832, 927, 928,
   check(pillText === (width >= 960), `${width} px, sync ${state}: the idle timer pill is ${width >= 960 ? 'full' : 'a round button'}`);
 }
 
+// ---- A touch phone (coarse pointer: every target is 44 px): row 1 still holds logo (when it shows), every tab, commands and sync.
+// Only a running timer takes row 2. Tabs share the width (36 to 44 px each); below 400 px the logo gives way.
+const touchCtx = await browser.newContext({ viewport: { width: 412, height: 800 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+const t = await touchCtx.newPage();
+watchPage(t, 'header touch');
+await t.goto(`${BASE}?test#/time`);
+await t.waitForFunction(() => window.__app?.fakeStatus);
+await t.locator('.sync-btn').waitFor();
+check(await t.evaluate(() => matchMedia('(pointer: coarse)').matches), 'the touch context really has a coarse pointer');
+const tShow = async (state) => {
+  await t.evaluate((s) => window.__app.fakeStatus(s), STATES[state].s);
+  await poll(async () => (await t.locator('.sync-btn').getAttribute('aria-label'))?.startsWith(STATES[state].label));
+};
+for (const running of [false, true]) {
+  if (running) {
+    await t.locator('.tp-round').first().tap();
+    check(await t.locator('.timer-pill.running').waitFor({ timeout: 5000 }).then(() => true, () => false), 'touch: the timer runs for the row checks');
+  }
+  for (const width of [360, 375, 390, 412, 445, 480]) for (const state of ['direct', 'offline']) {
+    await t.setViewportSize({ width, height: 800 });
+    await tShow(state);
+    const info = await t.evaluate(() => {
+      const box = (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, b: r.bottom }; };
+      const brand = document.querySelector('.topbar .brand');
+      return {
+        brand: brand && brand.getBoundingClientRect().width > 2 ? box(brand) : null,
+        tabs: [...document.querySelectorAll('.topbar .tabs a')].map(box),
+        cmd: box(document.querySelector('.topbar .palette-btn')),
+        sync: box(document.querySelector('.topbar .sync-btn')),
+        pill: box(document.querySelector('.topbar .timer-pill')),
+        bar: box(document.querySelector('.topbar')),
+        over: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    });
+    const row1 = [info.brand, ...info.tabs, info.cmd, info.sync].filter(Boolean);
+    const first = info.tabs[0];
+    const same = row1.every((r) => r.y < first.b && r.b > first.y);
+    const all = [...row1, ...(running ? [] : [info.pill])];
+    let clash = false;
+    for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) if (all[i].x + 0.5 < all[j].x + all[j].w && all[j].x + 0.5 < all[i].x + all[i].w) clash = true;
+    const label = `touch ${width} px, ${running ? 'running' : 'idle'}, sync ${state}`;
+    check(info.tabs.length >= 5 && same, `${label}: every tab, the commands and sync share row 1`);
+    check(info.tabs.every((r) => r.w >= 35.5) && info.cmd.w >= 43.5 && info.sync.w >= 43.5, `${label}: tabs are at least 36 px, the buttons 44 px`);
+    check(!clash && info.over <= 0 && info.sync.x + info.sync.w <= width, `${label}: nothing overlaps, no sideways scroll`);
+    check(running ? info.bar.h < 130 && info.pill.y > first.b - 1 : info.bar.h < 70, `${label}: ${running ? 'the timer is on row 2 (two rows)' : 'the header is one row'} (${Math.round(info.bar.h)} px)`);
+    check((width >= 400) === (info.brand !== null), `${label}: the logo ${width >= 400 ? 'shows' : 'gives way'}`);
+  }
+}
+
 // ---- No two header controls overlap at any width, even with a much wider font (CI's fonts differ from a laptop's)
 const wideCtx = await browser.newContext({ viewport: { width: 1280, height: 800 }, bypassCSP: true });
 const w = await wideCtx.newPage();

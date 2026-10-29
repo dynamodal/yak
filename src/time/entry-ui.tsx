@@ -600,21 +600,19 @@ export interface DayListProps {
   hideEmpty?: boolean;
   /** Collapse repeated entries of a day into one row with a count. */
   group?: boolean;
-  /** Leave the running entry out of the rows (the timer bar shows it); totals still count it. */
-  hideRunning?: boolean;
   /** Level of the day headings: 2 on a page with no heading of its own above the days, else 3. */
   level?: 2 | 3;
 }
 
 /** Entries grouped by day, each day with its total. */
-export function DayList({ groups, data, hideEmpty, group, hideRunning, level = 3 }: DayListProps) {
+export function DayList({ groups, data, hideEmpty, group, level = 3 }: DayListProps) {
   const Head = `h${level}` as const;
   const sel = useEntrySelection();
   const shown = hideEmpty ? groups.filter((g) => g.entries.length > 0) : groups;
   return (
     <>
       {shown.map((g) => {
-        const rows = hideRunning ? g.entries.filter((e) => !isRunning(e)) : g.entries;
+        const rows = g.entries;
         return (
           <section key={g.key} class="day" aria-label={formatDayLabel(g.dayStart)}>
             <Head class="day-head">
@@ -627,7 +625,7 @@ export function DayList({ groups, data, hideEmpty, group, hideRunning, level = 3
               <Total entries={g.entries} format={data.hoursFormat} />
             </Head>
             {rows.length === 0 ? (
-              <p class="empty">{g.entries.length ? 'Only the running entry so far.' : 'No entries.'}</p>
+              <p class="empty">{'No entries.'}</p>
             ) : (
               <ul class="entries">
                 {group

@@ -55,7 +55,7 @@ const addTag = async (p, scope, name) => {
   await fillDesc(p, 'Write report');
   await desc(p).press('Enter');
   await stopRound(p).waitFor();
-  check((await runningCount(p)) === 1 && (await rows(p).count()) === 0, 'Enter starts a timer; the running entry is in the pill, not in the list');
+  check((await runningCount(p)) === 1 && (await rows(p).count()) === 1 && (await rows(p).first().evaluate((el) => el.classList.contains('running'))) && !(await p.getByText('Nothing tracked').count()), 'Enter starts a timer; the running entry shows in the pill and as a row in the list');
   check(/0:00:0\d/.test(await pill(p).innerText()), 'the pill shows the elapsed time');
   await p.reload();
   await stopRound(p).waitFor();

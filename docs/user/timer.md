@@ -7,7 +7,7 @@
 - The first **Recent** row is **Continue**: a new entry like the one that stopped last, in whichever space it was. Pick any other row to start with its description, project and tags, or, while running, to fill the running entry.
 - **Alt S** (change it in Keyboard shortcuts) starts the timer and opens the details with the cursor in the description, so you can pick a past entry or type. **Esc** closes it and leaves the timer running. **Alt S** again stops the timer.
 - A finished entry: **Add entry** at the top of the Time page.
-- Turn the timer off in Settings › Preferences › Tabs shown (**Time**). The pill, the Time tab, Reports (a part of Time) and the shortcut go; your entries are kept and keep syncing. Stop a running timer first.
+- Turn the timer off in Settings › Features (**Time**). The pill, the Time tab, Reports (a part of Time) and the shortcut go; your entries are kept and keep syncing. Stop a running timer first.
 - Entries are listed by day. Open one to change its description, project, tags, billable flag, start and stop.
 - The Time page has **List**, **Week** and **Reports** views; the last one you used opens next time. The space menu applies to all three.
 

@@ -7,15 +7,20 @@ import { WhatsNew } from './WhatsNew';
 import { OpenSource } from './OpenSource';
 import { ReportForm } from './ReportView';
 import { allChanges, allTopics } from './topics';
+import { allCommands, formatShortcut, shortcutsOf } from '../app/commands';
+import { useOverrides } from '../app/views/CommandHost';
 
 declare const __APP_VERSION__: string | undefined;
 
 /** Generated from the command registry and the person's own bindings, so it never goes stale; the bindings can be changed here. */
 function ShortcutList() {
+  const overrides = useOverrides();
+  const find = allCommands().find((c) => c.id === 'notes.find');
+  const findKeys = find ? shortcutsOf(find, overrides) : [];
   return (
     <>
       <p class="hint">
-        Shared across your devices. <kbd>Alt P</kbd> opens the command palette, which lists every command, including those without a shortcut. <kbd>Ctrl K</kbd> stays “link” inside a note, and <kbd>Ctrl O</kbd> or <kbd>Ctrl P</kbd> finds a note.
+        Shared across your devices. <kbd>Alt P</kbd> opens the command palette, which lists every command, including those without a shortcut. <kbd>Ctrl K</kbd> stays “link” inside a note.{findKeys.length > 0 && <> {findKeys.map((k, i) => <>{i > 0 && ' or '}<kbd>{formatShortcut(k)}</kbd></>)} finds a note.</>}
       </p>
       <ShortcutsCard />
     </>

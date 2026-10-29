@@ -178,10 +178,11 @@ const clockSeconds = async (p) => {
 
   // Continue across spaces: the entry that stopped last in Work continues in Work, from Personal.
   await inWork(p);
-  await startRound(p).click();
   d = await openDetails(p);
+  // A start without a project goes to the latest entry's space (T-62), so Work is chosen in the popover.
+  await d.getByLabel('Space for this entry').selectOption({ label: 'Work' });
   await d.getByLabel('Description', { exact: true }).fill('Work item');
-  await d.getByRole('button', { name: 'Update' }).click();
+  await d.getByRole('button', { name: 'Start', exact: true }).click();
   await poll(async () => (await running(p)).some((r) => r.description === 'Work item' && r.space === 'space/work'));
   await stopRound(p).click();
   await poll(async () => (await running(p)).length === 0);

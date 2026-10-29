@@ -1,5 +1,11 @@
 # What's new
 
+## 2026-10-29: Timer keeps its space
+
+- A timer started without a project now goes to the space of your latest entry, not the space of the note you have open.
+- With several spaces, the start popover has a **Space** picker, so you can choose where the entry goes.
+- Nothing stored changed.
+
 ## 2026-10-29: Fixes before sharing
 
 - The running timer now shows in the **Time** list, so you can edit its start or delete it there. The list no longer says "Nothing tracked" while the first timer runs.

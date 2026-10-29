@@ -33,7 +33,7 @@ Issue and PR numbers here and in `docs/` refer to `dynamodal/yak`; numbers and d
 - The PR description says `Closes #<n>` (or `Refs #<n>`), what changed, how it was tested, and browser-API assumptions. It is the status; do not write status into docs.
 - A decision made in an issue, a PR or a chat: add one row at the end of the matching `docs/decisions/*.md` in the same PR. Id: the file's prefix plus the issue number (`F-195`; `F-195b` for a second one), so parallel PRs never pick the same id.
 - A change to what is collected or logged (debug log, relay, metrics, reports) updates `docs/user/privacy.md` in the same PR.
-- A change testers will notice (and any stored-data migration, F39) adds a line to `docs/user/changes.md` in the same PR: newest entry first, `## YYYY-MM-DD: title`, short bullets. A new date makes the dot on the header "?" appear.
+- A change testers will notice (and any stored-data migration, F39) adds a new file `docs/user/changes/YYYY-MM-DD-HHMM-<slug>.md` (UTC time of writing) in the same PR, with `## YYYY-MM-DD: title` and short bullets. Never edit another entry: parallel PRs must not touch the same file. A new date or title makes the dot on Settings appear. `docs/user/changes.md` is the archive of older entries.
 - Do not edit shared summaries in feature PRs: no check counts, no "current state". Update `docs/roadmap.md` only when a milestone changes.
 - Design notes for unbuilt work live in `docs/design/`. When the work ships, move what stays true into `architecture.md` or `decisions/` and delete the note.
 - Tests: `npm test`, `npx tsc --noEmit`, and `npm run e2e <suite>` for the suites you touch while working; hosted CI runs the full browser suites on the PR. Never loop tests against public ntfy.sh.

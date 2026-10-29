@@ -26,7 +26,7 @@ Thanks for helping. Yak is a small project; the aim is a few well-understood par
 - Run `npm test`, `npx tsc --noEmit`, and the browser suites you touch (`npm run e2e <suite>`, see [docs/testing.md](docs/testing.md)).
 - The PR says what changed, how you tested it, and any browser-API assumptions.
 - A design decision gets one row in the matching `docs/decisions/*.md`.
-- A change users will notice gets a line in `docs/user/changes.md`.
+- A change users will notice gets its own file in `docs/user/changes/` (see CLAUDE.md).
 - Docs are short: bullets and tables, what and why, no history.
 
 ## Security

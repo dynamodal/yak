@@ -1,7 +1,7 @@
 import type { ComponentType } from 'preact';
 
 /**
- * A status line under the Your data table on Settings (F-326): backup, import. A module adds its own line
+ * A status line of Backup and safety on Settings (F-33): backup, passphrase, import. A module adds its own line
  * with `registerDataLine`, so the Settings page names no feature. Each line is one sentence ending in a link;
  * render nothing when there is nothing to say. The passphrase and sync lines belong to the page itself.
  */

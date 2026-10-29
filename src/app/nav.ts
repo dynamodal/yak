@@ -24,30 +24,58 @@ const MOVED: Readonly<Record<string, string[]>> = {
   shortcuts: ['help', 'shortcuts'],
 };
 
-/** The pages Settings had before it became one page (F-326): their content lives on the Settings page itself. */
-const FOLDED = new Set(['home', 'general', 'settings', 'spaces', 'sharing', 'security', 'features', 'spaces-settings']);
+/**
+ * The pages Settings had before it became one page (F-326), and the section of the page (F-33) each one now lives in.
+ * Their address opens `#/settings/<section>`.
+ */
+const FOLDED: Readonly<Record<string, string | undefined>> = {
+  home: undefined,
+  settings: undefined,
+  general: 'display',
+  spaces: 'spaces',
+  'spaces-settings': 'spaces',
+  sharing: 'sharing',
+  security: 'backup-safety',
+  features: 'features',
+};
+
+/** The sections of the Settings page, in order (`#/settings/<section>` scrolls to one). Detail routes must not reuse these names. */
+export const SETTINGS_SECTIONS = ['needs-you', 'backup-safety', 'devices-sync', 'spaces', 'sharing', 'display', 'features', 'help', 'advanced'] as const;
+export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
+
+const folded = (name: string): string[] => ['settings', ...(FOLDED[name] ? [FOLDED[name] as string] : [])];
 
 /**
  * Where an old address now lives, or undefined when the route is current: `#/manage/<x>` and `#/<x>` (`#/devices`, …)
- * become `#/settings/<x>`; the pages Settings folded into one (General, Spaces, Sharing, Security, Features) become `#/settings`;
- * Backups and History are one page, `#/settings/backup`. Pages that left Settings go to their new place (`MOVED`).
+ * become `#/settings/<x>`; the pages Settings folded into one (General, Spaces, Sharing, Security, Features) become their section
+ * of `#/settings`; Backups and History are one page, `#/settings/backup`. Pages that left Settings go to their new place (`MOVED`).
+ * The detail views of a device, a space and an account (F-33) open that row on the page: `#/settings/devices-sync/<id>`,
+ * `…/spaces/<id>`, `…/sharing/<fingerprint>`. `#/settings/devices` and `…/devices/add` stay: they are the Add a device flow.
  */
 export function legacyRoute(route: readonly string[], views: readonly ViewDef[]): string[] | undefined {
   const [first, second, ...rest] = route;
   const moved = (name: string | undefined, bare: boolean): string[] | undefined => (name === 'note-settings' && bare ? undefined : name === undefined || !Object.hasOwn(MOVED, name) ? undefined : MOVED[name]);
   const gone = first === 'manage' || first === 'settings' ? moved(second, false) : moved(first, true);
   if (gone) return gone;
+  // A join link (`#/join/<code>`, option A+) opens Add a device, which takes the code from the address.
+  if (first === 'join') return ['settings', 'devices', 'add', ...(second ? [second, ...rest] : [])];
   if (first === 'manage') {
     if (second === 'help') return ['help', ...rest];
-    if (second === undefined || FOLDED.has(second)) return ['settings'];
+    if (second === undefined || Object.hasOwn(FOLDED, second)) return folded(second ?? 'home');
     return ['settings', second === 'backups' || second === 'history' ? 'backup' : second, ...rest];
   }
-  if (first === 'settings') return second !== undefined && FOLDED.has(second) ? ['settings'] : undefined;
+  if (first === 'settings') {
+    if (second === 'devices' && rest[0] !== undefined && rest[0] !== 'add') return ['settings', 'devices-sync', ...rest];
+    if (second === 'space') return ['settings', 'spaces', ...rest];
+    if (second === 'account') return ['settings', 'sharing', ...rest];
+    // `spaces`, `sharing` and `features` are sections of the page now: `#/settings/spaces[/<row>]` is current.
+    return second !== undefined && Object.hasOwn(FOLDED, second) && FOLDED[second] !== second ? folded(second) : undefined;
+  }
   // A view that joins another's switch (Reports joins Timer) is reached at `#/<parent>/<path>`; the old address keeps its section.
   const joined = first === undefined ? undefined : views.find((v) => v.joins !== undefined && v.path === first);
   const parent = joined ? views.find((v) => v.id === joined.joins) : undefined;
   if (parent) return [parent.path, first as string, ...route.slice(1)];
-  if (first !== undefined && FOLDED.has(first) && first !== 'settings') return ['settings'];
+  if (first !== undefined && Object.hasOwn(FOLDED, first) && first !== 'settings') return folded(first);
   if (first === 'backups' || first === 'history') return ['settings', 'backup', ...route.slice(1)];
   return views.some((v) => v.group === 'settings' && v.path === first) ? ['settings', ...route] : undefined;
 }

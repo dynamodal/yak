@@ -3,7 +3,7 @@
 A space is a separate bucket of entries, projects, notes and tasks, for example Personal and Work.
 
 - Switch the space from the header. Some pages can show all spaces together.
-- **Settings** shows them in the **Your data** table: one row per space, one column per device. Tick a box to make that device keep that space. **+ New space** adds one; choose a space's name to rename, archive or remove it.
+- **Settings › Spaces** has one row per space. Open a row to see the devices that keep it as toggle chips: tick a chip to make that device keep that space (the device's own row in **Devices and sync** shows the same chips). **+ New space** adds one; open a row to rename, archive or remove it.
 - Move a note to another space from its menu; links to it are updated.
 - Each device chooses which spaces it keeps. A work laptop can hold Work only, while your phone holds both.
 

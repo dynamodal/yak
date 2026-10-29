@@ -54,7 +54,8 @@ await sleep(waitFor(4000));
 check((await text(s)).includes('before-switch') && (await text(s)).includes('left-out-after'), 'the left-out device keeps its data and its new edits');
 check(!(await text(s)).includes('owner-after') && !(await text(a)).includes('left-out-after'), 'and syncs nothing until it joins again');
 
-// Join again: the device's own Devices page offers it; its data stays and merges.
+// Join again: the device's own row in Settings offers it; its data stays and merges.
+await s.evaluate(() => { location.hash = '#/settings/devices-sync/this'; });
 await s.locator('details.danger-zone summary', { hasText: 'Join again' }).click();
 await s.getByRole('button', { name: 'Join again with a one-time code…' }).click();
 await s.getByRole('button', { name: 'Stop syncing and join again' }).click();

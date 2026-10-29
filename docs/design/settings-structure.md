@@ -1,7 +1,7 @@
 # Settings structure: one long page, a contents row, rows that open in place
 
 Issues #22 (the problem) and #33 (the UI direction, `ui-direction.md`).
-Status: agreed with the owner in a design review (2026-10-28); not built.
+Status: agreed with the owner in a design review (2026-10-28); slices 1, 2 and 4 are built (PR for #33 Settings slice; see Built); slice 3 is built as the Add a device page.
 Builds on F-326, F-326b and F-334 (`decisions/settings.md`); reverses part of F-326b.
 Replaces the earlier proposal in this note (a page per device, Add and Connection pages), which the owner set aside.
 
@@ -84,8 +84,16 @@ A newcomer review still found it long to type on a phone.
 | A. Keep the code; make the QR or link the first path on phones and typing the fallback | No protocol or format change | Typing stays long when no camera |
 | B. A short code (about 8 characters) used once for a PAKE-style handshake over the relay | Easy to type | New protocol and security review; the 128-bit secret's guarantees change |
 
-Recommendation: A (part of #20's "QR first"); B only if testers still struggle.
-Still open for the owner.
+Decided (owner, 2026-10-28): **A+**. Keep the code and its format; no protocol change.
+Option B only if testers still struggle.
+
+| A+ part | Built |
+| --- | --- |
+| QR or link first on the host's screen; the typed code is the fallback below | Yes: `AddDevicePanel` shows the QR code, **Send link** / **Copy link**, then the code |
+| **Send link** through the share sheet, feature-detected (`navigator.share`) | Yes; **Copy link** is always there |
+| A pasted link (or the QR text) in the code field | Yes: `parseJoinInput` (`src/qr/payload.ts`), `JoinCodeInput`; also on Welcome |
+| A copy-code button; the code shown in groups of four | Yes |
+| The link: `<site>/#/join/<code>[/<server>]`; opening it fills the code on Add a device (or Welcome) | Yes; the fragment is not sent to a server, and the code is the same one-time code |
 
 ## Slices
 
@@ -97,3 +105,16 @@ One PR each, `Refs #33` (slices 1 and 2 are slice 4 of #33's list).
 4. One-time code option A, if not done in #20.
 
 The Settings page and the new look are separate PRs: build the page on the old look, restyle after, or the other way round, whichever lands first.
+
+## Built
+
+| Slice | State |
+| --- | --- |
+| 1 The page | Built: contents row, always-on Sync, Backup and Passphrase lines, Needs you, Display, Features, Help, Advanced (device keys and ids, connection, logs, reset); #21's Device keys item |
+| 2 Rows in place | Built: devices, spaces and accounts as rows with toggle chips; old routes redirect (`legacyRoute`) |
+| 3 Add a device | Built: `#/settings/devices/add` (bare `#/settings/devices` is the same page); a join request shows above the code and in Needs you |
+| 4 One-time code A+ | Built (above) |
+
+Section addresses: `needs-you`, `backup-safety`, `devices-sync`, `spaces`, `sharing`, `display`, `features`, `help`, `advanced`; `#/settings/<section>/<row id>` also opens a row (`this` or a device id, a space id, an account fingerprint).
+The Settings tab dot: neutral for a join or share request that waits, amber for a health warning.
+Not built: the unnamed-device prompt at join (#20) is unchanged; the connection server field stays on Add a device while a device has not synced yet, with the value shown in Advanced.

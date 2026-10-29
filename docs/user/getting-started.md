@@ -7,7 +7,7 @@ Nothing needs an account or a server.
 ## First start
 
 The welcome says what Yak is and offers two ways to start: **Time tracker** (Notes and Tasks hidden) or **Time, notes and tasks**. Either makes a new account with one space (a separate bucket for entries, notes and tasks), named Personal by default.
-The choice only decides what this device shows. Change it any time under **Settings › Preferences › Tabs shown**; hidden data is kept.
+The choice only decides what this device shows. Change it any time under **Settings › Features**; hidden data is kept.
 The **Help** link in the header opens Help and About before you start.
 
 Already use Yak? The small line below opens two more ways:

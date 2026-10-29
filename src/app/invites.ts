@@ -16,6 +16,7 @@ import type { AccountState } from './account-state';
 import { keyTrust, ownerKeys } from './account-keys-runtime';
 import { adoptApprovedAccount } from './join';
 import { joinState, type JoinState } from './join-state';
+import { setPendingJoins } from './needs';
 
 /**
  * Approval pairing in the running app (#257). The new device's side runs with every join by code:
@@ -83,6 +84,10 @@ class Invites {
   }
 
   private emit(): void {
+    // The shell shows a waiting join (Settings tab dot, Needs you) without loading this module.
+    setPendingJoins(
+      (this.hosting?.requests ?? []).filter((r) => r.state === 'waiting' || r.state === 'approving').map((r) => ({ deviceId: r.request.deviceId, ...(r.request.name ? { name: r.request.name } : {}), expiresAt: this.hosting?.expiresAt ?? 0 })),
+    );
     for (const l of this.listeners) l();
   }
 

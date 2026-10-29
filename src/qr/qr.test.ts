@@ -4,7 +4,7 @@ import jsQR from 'jsqr';
 import { decodePixels as decode } from './decode';
 
 const decodePixels = (f: Parameters<typeof decode>[1]) => decode(jsQR, f);
-import { encodePairingPayload, parsePairingPayload } from './payload';
+import { encodePairingPayload, groupSecret, joinLink, parseJoinInput, parsePairingPayload } from './payload';
 import { makeQr } from './render';
 
 const secret = generateSecret();
@@ -69,5 +69,32 @@ describe('QR round trip', () => {
 
   it('finds nothing in a blank image', () => {
     expect(decodePixels({ data: new Uint8ClampedArray(100 * 100 * 4).fill(255), width: 100, height: 100 })).toBeNull();
+  });
+});
+
+describe('join link and pasted input (option A+)', () => {
+  const base = 'https://yak.example.com/?x=1#/settings/devices/add';
+  it('makes a link that parses back to the same code', () => {
+    const link = joinLink(base, secret);
+    expect(link).toBe(`https://yak.example.com/?x=1#/join/${normalizeSecret(secret)}`);
+    expect(parseJoinInput(link)).toEqual({ secret: normalizeSecret(secret) });
+    expect(parseJoinInput(`  ${link}\n`)).toEqual({ secret: normalizeSecret(secret) });
+  });
+  it('carries a non-default server in the link', () => {
+    const link = joinLink(base, secret, 'wss://relay.example.com/signal');
+    expect(parseJoinInput(link)).toEqual({ secret: normalizeSecret(secret), signalingUrl: 'wss://relay.example.com/signal' });
+  });
+  it('accepts the QR text, and leaves a plain code to the caller', () => {
+    expect(parseJoinInput(encodePairingPayload(secret))).toEqual({ secret: normalizeSecret(secret) });
+    expect(parseJoinInput(secret)).toBeUndefined();
+    expect(parseJoinInput('abcd efgh')).toBeUndefined();
+  });
+  it('rejects a link with a bad or missing code', () => {
+    expect(() => parseJoinInput('https://yak.example.com/#/join/')).toThrow(/no Yak one-time code/);
+    expect(() => parseJoinInput('https://yak.example.com/#/join/ABCD')).toThrow(/characters/);
+  });
+  it('groups a code in fours', () => {
+    expect(groupSecret(normalizeSecret(secret))).toBe(secret);
+    expect(groupSecret('abcdefg')).toBe('abcd-efg');
   });
 });

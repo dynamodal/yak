@@ -28,6 +28,8 @@ const unlock = async () => (await until(async () => (await hook(a, (p) => window
 /** A makes a one-time code, `p` enters it, both confirm, A approves: `p` reloads into the account. */
 const invite = async (p, name) => {
   await unlock();
+  await a.evaluate(() => { location.hash = '#/settings/devices/add'; });
+  await p.evaluate(() => { location.hash = '#/settings/devices/add'; });
   await a.getByRole('button', { name: /^Make a (new )?one-time code$/ }).click();
   const code = (await a.locator('[data-invite-code]').innerText()).trim();
   await (await openJoin(p)).locator('input[aria-label="One-time code"]').fill(code);
@@ -67,7 +69,9 @@ const accountSecret = await secret(a);
 await d.close();
 
 // A removes C from Devices: the dialog states the limit; the passphrase is unlocked already.
-const row = a.locator(`li.device-row#device-${idC}`);
+await a.evaluate(() => { location.hash = '#/settings/devices-sync'; });
+const row = a.locator(`[data-device-row="${idC}"]`);
+await row.locator('.st-row-head').click();
 await row.getByRole('button', { name: /^Remove .* from account…$/ }).click();
 const dialog = await row.locator('.confirm-panel').innerText();
 check(/keeps the data it already synced/.test(dialog) && /one-time code/.test(dialog), `the dialog says C keeps what it has and needs a one-time code to come back (${dialog.slice(0, 80)}…)`);
@@ -95,9 +99,9 @@ check(!(await text(c)).includes('after-removal') && (await connected(c)).length 
 const update = await hook(a, (id) => window.__app.encodeDoc(`account/${id}`), account);
 await hook(c, ([id, u]) => window.__app.applyUpdate(`account/${id}`, u), [account, update]);
 (await until(async () => (await secret(c)) === undefined, 20000)) >= 0 ? ok('C, seeing its own removal, stops syncing') : fail(`C still paired: ${await secret(c)}`);
-await c.goto(BASE + '?test#/devices');
+await c.goto(BASE + '?test#/settings/devices-sync');
 await c.waitForFunction(() => window.__app);
-check(await c.locator('[data-removed-self]').isVisible({ timeout: 10000 }).catch(() => false), 'C shows it was removed and how to come back');
+check(await c.locator('[data-removed-self]').waitFor({ timeout: 30000 }).then(() => true, () => false), 'C shows it was removed and how to come back');
 
 // Re-pairing: C joins again with a one-time code and its data merges back.
 await append(c, 'offline-on-c ');
@@ -106,6 +110,7 @@ await invite(c, 'C');
 (await until(async () => (await text(a)).includes('offline-on-c'), 40000)) >= 0 ? ok('and what C wrote meanwhile reaches A') : fail('C\'s edit did not reach A');
 
 // "Join again" on a device still paired (for example one that stopped finding the others): new keys, a one-time code, approval.
+await d.evaluate(() => { location.hash = '#/settings/devices-sync/this'; });
 await d.locator('summary', { hasText: 'Join again or remove this device' }).click();
 await d.getByRole('button', { name: 'Join again with a one-time code…' }).click();
 await d.getByRole('button', { name: 'Stop syncing and join again' }).click();

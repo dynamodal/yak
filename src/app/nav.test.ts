@@ -110,11 +110,23 @@ describe('legacyRoute', () => {
     expect(legacyRoute(['manage', 'help', 'devices'], views)).toEqual(['help', 'devices']);
     expect(legacyRoute(['manage', 'devices'], views)).toEqual(['settings', 'devices']);
   });
+  it('opens Add a device for a join link, keeping the code', () => {
+    expect(legacyRoute(['join', 'CODE'], views)).toEqual(['settings', 'devices', 'add', 'CODE']);
+    expect(legacyRoute(['join', 'CODE', 'wss://x'], views)).toEqual(['settings', 'devices', 'add', 'CODE', 'wss://x']);
+    expect(legacyRoute(['join'], views)).toEqual(['settings', 'devices', 'add']);
+  });
+  it('sends the old device, space and account pages to their row on the Settings page (F-33)', () => {
+    expect(legacyRoute(['settings', 'devices', 'abc123'], views)).toEqual(['settings', 'devices-sync', 'abc123']);
+    expect(legacyRoute(['settings', 'space', 'abc'], views)).toEqual(['settings', 'spaces', 'abc']);
+    expect(legacyRoute(['settings', 'space'], views)).toEqual(['settings', 'spaces']);
+    expect(legacyRoute(['settings', 'account', 'FP'], views)).toEqual(['settings', 'sharing', 'FP']);
+  });
   it('sends the pages folded into the Settings page, and the old Backups and History routes, to their new place', () => {
-    for (const old of ['general', 'spaces', 'sharing', 'security', 'features', 'home']) {
-      expect(legacyRoute(['settings', old], views)).toEqual(['settings']);
-      expect(legacyRoute(['manage', old], views)).toEqual(['settings']);
-      expect(legacyRoute([old], views)).toEqual(['settings']);
+    const section: Record<string, string[]> = { general: ['settings', 'display'], spaces: ['settings', 'spaces'], sharing: ['settings', 'sharing'], security: ['settings', 'backup-safety'], features: ['settings', 'features'], home: ['settings'] };
+    for (const [old, to] of Object.entries(section)) {
+      expect(legacyRoute(['settings', old], views)).toEqual(to[1] === old ? undefined : to);
+      expect(legacyRoute(['manage', old], views)).toEqual(to);
+      expect(legacyRoute([old], views)).toEqual(to);
     }
     expect(legacyRoute(['backups'], views)).toEqual(['settings', 'backup']);
     expect(legacyRoute(['history', '1700000000000'], views)).toEqual(['settings', 'backup', '1700000000000']);
@@ -123,7 +135,9 @@ describe('legacyRoute', () => {
   it('leaves current routes alone', () => {
     expect(legacyRoute(['settings'], views)).toBeUndefined();
     expect(legacyRoute(['settings', 'devices', 'add'], views)).toBeUndefined();
-    expect(legacyRoute(['settings', 'space', 'abc'], views)).toBeUndefined();
+    expect(legacyRoute(['settings', 'spaces', 'abc'], views)).toBeUndefined();
+    expect(legacyRoute(['settings', 'devices-sync'], views)).toBeUndefined();
+    expect(legacyRoute(['settings', 'devices'], views)).toBeUndefined();
     expect(legacyRoute(['time'], views)).toBeUndefined();
   });
 });

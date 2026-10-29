@@ -7,7 +7,7 @@ import { declineUndecided, decided, keeps, keepsMap, keepUndecided, setKeeps } f
 
 /**
  * The spaces this device has not decided on (a device that has just joined, or a new space): keep it, or not, one by one or all at once.
- * Nothing of a space is sent to a device until it is decided. Shown on Settings (Your data) and on the device view.
+ * Nothing of a space is sent to a device until it is decided. Shown on Settings, in Devices and sync and Spaces.
  */
 export function UndecidedNotice() {
   const { account, allSpaces, deviceId } = useApp();

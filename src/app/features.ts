@@ -126,9 +126,19 @@ export function commandHidden(commandId: string, hidden: ReadonlySet<FeatureId> 
   return f !== undefined && hidden.has(f);
 }
 
-/** Search results of a kind: notes and tasks come from one source, so they are filtered by kind. */
+/**
+ * The kind a search result is listed under, or undefined when it is left out. Notes and tasks come from one source (a task is a note):
+ * with Tasks off and Notes on, a task is still found, as a note, and opens in Notes (#44); with Notes off, plain notes go and tasks stay.
+ */
+export function searchKindFor(kind: string, hidden: ReadonlySet<FeatureId> = effectiveHidden(readHiddenModules())): string | undefined {
+  if (kind === 'note') return hidden.has('notes') ? undefined : 'note';
+  if (kind === 'task') return !hidden.has('tasks') ? 'task' : hidden.has('notes') ? undefined : 'note';
+  return kind;
+}
+
+/** Whether results of a kind are left out of search altogether (see `searchKindFor`). */
 export function searchKindHidden(kind: string, hidden: ReadonlySet<FeatureId> = effectiveHidden(readHiddenModules())): boolean {
-  return (kind === 'note' && hidden.has('notes')) || (kind === 'task' && hidden.has('tasks'));
+  return searchKindFor(kind, hidden) === undefined;
 }
 
 /**

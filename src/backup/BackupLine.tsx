@@ -3,7 +3,7 @@ import { DataLine } from '../app/ui';
 import { hasData, useBackup } from './runtime';
 import { backupHealth } from './service';
 
-/** The backup status line under the Your data table on Settings: how old the last backup is, linking to Backup & restore. */
+/** The backup status line in Backup and safety on Settings: how old the last backup is, linking to Backup & restore. */
 export function BackupLine() {
   const { state, store } = useBackup();
   const now = useNow(60_000);

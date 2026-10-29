@@ -34,7 +34,7 @@ export function ShareSheet(props: { space?: string; /** Offer only spaces not ye
   const upgrade = status.paired && !trust.required();
   const body = upgrade ? (
     <p class="hint" role="status" data-share-upgrade>
-      Your devices need one more step before sharing: <a href="#/settings/devices" onClick={props.onClose}>finish it on Devices</a>.
+      Your devices need one more step before sharing: <a href="#/settings/advanced" onClick={props.onClose}>finish it in Advanced › Device keys</a>.
     </p>
   ) : !space ? (
     <p class="hint" role="status">

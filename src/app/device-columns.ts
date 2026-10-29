@@ -1,7 +1,7 @@
 import type * as Y from 'yjs';
-import { useApp } from '../app/context';
-import { useSyncStatus, useYVersion } from '../app/hooks';
-import { useKeyTrust } from '../app/key-hooks';
+import { useApp } from './context';
+import { useSyncStatus, useYVersion } from './hooks';
+import { useKeyTrust } from './key-hooks';
 import { devicesMap, deviceName, readDevices } from '../core/devices';
 import { keepsMap } from '../core/keeps';
 import type { PeerInfo } from '../sync/peer-mesh';
@@ -19,7 +19,7 @@ export interface Column {
   peer?: PeerInfo;
 }
 
-/** This device first, then the account's other devices that are not removed or left (F-326b): the columns of the Your data table, and the rows of a space's Kept on list. */
+/** This device first, then the account's other devices that are not removed or left (F-326b): the device rows of Settings and the chips of a space row (Kept on). */
 export function useDeviceColumns(): { columns: Column[]; localOnly: boolean } {
   const { account, deviceId, sync } = useApp();
   const status = useSyncStatus(sync);

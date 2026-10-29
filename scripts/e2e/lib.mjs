@@ -258,6 +258,17 @@ export const unlockIfAsked = (page, pass = PASS, wait = 3000) => fillSheet(page,
  * Returns the code.
  */
 export async function joinByInvite(host, guest, { keep = true, pass = PASS } = {}) {
+  // Adding a device is its own page (F-33): go there when the page shown does not offer it.
+  const toAdd = async (p, what) => {
+    // Let the page settle first: a fresh profile shows Welcome (its join form is in a fold), which needs no navigation.
+    await p.locator('.main-tabs, details.welcome-more').first().waitFor({ state: 'attached', timeout: 30000 });
+    if (!(await what(p).count())) {
+      await p.evaluate(() => { location.hash = '#/settings/devices/add'; });
+      await what(p).first().waitFor({ timeout: 30000 });
+    }
+  };
+  await toAdd(host, (p) => p.getByRole('button', { name: /Make a (new )?one-time code/ }));
+  await toAdd(guest, (p) => p.locator('input[aria-label="One-time code"]'));
   await host.getByRole('button', { name: /Make a (new )?one-time code/ }).first().click();
   const code = (await host.locator('[data-invite-code]').innerText()).trim();
   await (await openJoin(guest)).locator('input[aria-label="One-time code"]').fill(code);
@@ -276,8 +287,21 @@ export async function joinByInvite(host, guest, { keep = true, pass = PASS } = {
   return code;
 }
 
-/** Open the Devices page's "Advanced" fold (ids, fingerprints, switching to device keys, reset). */
+/** Open the "Advanced" fold of Settings (ids, fingerprints, switching to device keys, reset). */
+/** Opens a row of a Settings section (a device, a space, an account) by its name, unless it is open; returns the row. */
+export async function openRow(page, name) {
+  const row = page.locator('.st-row', { has: page.locator('.st-row-title', { hasText: new RegExp(`^\\s*${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`) }) }).first();
+  await row.waitFor();
+  if ((await row.locator('.st-row-head').getAttribute('aria-expanded')) !== 'true') await row.locator('.st-row-head').click();
+  return row;
+}
+
 export async function openAdvanced(page) {
+  // The Advanced section of Settings (F-33b): go there when the page shown has none.
+  if (!(await page.locator('details.advanced').count())) {
+    await page.evaluate(() => { location.hash = '#/settings/advanced'; });
+    await page.locator('details.advanced').first().waitFor();
+  }
   const fold = page.locator('details.advanced').first();
   if (!(await fold.evaluate((d) => d.open))) await fold.locator('summary').first().click();
   return fold;

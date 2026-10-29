@@ -117,6 +117,18 @@ for (const width of [320, 375, 768, 1280]) {
   check(width >= 576 || (await p.locator('.sync-label').first().isHidden() && (await p.locator('.palette-chip').isHidden())), `${width} px: the sync label and the chip are hidden when narrow`);
 }
 
+// ---- One row from 50rem (800 px): logo, tabs, timer, commands and sync share one line; the full pill from 60rem (960 px)
+for (const width of [1280, 960, 959, 913, 800]) for (const state of ['direct', 'offline']) {
+  await show(state);
+  await p.setViewportSize({ width, height: 800 });
+  const rows = await p.evaluate(() => ['.brand', '.tabs', '.timer-pill', '.palette-btn', '.sync-btn'].map((s) => { const r = document.querySelector(`.topbar ${s}`).getBoundingClientRect(); return [r.top, r.bottom]; }));
+  const top = Math.min(...rows.map((r) => r[0])), bottom = Math.max(...rows.map((r) => r[1]));
+  const bar = await p.locator('.topbar').boundingBox();
+  check(bar.height < 56 && rows.every((r) => r[0] >= top && r[1] <= bottom && r[0] < rows[0][1]), `${width} px, sync ${state}: the header is one row (${Math.round(bar.height)} px high)`);
+  const pillText = await p.locator('.timer-pill .tp-label').isVisible();
+  check(pillText === (width >= 960), `${width} px, sync ${state}: the idle timer pill is ${width >= 960 ? 'full' : 'a round button'}`);
+}
+
 // ---- No two header controls overlap at any width, even with a much wider font (CI's fonts differ from a laptop's)
 const wideCtx = await browser.newContext({ viewport: { width: 1280, height: 800 }, bypassCSP: true });
 const w = await wideCtx.newPage();
@@ -132,7 +144,7 @@ for (const running of [false, true]) {
     await w.getByRole('button', { name: 'Start timer' }).first().click().catch(() => {});
     check(await w.locator('.timer-pill.running').waitFor({ timeout: 5000 }).then(() => true, () => false), 'the timer runs for the overlap checks');
   }
-  for (const width of [180, 320, 360, 375, 414, 480, 560, 640, 768, 1024, 1280]) {
+  for (const width of [180, 320, 360, 375, 414, 480, 560, 640, 700, 799, 800, 863, 900, 959, 960, 1024, 1280]) {
     await w.setViewportSize({ width, height: 800 });
     await w.waitForTimeout(100);
     const boxes = await w.evaluate((sels) => sels.flatMap((sel) => [...document.querySelectorAll(`.topbar ${sel}`)].map((e) => {

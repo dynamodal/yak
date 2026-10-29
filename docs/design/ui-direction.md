@@ -72,7 +72,7 @@ Only the pill changes width; the command and sync controls stay put to its right
   The logo links to the first tab.
 - Each tab has an icon and a label.
   Under about 560 px the labels go and the icons stay (the names stay as hidden text).
-  Below 64 rem the tabs take a second row.
+  The header is one row from 50 rem; from 35 rem to 50 rem the tabs take a second row (F-33o).
 - Command palette button: the command icon and a chip with the bound shortcut (default `Alt+P`, written as the Shortcuts card does; symbols on a Mac).
   Icon only under about 560 px and on touch.
   Name "Command palette", tooltip "Search, go to, run a command".

@@ -7,9 +7,11 @@ html, body { margin: 0; background: var(--bg); color: var(--text); }
 body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 #app { min-height: 100vh; display: flex; flex-direction: column; }
 
-/* Header: one row on a wide screen (logo and name | tabs | timer | commands | sync); below 64rem the tabs take a
-   second row. Only the timer changes width: the commands and sync controls stay put to its right. Under 35rem the
-   tab labels go (they stay as hidden text for screen readers), under 27.5rem the app name goes too. */
+/* Header: one row from 50rem (logo and name | tabs | timer | commands | sync); between 35rem and 50rem the tabs take a
+   second row (the labelled tabs, the commands and sync do not fit beside the logo any narrower; measured 49.3rem with the widest sync label, "Not connected").
+   Only the timer changes: from 60rem the idle pill is full and the running pill keeps at least 9rem; from 50rem to 60rem
+   the idle pill is a round button and a running timer takes a second row of its own. The commands and sync controls stay
+   put. Under 35rem the tab labels go (they stay as hidden text for screen readers), under 27.5rem the app name goes too. */
 .topbar { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--gap); padding: 0 1rem; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: var(--z-sticky); }
 .brand { display: inline-flex; align-items: center; gap: 0.5rem; flex: none; font-weight: var(--weight-bold); letter-spacing: 0.01em; color: var(--text); text-decoration: none; padding: 0.4rem 0; border-radius: var(--radius); }
 .brand-icon { width: 1.5rem; height: 1.5rem; border-radius: 0.375rem; flex: none; }
@@ -44,11 +46,19 @@ body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 .offline-chip { white-space: nowrap; }
 
 .tabs { display: flex; gap: 0.25rem; order: 3; flex: 1 1 100%; min-width: 0; overflow-x: auto; }
-@media (min-width: 64rem) {
+@media (min-width: 50rem) {
   .topbar { flex-wrap: nowrap; }
   .tabs { order: 0; flex: none; align-self: center; }
   /* The tabs keep their width; the timer (the one control with flexible text) gives way. */
   .topbar-end { flex: 1 1 0; justify-content: flex-end; }
+}
+@media (min-width: 50rem) and (max-width: 59.99rem) {
+  .topbar { flex-wrap: wrap; }
+  .topbar-end { display: contents; }
+  .topbar-end > .timer-pill { margin: 0.4rem 0 0.4rem auto; flex: 0 1 auto; }
+  .topbar-end > .btn { margin-block: 0.4rem; }
+  .topbar-end > .timer-pill.running { order: 4; flex: 1 1 100%; margin: 0 0 0.4rem; }
+  .topbar:has(.timer-pill.running) .palette-btn { margin-left: auto; }
 }
 /* Tabs are soft pills: an icon, a label, and the current one has the --surface-2 fill and the text colour. */
 .tabs a, .tabs .tab { position: relative; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; margin-block: 0.2rem; color: var(--muted); text-decoration: none; background: none; border: 0; border-radius: var(--radius-pill); white-space: nowrap; }

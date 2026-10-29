@@ -13,7 +13,7 @@ import { AdvancedSection, BackupSection, DisplaySection, FeaturesSection, HelpSe
 import { SharingSection } from './SharingSection';
 import { SpacesSection } from './SpacesSection';
 
-type Dot = 'ok' | 'warn' | 'off';
+type Dot = 'warn';
 
 function Anchor({ slug, title }: { slug: SettingsSection; title: string }) {
   return (
@@ -62,7 +62,7 @@ export function SettingsView() {
   useHiddenModules();
   const notesOn = !isFeatureHidden('notes');
   const sections = SETTINGS_SECTIONS.filter((s) => (s !== 'needs-you' || needs.length > 0) && (s !== 'notes' || notesOn));
-  const dots: Partial<Record<SettingsSection, Dot>> = { 'needs-you': 'warn', 'backup-safety': warn ? 'warn' : undefined, 'devices-sync': syncDot === 'off' ? undefined : syncDot } as Partial<Record<SettingsSection, Dot>>;
+  const dots: Partial<Record<SettingsSection, Dot>> = { 'needs-you': 'warn', 'backup-safety': warn ? 'warn' : undefined, 'devices-sync': syncDot === 'warn' ? 'warn' : undefined } as Partial<Record<SettingsSection, Dot>>;
 
   useEffect(() => {
     // A row of the Notes section (Mirror, …) is a part inside it; the other sections open their rows in place.
@@ -114,7 +114,7 @@ export function SettingsView() {
             >
               {TITLES[s]}
               {dot ? (
-                <span class={cx('line-dot', dot)} data-dot={dot} role="img" aria-label={dot === 'warn' ? 'needs attention' : 'working'} />
+                <span class={cx('line-dot', dot)} data-dot={dot} role="img" aria-label="needs attention" />
               ) : null}
             </a>
           );

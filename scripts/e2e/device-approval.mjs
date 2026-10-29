@@ -89,7 +89,7 @@ const nCompare = await n.locator('[data-join="compare"] code.compare-code').inne
 const aCompare = await a.locator('[data-compare]').first().innerText({ timeout: 30000 });
 check(/^[0-9a-f]{4} [0-9a-f]{4} [0-9a-f]{4} [0-9a-f]{4}$/.test(nCompare) && nCompare === aCompare, `both screens show the same 64-bit code (${nCompare} / ${aCompare})`);
 // Needs you (F-33): while the request waits, Settings lists it first and the Settings tab carries a dot.
-check((await a.locator('.main-tabs a', { hasText: /^Settings/ }).locator('.tab-dot').count()) === 1, 'the Settings tab shows a dot while a device asks to join');
+check((await a.locator('.main-tabs a', { hasText: /^Settings/ }).locator('.tab-badge').count()) === 1, 'the Settings tab shows a dot while a device asks to join');
 await a.evaluate(() => { location.hash = '#/settings'; });
 await a.locator('[data-need^="join:"]').waitFor({ timeout: 10000 });
 check((await a.locator('section.st-section > h2').first().innerText()).trim() === 'Needs you' && /asks to join/.test(await a.locator('[data-need^="join:"]').innerText()) && /min left/.test(await a.locator('[data-need^="join:"]').innerText()), 'Settings lists the request first, under Needs you, with the minutes left');

@@ -1,6 +1,6 @@
 // End-to-end for the app header (#33, slice 3a): logo and name, icon tabs with hidden labels on narrow screens, the
 // command button with its shortcut chip, the sync status control in its four shapes and its popover (Esc closes and
-// returns focus), the Settings tab dot, tab order, and no sideways scroll at 320, 375, 768 and 1280 px.
+// returns focus), the Settings tab badge, tab order, and no sideways scroll at 320, 375, 768 and 1280 px.
 // The sync states are shown with the test hook `window.__app.fakeStatus`, as no real second device is needed.
 //
 //   npm run e2e header
@@ -92,12 +92,14 @@ for (let i = 0; i < 10; i++) {
 const squashed = order.filter((v, i) => i === 0 || v !== order[i - 1]);
 check(squashed.join() === 'logo,tab,timer,commands,sync', `keyboard order is logo, tabs, timer, commands, sync (${squashed.join()})`);
 
-// ---- The Settings tab dot: neutral for What's new, amber for a health warning
+// ---- What's new is a "New" chip by the logo (#74); the Settings tab badge is only for what needs the person
 await p.evaluate(() => localStorage.setItem('app-changes-seen', '2000-01-01'));
 await p.reload();
 await p.waitForFunction(() => window.__app?.fakeStatus);
 const settingsTab = p.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: /^Settings/ });
-check((await settingsTab.locator('.tab-dot:not(.warn)').count()) === 1 && (await p.getByRole('link', { name: 'Settings something is new' }).count()) === 1, 'Settings has a neutral dot (named for screen readers) while What\'s new is unseen');
+check((await settingsTab.locator('.tab-badge').count()) === 0, 'unseen What\'s new puts nothing on the Settings tab');
+check((await p.locator('.topbar .new-chip').count()) === 1 && (await p.getByRole('link', { name: /^New\s*:\s*what's new/i }).count()) === 1, 'a "New" chip with a full name leads to What\'s new');
+check((await p.locator('.new-chip').getAttribute('href')) === '#/help/whats-new', 'the chip links to Help > What\'s new');
 
 // ---- Narrow: labels go, names stay; no sideways scroll at 320, 375, 768 and 1280
 for (const width of [320, 375, 768, 1280]) {

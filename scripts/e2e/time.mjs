@@ -5,7 +5,7 @@
 //   npm run e2e time
 //
 import { join } from 'node:path';
-import { BASE, launch, startMock, sleep, ok, fail, check, watchPage, until, finish, keepAllSpaces, startSelecting, openJoin, startSyncing, joinByInvite } from './lib.mjs';
+import { BASE, launch, startMock, sleep, ok, fail, check, watchPage, until, finish, keepAllSpaces, startSelecting, openJoin, startSyncing, joinByInvite, pill, startRound, stopRound, detailsDialog, openDetails } from './lib.mjs';
 
 
 const mock = await startMock();
@@ -19,13 +19,16 @@ async function open(name, { viewport, hash = '#/time', clock } = {}) {
   // midnight does not push entries (and a split) across two days.
   if (clock) await page.clock.install({ time: clock === 'noon' ? new Date(new Date().setHours(12, 0, 0, 0)) : new Date() });
   await page.goto(`${BASE}?test${hash}`);
-  await page.locator('.timer-bar, .page').first().waitFor();
+  await page.locator('.timer-pill').waitFor();
   return page;
 }
 
 
-const bar = (p) => p.locator('.timer-bar');
+// The timer has no bar on the Time page any more: description, project, tags and billable live in the pill's details popover.
+const bar = (p) => detailsDialog(p);
 const desc = (p) => bar(p).getByLabel('Description', { exact: true });
+const fillDesc = async (p, text) => { await openDetails(p); await desc(p).fill(text); };
+const isBillable = async (p) => (await bar(p).getByRole('button', { name: 'Billable' }).getAttribute('aria-pressed')) === 'true';
 const rows = (p) => p.locator('li.entry');
 const lines = (p) => p.locator('.te-row, .te-group');
 const line = (p, text) => p.locator('.te-row, .te-group', { hasText: text }).first();
@@ -47,19 +50,19 @@ const addTag = async (p, scope, name) => {
 // ---- one profile: the basic flows ----
 {
   const p = await open('solo', { clock: 'noon' });
-  check((await p.title()).length > 0 && (await bar(p).count()) === 1, 'timer view is the default view');
+  check((await p.title()).length > 0 && (await pill(p).count()) === 1 && (await bar(p).count()) === 0, 'timer view is the default view, with the pill and no bar');
 
-  await desc(p).fill('Write report');
+  await fillDesc(p, 'Write report');
   await desc(p).press('Enter');
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).waitFor();
-  check((await runningCount(p)) === 1 && (await rows(p).count()) === 0, 'Enter starts a timer; the running entry is in the bar, not in the list');
-  check(/0:00:0\d/.test(await bar(p).getByRole('button', { name: 'Stop', exact: true }).innerText()), 'the stop button shows the elapsed time');
+  await stopRound(p).waitFor();
+  check((await runningCount(p)) === 1 && (await rows(p).count()) === 0, 'Enter starts a timer; the running entry is in the pill, not in the list');
+  check(/0:00:0\d/.test(await pill(p).innerText()), 'the pill shows the elapsed time');
   await p.reload();
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).waitFor();
+  await stopRound(p).waitFor();
   ok('running timer survives reload');
   await sleep(2200);
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).click();
-  await bar(p).getByRole('button', { name: 'Start', exact: true }).waitFor();
+  await stopRound(p).click();
+  await startRound(p).waitFor();
   check((await runningCount(p)) === 0 && (await rows(p).count()) === 1, 'stop leaves no running entry and the entry joins Today');
   check((await p.locator('.day-head').first().innerText()).includes('Today'), 'entries are grouped under a day heading with its total');
 
@@ -87,16 +90,16 @@ const addTag = async (p, scope, name) => {
   await p.keyboard.press('Escape');
 
   await p.getByRole('link', { name: 'Time', exact: true }).click();
-  await desc(p).fill('Design');
+  await fillDesc(p, 'Design');
   await pickProject(p, bar(p), 'alp');
   { const l = await bar(p).getByRole('button', { name: /^Project/ }).getAttribute('aria-label'); check(l === 'Project: Alpha in Personal', `project picked by typing and Enter (${l})`); }
-  check(await bar(p).getByLabel('Billable').isChecked(), 'billable defaults from the project');
+  check(await isBillable(p), 'billable defaults from the project');
   await addTag(p, bar(p), 'deep');
   check((await bar(p).getByRole('button', { name: /^Tags/ }).getAttribute('aria-label')) === 'Tags: deep', 'tag created from the picker');
   await bar(p).getByRole('button', { name: 'Start', exact: true }).click();
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).waitFor();
+  await stopRound(p).waitFor();
   await sleep(1100);
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).click();
+  await stopRound(p).click();
   const entryId = await rows(p).first().getAttribute('data-entry');
   const row = p.locator(`li[data-entry="${entryId}"]`);
   const text = await row.innerText();
@@ -164,22 +167,23 @@ const addTag = async (p, scope, name) => {
   // continue from the group
   await group.hover();
   await group.getByRole('button', { name: 'Continue: Design v2' }).first().click();
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).waitFor();
+  await stopRound(p).waitFor();
+  await openDetails(p);
   await until(async () => (await desc(p).inputValue()) === 'Design v2');
-  check((await desc(p).inputValue()) === 'Design v2' && (await bar(p).getByLabel('Billable').isChecked()) && (await bar(p).getByRole('button', { name: /^Project/ }).getAttribute('aria-label')) === 'Project: Alpha', `continue starts a copy that is running (desc=${await desc(p).inputValue()})`);
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).click();
+  check((await desc(p).inputValue()) === 'Design v2' && (await isBillable(p)) && (await bar(p).getByRole('button', { name: /^Project/ }).getAttribute('aria-label')) === 'Project: Alpha', `continue starts a copy that is running (desc=${await desc(p).inputValue()})`);
+  await stopRound(p).click();
   await until(async () => (await group.locator('.te-count').innerText()).trim() === '3');
   check((await group.locator('.te-count').innerText()).trim() === '3', 'the continued entry joins the group (count 3)');
 
-  // finished entry from the bar
+  // finished entry from the page header's Add entry
   const before = (await all(p)).length;
-  await bar(p).getByRole('button', { name: 'Add a finished entry' }).click();
-  await desc(p).fill('Phone call');
-  await bar(p).getByRole('button', { name: 'Add', exact: true }).click();
+  await p.getByRole('button', { name: 'Add entry' }).click();
+  const manual = p.getByRole('dialog', { name: 'Add entry' });
+  await manual.getByLabel('Description', { exact: true }).fill('Phone call');
+  await manual.getByRole('button', { name: 'Add', exact: true }).click();
   await until(async () => (await all(p)).length === before + 1);
-  check((await all(p)).length === before + 1 && (await line(p, 'Phone call').innerText()).includes('1.00 h'), 'finished entry added from the bar (default one hour)');
-  check((await bar(p).getByRole('button', { name: 'Back to the timer' }).count()) === 1, 'the bar stays in finished-entry mode until switched back');
-  await bar(p).getByRole('button', { name: 'Back to the timer' }).click();
+  check((await all(p)).length === before + 1 && (await line(p, 'Phone call').innerText()).includes('1.00 h'), 'finished entry added with Add entry (default one hour)');
+  check((await manual.count()) === 0, 'the Add entry form closes after adding');
 
   // more actions: duplicate, delete
   const phone = line(p, 'Phone call');
@@ -229,7 +233,7 @@ const addTag = async (p, scope, name) => {
   await p.getByRole('button', { name: 'Add project' }).click();
   check((await p.locator('.proj-row', { has: p.getByLabel('Name of Ops') }).locator('.space-tag').innerText()) === 'Work', 'a project added from All spaces lands in the chosen space and is labelled with it');
   await p.getByRole('link', { name: 'Time', exact: true }).click();
-  await desc(p).fill('On call');
+  await fillDesc(p, 'On call');
   await bar(p).getByRole('button', { name: /^Project/ }).click();
   const headings = await p.locator('.picker-heading').allInnerTexts();
   check(headings.map((h) => h.toLowerCase()).join(',') === 'personal,work', `project list is grouped by space (${headings})`);
@@ -239,12 +243,14 @@ const addTag = async (p, scope, name) => {
   await until(async () => (await runningCount(p)) === 1);
   const started = (await all(p)).find((e) => e.description === 'On call');
   check(started && started.space === 'space/work/time' && started.stop === null, `the entry went into the project's space (${started?.space})`);
-  check((await bar(p).getByRole('button', { name: 'Stop', exact: true }).count()) === 1 && (await bar(p).innerText()).includes('Ops'), 'the bar holds the entry running in the other space');
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).click();
+  check((await stopRound(p).count()) === 1, 'the pill holds the entry running in the other space');
+  await openDetails(p);
+  check((await bar(p).innerText()).includes('Ops'), 'its details show the project of the other space');
+  await stopRound(p).click();
   await until(async () => (await runningCount(p)) === 0);
 
   // a client, a project and a tag can be made from the bar itself
-  await desc(p).fill('Created inline');
+  await fillDesc(p, 'Created inline');
   await bar(p).getByRole('button', { name: /^Project/ }).click();
   await p.getByLabel('Find a project').fill('Initech / Reports');
   await p.getByRole('option', { name: /Create project “Reports” for client “Initech”/ }).click();
@@ -258,7 +264,7 @@ const addTag = async (p, scope, name) => {
   check((await bar(p).getByRole('button', { name: /^Tags: fresh-tag/ }).count()) === 1, 'a new tag is made and chosen from the bar');
   await bar(p).getByRole('button', { name: 'Start', exact: true }).click();
   await until(async () => (await runningCount(p)) === 1);
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).click();
+  await stopRound(p).click();
   await until(async () => (await runningCount(p)) === 0);
 
   // Tags: one list; hiding only leaves the pickers; rename and remove are bulk edits with one Undo.
@@ -275,6 +281,7 @@ const addTag = async (p, scope, name) => {
   check((await tagRow('fresh-tag').innerText()).includes('hidden from pickers'), 'a hidden tag is marked in the list');
   check((await tagged('fresh-tag')) === 1, 'hiding leaves the tag on its entries');
   await p.getByRole('link', { name: 'Time', exact: true }).click();
+  await openDetails(p);
   await bar(p).getByRole('button', { name: /^Tags/ }).click();
   check((await p.getByRole('option', { name: 'fresh-tag' }).count()) === 0, 'the hidden tag is not offered in the picker');
   await p.keyboard.press('Escape');
@@ -454,19 +461,30 @@ const addTag = async (p, scope, name) => {
 for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }]) {
   const w = viewport.width;
   const p = await open(`narrow-${w}`, { viewport });
+  // Narrow, the idle pill is only its round button: start at once, then name the running entry in the popover.
+  const startNamed = async (text) => {
+    await startRound(p).click();
+    await fillDesc(p, text);
+    await bar(p).getByRole('button', { name: 'Update', exact: true }).click();
+  };
   for (let i = 0; i < 12; i++) {
-    await desc(p).fill(`Narrow entry ${i % 3} with a long description that cannot fit on one line here`);
-    await bar(p).getByRole('button', { name: 'Start', exact: true }).click();
-    await bar(p).getByRole('button', { name: 'Stop', exact: true }).click();
+    await startNamed(`Narrow entry ${i % 3} with a long description that cannot fit on one line here`);
+    await stopRound(p).click();
   }
-  await desc(p).fill('Running on a narrow screen with a long description too');
-  await bar(p).getByRole('button', { name: 'Start', exact: true }).click();
-  const stopBox = await bar(p).getByRole('button', { name: 'Stop', exact: true }).boundingBox();
-  check(stopBox && stopBox.x >= 0 && stopBox.x + stopBox.width <= w && stopBox.y < viewport.height, `${w} px: the bar's stop button is on screen (${JSON.stringify(stopBox)})`);
-  const descBox = await desc(p).boundingBox();
-  check(descBox && Math.abs(descBox.y - stopBox.y) < stopBox.height, `${w} px: description and stop share the first row of the bar`);
+  await startNamed('Running on a narrow screen with a long description too');
+  await stopRound(p).waitFor();
+  const stopBox = await stopRound(p).boundingBox();
+  check(stopBox && stopBox.x >= 0 && stopBox.x + stopBox.width <= w && stopBox.y < viewport.height, `${w} px: the pill's stop button is on screen (${JSON.stringify(stopBox)})`);
+  const pillBox = await pill(p).boundingBox();
+  check(pillBox && pillBox.width > w - 40, `${w} px: the running pill takes its own full-width row (${Math.round(pillBox?.width)})`);
   await line(p, 'Narrow entry 0').locator('.te-line').first().click({ position: { x: 4, y: 4 } });
+  await openDetails(p);
   await bar(p).getByRole('button', { name: /^Project/ }).click();
+  await p.locator('.picker').waitFor();
+  await sleep(150); // effects (the Esc listener) run after the next frame
+  await p.keyboard.press('Escape');
+  check((await detailsDialog(p).count()) === 1, `${w} px: Esc closes only the project list, not the popover under it`);
+  await p.keyboard.press('Escape');
   for (const view of ['time', 'time/week', 'organize']) {
     await p.evaluate((v) => { location.hash = `#/${v}`; }, view);
     await sleep(300);
@@ -484,7 +502,7 @@ for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }
   await sleep(300);
   await p.mouse.wheel(0, 2000);
   await sleep(300);
-  const header = await p.locator('.header-timer').getByRole('button', { name: 'Stop timer' }).boundingBox();
+  const header = await p.locator('.timer-pill').getByRole('button', { name: 'Stop timer' }).boundingBox();
   check(header && header.y >= 0 && header.y + header.height <= viewport.height && header.x + header.width <= w, `${w} px: after scrolling the list, the header's stop button is still on screen`);
   await p.close();
 }
@@ -495,10 +513,11 @@ for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }
   const p = await context.newPage();
   p.on('pageerror', (e) => fail(`touch pageerror: ${e.message}`));
   await p.goto(`${BASE}?test#/time`);
-  await bar(p).waitFor();
-  await desc(p).fill('Touch');
-  await bar(p).getByRole('button', { name: 'Start', exact: true }).click();
-  await bar(p).getByRole('button', { name: 'Stop', exact: true }).click();
+  await pill(p).waitFor();
+  await startRound(p).tap();
+  await fillDesc(p, 'Touch');
+  await bar(p).getByRole('button', { name: 'Update', exact: true }).tap();
+  await stopRound(p).tap();
   const actions = p.locator('.te-row .te-actions').first();
   await actions.waitFor();
   check((await actions.evaluate((el) => getComputedStyle(el).opacity)) === '1' && (await actions.getByRole('button', { name: 'Continue: Touch' }).isVisible()), 'on a touch screen continue and more actions are always visible');
@@ -554,7 +573,7 @@ for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }
 // ---- idle banner (fake clock jumps 15 minutes) ----
 {
   const p = await open('idle', { clock: true });
-  await desc(p).fill('Idle test');
+  await fillDesc(p, 'Idle test');
   await bar(p).getByRole('button', { name: 'Start', exact: true }).click();
   await p.clock.fastForward('02:00');
   await p.clock.fastForward('15:00');
@@ -587,9 +606,11 @@ for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }
   check(t >= 0, `paired and connected in ${t} ms`);
 
   for (const p of [a, b]) await p.evaluate(() => { location.hash = '#/time'; });
-  await desc(a).fill('From A');
-  await b.getByLabel('Space for the new entry').selectOption({ label: 'Work' });
-  await desc(b).fill('From B');
+  await fillDesc(a, 'From A');
+  await b.evaluate(() => { location.hash = '#/notes'; });
+  await b.getByLabel('Space', { exact: true }).selectOption({ label: 'Work' });
+  await b.evaluate(() => { location.hash = '#/time'; });
+  await fillDesc(b, 'From B');
   // Both start right after the link drops (reconnecting takes longer than two clicks), in
   // different spaces, so each device has a running timer the other has not seen.
   await a.evaluate(() => window.__app.dropLink());
@@ -605,8 +626,7 @@ for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }
   check(converged >= 0, `both profiles started timers and converged to one running timer in ${converged} ms`);
   const stoppedA = await a.evaluate(() => Object.values(window.__app.json('space/personal/time', 'time_entries')).find((e) => e.description === 'From A'));
   check(stoppedA && stoppedA.stop !== null, 'the older timer (A) was stopped, the later one (B) kept running');
-  const label = (p) => bar(p).innerText();
-  check((await bar(a).getByRole('button', { name: 'Stop', exact: true }).count()) === 1, 'profile A shows the timer running in the other space');
+    check((await stopRound(a).count()) === 1, 'profile A shows the timer running in the other space');
   await a.close();
   await b.close();
 }

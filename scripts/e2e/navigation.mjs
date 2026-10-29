@@ -3,7 +3,7 @@
 //
 //   npm run e2e navigation
 //
-import { BASE, launch, check, watchPage, finish } from './lib.mjs';
+import { BASE, launch, check, watchPage, finish, openDetails } from './lib.mjs';
 
 const browser = await launch();
 const TABS = ['Time', 'Notes', 'Tasks', 'Settings'];
@@ -32,7 +32,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await views.getByRole('link', { name: 'Reports' }).click();
   await p.locator('.rp-nav').waitFor();
   check((await route(p)) === '#/time/reports' && (await p.locator('.tabs a.active').innerText()) === 'Time', 'wide: Reports opens at #/time/reports with the Time tab lit');
-  check((await p.locator('.timer-bar').count()) === 0, 'wide: no timer bar on Reports');
+  check((await p.locator('.add-entry').count()) === 0, 'wide: no Add entry action on Reports');
   check((await views.getByRole('link', { name: 'Reports' }).getAttribute('aria-current')) === 'page', 'wide: the Reports segment is current');
   // The Timer tab reopens the last view, Reports included, and says so in the address.
   await p.locator('.tabs a', { hasText: /^Notes$/ }).click();
@@ -54,7 +54,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   check((await p.locator('.tl-summary').count()) === 1 && (await p.locator('.week-nav').count()) === 0, 'wide: Timer opens in List');
   await p.getByRole('navigation', { name: 'Time views' }).getByRole('link', { name: 'Week' }).click();
   await p.locator('.week-nav').waitFor();
-  check((await route(p)) === '#/time/week' && (await p.locator('.timer-bar').isVisible()), 'wide: Week keeps the timer bar');
+  check((await route(p)) === '#/time/week' && (await p.locator('.add-entry').isVisible()) && (await p.locator('.timer-bar').count()) === 0, 'wide: Week has the Add entry action and no timer bar');
   await p.locator('.tabs a', { hasText: /^Notes$/ }).click();
   await p.locator('.tabs a', { hasText: /^Time$/ }).click();
   await p.locator('.week-nav').waitFor();
@@ -114,7 +114,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   const names = (await tabs.locator('> *').allInnerTexts()).map((t) => t.trim());
   check(names.join() === TABS.join(), `375 px: the four tabs (${names.join(', ')})`);
   check(await tabs.evaluate((e) => e.scrollWidth <= e.clientWidth), '375 px: nothing in the tab row is cut off');
-  check(await p.locator('.header-timer').isVisible(), '375 px: the header timer is still shown');
+  check(await p.locator('.timer-pill').isVisible(), '375 px: the timer pill is still shown');
   check((await overflow(p)) <= 0, '375 px: no horizontal scroll on Timer');
 
   // Settings: one tap opens the one page, with no list or menu; the main tabs stay.
@@ -137,22 +137,23 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
 // ---- a desktop app window squeezed to a strip ----
 {
   const p = await open('strip', { width: 180, height: 600 });
-  await p.locator('.tb .description').fill('A long description of the work');
-  await p.locator('.tb-start').click();
-  await p.locator('.header-timer.running').waitFor();
-  check((await overflow(p)) <= 0, '180 px: no horizontal scroll on Timer while a timer runs');
-  await p.locator('.ht-stop').click();
-  await p.locator('.header-timer:not(.running)').waitFor();
-  check((await overflow(p)) <= 0, '180 px: no horizontal scroll on Timer with an entry listed');
-  const box = await p.locator('.tb .description').boundingBox();
-  check(!!box && box.width >= 100, `180 px: the description field stays usable (${box && Math.round(box.width)} px)`);
+  await p.getByRole('button', { name: 'Start timer' }).click();
+  await p.locator('.timer-pill.running').waitFor();
+  check((await overflow(p)) <= 0, '180 px: no horizontal scroll on Time while a timer runs');
+  const box = await p.locator('.timer-pill').boundingBox();
+  check(!!box && box.x >= 0 && box.x + box.width <= 180, `180 px: the running pill stays on screen (${box && Math.round(box.width)} px)`);
+  await p.getByRole('button', { name: 'Stop timer' }).click();
+  await p.locator('.timer-pill:not(.running)').waitFor();
+  check((await overflow(p)) <= 0, '180 px: no horizontal scroll on Time with an entry listed');
   await p.context().close();
 }
 
 // ---- Organize and note settings: owned by no tab, reached from pickers, Settings and the ⚙ on Notes (F-325) ----
 {
   const p = await open('organize', { width: 375, height: 800 });
-  await p.locator('.tb').getByRole('button', { name: /^Project/ }).click();
+  await p.getByRole('button', { name: 'Start timer' }).click();
+  await p.locator('.tp-label').click();
+  await p.getByRole('dialog', { name: 'Timer details' }).getByRole('button', { name: /^Project/ }).click();
   const edit = p.locator('.picker .picker-edit');
   await edit.waitFor();
   check((await edit.count()) === 1, 'the project picker has an Edit… link');
@@ -161,7 +162,8 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   check((await route(p)) === '#/organize' && (await p.locator('.tabs a.active').count()) === 0, 'Edit… in the project picker opens Organize, which no tab owns');
   for (const h of ['Projects', 'Clients', 'Tags across entries, notes and tasks', 'Task values']) check((await p.getByRole('heading', { name: h, level: 2 }).count()) === 1, `Organize has the section ${h}`);
   await p.evaluate(() => { location.hash = '#/time'; });
-  await p.locator('.tb').getByRole('button', { name: /^Tags/ }).click();
+  const details = await openDetails(p);
+  await details.getByRole('button', { name: /^Tags/ }).click();
   await p.locator('.picker .picker-edit').click();
   await p.getByRole('heading', { name: 'Organize', level: 1 }).waitFor();
   check((await route(p)) === '#/organize', 'Edit… in the tag picker opens Organize');

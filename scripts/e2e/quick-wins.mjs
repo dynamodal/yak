@@ -1,5 +1,5 @@
 // End-to-end for the mobile and newcomer quick wins (#21): Organize back link, empty Notes page actions, Enter in a
-// note's title, Reports CSV button, Import help link, touch-sized header buttons with an icon-only Continue, and
+// note's title, Reports CSV button, Import help link, touch-sized header buttons with an icon-only idle pill, and
 // the palette without keyboard hints on a touch screen. No CSP violations or page errors.
 //
 //   npm run e2e quick-wins
@@ -46,15 +46,13 @@ const browser = await launch();
   const p = await context.newPage();
   watchPage(p, 'phone', { consoleErrors: true });
   await p.goto(`${BASE}?test#/time`);
-  await p.locator('.header-timer').waitFor();
-  await p.getByLabel('Description', { exact: true }).fill('Phone entry');
-  await p.getByLabel('Start', { exact: true }).click();
+  await p.locator('.timer-pill').waitFor();
+  await p.getByRole('button', { name: 'Start timer' }).click();
   await p.getByRole('button', { name: 'Stop timer' }).click();
-  const cont = p.locator('.header-timer .ht-continue');
-  await cont.waitFor();
+  await p.getByRole('button', { name: 'Start timer' }).waitFor();
   const box = await p.getByRole('button', { name: 'Start timer' }).boundingBox();
   check(box && box.height >= 44 && box.width >= 44, `header start is at least 44 px (${Math.round(box?.width ?? 0)}x${Math.round(box?.height ?? 0)})`);
-  check((await cont.locator('.ht-text').isVisible()) === false, 'Continue shows only its icon on a phone');
+  check((await p.locator('.timer-pill .tp-label').isVisible()) === false, 'the idle pill is only its round button on a phone');
   await p.keyboard.press('Control+k');
   const keys = await p.evaluate(() => [...document.querySelectorAll('.palette-keys, .palette-help')].every((e) => getComputedStyle(e).display === 'none'));
   check(keys, 'the palette hides keyboard hints on a touch screen');

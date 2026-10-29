@@ -94,7 +94,7 @@ check((await until(async () => (await text(b, 'space/personal')).includes('late 
 // A timer started in the UI writes to the space's private document, not the space document.
 await a.goto(BASE + '?test#/time');
 await a.waitForFunction(() => window.__app);
-await a.getByRole('button', { name: /^Start/ }).first().click();
+await a.getByRole('button', { name: 'Start timer' }).click();
 const inPrivate = () => a.evaluate(() => ['space/personal/time', 'space/work/time'].reduce((n, id) => n + Object.keys(window.__app.json(id, 'time_entries')).length, 0));
 (await until(async () => (await inPrivate()) > 0, 5000)) >= 0 ? ok('timer entry is in a private document') : fail('no entry in the private documents');
 const legacy = await a.evaluate(() => Object.keys(window.__app.json('space/personal', 'time_entries')).length + Object.keys(window.__app.json('space/work', 'time_entries')).length);

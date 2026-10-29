@@ -1,5 +1,14 @@
 # What's new
 
+## 2026-10-30: One timer in the header
+
+- The timer is a **pill** in the header on every page. The round button starts or stops at once. The words beside it open the details: description, **Recent** work (the first row is **Continue**), project, tags and billable, with **Start** or **Update**.
+- **Alt S** starts the timer and opens the details with the cursor in the description. **Esc** closes it and the timer keeps running; **Alt S** again stops it.
+- The Time page no longer has a start bar. **Add entry** at the top adds a finished entry.
+- On a phone the header stays one row (two while a timer runs, the second being the timer); the tabs are icons beside the logo.
+- The separate **Reports** switch is gone: Reports is part of Time and follows the **Time** switch.
+- **Time** is a switch in Settings › Preferences › Tabs shown. Off hides the tab, Reports, the pill, the shortcut and the title and icon cue; nothing is deleted. A running timer must be stopped first. The app opens on the first tab still shown.
+
 ## 2026-10-29: A tidier header
 
 - Tabs have icons. On a narrow screen only the icons show; each still has its name for screen readers.

@@ -70,7 +70,7 @@ check(/\d+\.\d\d h/.test(await page.locator('.section-head .total').innerText())
 await go('#/time/reports', '.rp-range');
 check((await reportsWeekStartsOn()) === 1, 'reports: week starts on Monday');
 check((await page.getByLabel('Hours shown as').count()) === 0, 'reports: no hours selector');
-await go('#/time/list', '.timer-bar');
+await go('#/time/list', '.tl-summary');
 check((await page.getByLabel('Hours format').count()) === 0, 'timer: no hours selector');
 
 // ---- Change both on Settings
@@ -84,8 +84,8 @@ check((await entriesWeekStartsOn()) === 0, 'entries: week starts on Sunday');
 check(/^\d+:\d\d$/.test((await page.locator('.section-head .total').innerText()).trim()), 'entries: h:mm hours');
 await go('#/time/reports', '.rp-range');
 check((await reportsWeekStartsOn()) === 0, 'reports: week starts on Sunday');
-await go('#/time/list', '.timer-bar');
-check(!/ h\b/.test(await page.locator('.timer-bar').innerText()), 'timer: no decimal hours in the bar');
+await go('#/time/list', '.tl-summary');
+check(!/ h\b/.test(await page.locator('.tl-summary').innerText()), 'timer: no decimal hours in the totals');
 
 // ---- Theme
 await go('#/settings', 'h1');

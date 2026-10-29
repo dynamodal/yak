@@ -47,7 +47,7 @@ const spaceFilter = (v) => page.getByLabel('Show space').selectOption(v === 'all
 await page.goto(BASE + '?test#/time/reports');
 await page.waitForFunction(() => window.__reports);
 check((await page.locator('.tabs a.active').innerText()).trim() === 'Time' && (await page.locator('.seg a.active').innerText()).trim() === 'Reports', 'Reports is the Reports segment of the Time page');
-check((await page.locator('.timer-bar').count()) === 0, 'no timer bar on Reports');
+check((await page.locator('.timer-bar').count()) === 0 && (await page.locator('.add-entry').count()) === 0, 'no timer bar or Add entry on Reports');
 check((await text('.rp-range')).length > 0 && (await page.locator('.rp-back').count()) === 0, 'the default range (This week) has no way-back button');
 
 await page.evaluate(([p, w]) => { window.__reports.seed('personal', p); window.__reports.seed('work', w); }, [SEED_PERSONAL, SEED_WORK]);

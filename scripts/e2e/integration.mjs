@@ -28,7 +28,7 @@ entry && entry.task_id ? ok('entry is linked to the task (task_id set)') : fail(
 
 await page.goto(`${BASE}?test#/time`);
 await sleep(1200);
-await page.getByRole('button', { name: 'Stop', exact: true }).first().click();
+await page.getByRole('button', { name: 'Stop timer' }).first().click();
 (await until(async () => (await running()).length === 0)) ? ok('stopped from the Timer view') : fail('timer did not stop');
 
 await page.goto(`${BASE}?test#/time/reports/detailed`);

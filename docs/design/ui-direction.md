@@ -1,7 +1,7 @@
 # UI direction: identity, one responsive shell, header timer, Home
 
 Issue #33.
-Status: agreed with the owner in a design review (2026-10-28, mockups reviewed in chat). Built so far: the tokens restyle, all-sans type, the Time rename and the header (slice 3a). The timer pill and the Home tab are not built.
+Status: agreed with the owner in a design review (2026-10-28, mockups reviewed in chat). Built so far: the tokens restyle, all-sans type, the Time rename and the header (slice 3a), and the timer pill with its popover, the Time switch and the Time page without a bar (slice 3b). The Home tab, Tasks without Notes and the Settings rework are not built.
 Settings has its own note: `settings-structure.md` (supersedes the proposal in #22).
 
 ## Problem
@@ -97,20 +97,25 @@ Only the pill changes width; the command and sync controls stay put to its right
 
 ## Timer pill
 
+Built (slice 3b; `decisions/header-timer.md` F-33j and F-33k, `decisions/app.md` F-33l).
 The pill is the only timer control; the Time page is the log.
-Not built yet (slice 3b); the header today still has the earlier timer control.
 
-- Shown on every page while the timer feature is on (Features, per device).
-  Off: no pill, no Time tab, no start/stop key, and tracked-time columns disappear from Tasks.
-- Idle: `Start timer · Alt+S` with a round accent play button.
-- Running: description (shortened), elapsed time, a round `--stop` stop button.
-- Two hit areas: the round button starts or stops at once (a start with no description is valid and can be filled in afterwards); the label opens a popover.
-- Popover: description, project, tags, billable, `Start` (`Update` while running) and `Discard`.
-  `Enter` starts, `Esc` closes.
-- `Alt+S` starts or stops the timer and `Alt+T` is Go to Time; both stay as they are (owner, 2026-10-28), rebindable like every shortcut.
-- Narrow: the description goes, time and button stay.
-- Considered: a page bar that replaces the pill on the Time page (Toggl's look, but the control moves) and both at once (two start buttons).
-- The existing `registerHeaderItem` slot and header-timer decisions (`decisions/header-timer.md`) are the starting point; the Time page's own start bar is removed.
+- Shown on every page while the Time feature is on (Features, per device).
+  Off: no pill, no Time tab, no Alt+S, no cue (title, favicon, badge), and no timer button on tasks.
+- Idle: `Start`, the bound shortcut as a chip (`Alt S`, symbols on a Mac) and a round accent play button.
+  Under about 560 px the label goes and only the round button stays.
+- Running: project dot, description (ellipsis, "(no description)"), elapsed time (tabular) and a round `--stop` button.
+- Two hit areas: the round button starts or stops at once and never opens anything (a start with no description is valid; it uses the popover's draft, in the active space, on the current page); the label opens the popover.
+- Popover (shared `Popover`, a labelled dialog): description, then Recent, then project, tags and billable; footer `Start` (`Update` while running). There is no Discard here: a running or stopped entry is deleted from the entries list (soft delete with Undo).
+  Recent: first row `Continue: <description> · <project> · stopped <time ago>` (the entry that stopped last in any space), then up to 5 distinct recent combinations.
+  Arrow keys move, Enter picks; stopped, a pick starts a new entry, running it fills the running one.
+  `Enter` starts or updates, `Esc` closes; a half-typed description survives navigation.
+- `Alt+S` stopped: starts at once and opens the popover with focus in the description; `Esc` keeps the timer running and returns focus.
+  Running: it stops the timer and opens nothing.
+  `Alt+T` is Go to Time; both stay as they are (owner, 2026-10-28), rebindable like every shortcut.
+- Narrow: from 360 px the header is at most two rows: row one is the logo, the tab icons, the command and sync controls (and the idle round button); row two exists only while running and is the full-width pill (under 30 rem; wider windows keep the pill on row one). Below 360 px the tabs take their own row, so a running header has three.
+- The Time page has no start bar; its page header has `Add entry` (the manual-entry form).
+- Considered and rejected: a page bar that replaces the pill (Toggl's look, but the control moves), and both at once (two start buttons).
 
 ## Home
 
@@ -139,7 +144,7 @@ A summary of where things stand; read-only apart from checking a task off and op
 
 1. Fix `scripts/screens.mjs` (test build, Welcome step, current routes) so restyle PRs can show before and after.
 2. Tokens restyle (`tokens.css`, `ui.css`).
-3. Shell, in parts: (a) header, all-sans, Time rename and route (built); (b) timer pill and popover, Time page without its bar; (c) Tasks without Notes and independent Features switches.
+3. Shell, in parts: (a) header, all-sans, Time rename and route (built); (b) timer pill and popover, Time page without its bar, Time switch (built); (c) Tasks without Notes and independent Features switches.
 4. Settings (`settings-structure.md`).
 5. Home.
 6. Tasks view switch and filters.

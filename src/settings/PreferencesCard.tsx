@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { FEATURES, effectiveHidden, setHiddenModules, useHiddenModules, type FeatureId } from '../app/features';
+import { FEATURES, effectiveHidden, featureBlock, setHiddenModules, useHiddenModules, type FeatureId } from '../app/features';
 import { useSettings } from '../app/hooks';
 import { Field } from '../app/ui';
 import { HistoryCard } from './HistoryCard';
@@ -20,19 +20,21 @@ function TabsShown() {
         </span>
       </summary>
       <p class="hint">
-        Per device. Hiding a feature only hides its pages: your notes, tasks and other data are kept, keep syncing, and are still in backups. Time, Settings, Backup &amp; restore and the sync status are always shown.
+        Per device. Hiding a feature only hides its pages and controls: your time entries, notes, tasks and other data are kept, keep syncing, and are still in backups. Hiding Time also hides the timer in the header, its shortcut and Reports, and the app opens on the first tab still shown. Settings, Backup &amp; restore and the sync status are always shown.
       </p>
       <ul class="features-list">
         {FEATURES.map((f) => {
           const off = hidden.has(f.id);
           const byNotes = f.id === 'tasks' && stored.includes('notes');
+          // A running timer must be stopped before Time is hidden, so it is never left running out of sight.
+          const block = !off ? featureBlock(f.id) : undefined;
           return (
             <li key={f.id} data-feature={f.id}>
               <label class="row">
-                <input type="checkbox" aria-label={f.title} checked={!off} disabled={byNotes} onChange={(e) => toggle(f.id, (e.target as HTMLInputElement).checked)} />
+                <input type="checkbox" aria-label={f.title} checked={!off} disabled={byNotes || !!block} onChange={(e) => toggle(f.id, (e.target as HTMLInputElement).checked)} />
                 <strong>{f.title}</strong>
               </label>
-              <span class="hint">{byNotes ? 'Hidden because Notes is hidden.' : f.hint}</span>
+              <span class="hint">{byNotes ? 'Hidden because Notes is hidden.' : (block ?? f.hint)}</span>
             </li>
           );
         })}

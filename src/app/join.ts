@@ -9,6 +9,8 @@ import { deviceName, setDeviceName } from '../core/devices';
 import { keepAll, keepUndecided } from '../core/keeps';
 import { hasData, type StorageLike } from '../core/account-setup';
 import { STORAGE_PREFIX } from '../constants';
+import { effectiveHidden, landingRoute, readHiddenModules } from './features';
+import { registeredViews } from './registry';
 import type { SyncService } from '../sync/sync-service';
 import type { AccountState } from './account-state';
 
@@ -151,13 +153,13 @@ export async function addPendingLocalSpaces(state: AccountState, storage: Storag
   }
   storage.setItem(PENDING_KEY, '{}');
   await state.refresh();
-  // The join began on Settings (no spaces yet); now that there are some, start on the Time page. A deeper link is left alone.
+  // The join began on Settings (no spaces yet); now that there are some, start on the first tab this device shows. A deeper link is left alone.
   if (parsed.keepAccountSpaces && readSpaces(state.doc).length > 0) goToTimerFromBareSettings();
 }
 
-/** After a join: leave Settings (where joining happens) for the Time page, unless the person already went to Notes, Tasks or the like. */
+/** After a join: leave Settings (where joining happens) for the first tab this device shows (Time, unless hidden), unless the person already went to Notes, Tasks or the like. */
 function goToTimerFromBareSettings(): void {
   if (typeof location === 'undefined') return;
   const path = location.hash.replace(/^#\/?/, '').replace(/\/+$/, '');
-  if (path === '' || path === 'settings' || path.startsWith('settings/') || path === 'welcome') location.hash = '#/time';
+  if (path === '' || path === 'settings' || path.startsWith('settings/') || path === 'welcome') location.hash = landingRoute(effectiveHidden(readHiddenModules()), registeredViews());
 }

@@ -1,7 +1,7 @@
 import { useEffect } from 'preact/hooks';
 import type { AppContextValue } from './context';
 import type { SearchItem } from '../core/search';
-import { searchKindHidden } from './features';
+import { searchKindFor, type FeatureId } from './features';
 
 /**
  * What the universal search looks through. Each module registers a source for its own data (notes
@@ -25,9 +25,19 @@ export function registerSearchSource(source: SearchSource): void {
   if (!sources.some((s) => s.id === source.id)) sources.push(source);
 }
 
-/** The sources, with the results of hidden features left out (F-309). */
+/** The sources, with the results of hidden features left out (F-309). A task found while only Tasks is off is listed as a note (#44). */
 export function allSearchSources(): readonly SearchSource[] {
-  return sources.map((s) => ({ ...s, collect: (app, spaceId) => s.collect(app, spaceId).filter((e) => !searchKindHidden(e.kind)) }));
+  return sources.map((s) => ({ ...s, collect: (app, spaceId) => collectVisible(s.collect(app, spaceId)) }));
+}
+
+/** Drops the results of hidden features and files a task under Notes when only Tasks is hidden. Pure, so it is tested without a source. */
+export function collectVisible(entries: readonly SearchEntry[], hidden?: ReadonlySet<FeatureId>): SearchEntry[] {
+  const out: SearchEntry[] = [];
+  for (const e of entries) {
+    const kind = searchKindFor(e.kind, hidden);
+    if (kind !== undefined) out.push(kind === e.kind ? e : { ...e, kind });
+  }
+  return out;
 }
 
 /** The groups results are listed in, with the item kinds each one holds. */

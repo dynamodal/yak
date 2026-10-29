@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { addSpace, randomId } from '../core/account';
 import { Scanner } from '../qr';
 import type { PairingPayload } from '../qr';
@@ -7,7 +7,8 @@ import { APP_NAME } from '../constants';
 import { useApp } from './context';
 import { useSyncStatus } from './hooks';
 import { PRESETS, setHiddenModules, type FeatureId } from './features';
-import { navigate } from './router';
+import { navigate, useRoute } from './router';
+import { JoinCodeInput } from './JoinCodeInput';
 import { pendingShare } from './pending-share';
 import { safeStorage } from './join';
 import { Button } from './ui';
@@ -30,6 +31,18 @@ export function Welcome(props: { onStarted(): void }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [deviceLabel, setDeviceLabel] = useState(() => suggestedName(navigator.userAgent));
+  // A join link opened here (`#/join/<code>`, option A+): the code is filled in and the joining part is open.
+  const route = useRoute();
+  const link = route[0] === 'join' && route[1] ? route : undefined;
+  useEffect(() => {
+    if (!link) return;
+    try {
+      setCode(grouped(link[1] ?? ''));
+      if (link[2]) setSignaling(link[2]);
+    } catch {
+      // not a code: the field stays empty
+    }
+  }, [link?.join('/')]);
 
   const join = async (): Promise<void> => {
     setError('');
@@ -50,7 +63,7 @@ export function Welcome(props: { onStarted(): void }) {
     const problem = addSpace(account, randomId(), name, undefined, deviceId);
     if (problem) setError(problem);
     else {
-      // The choice is this device's own (F-309). A device that joins later starts with everything on; Settings › Preferences changes it.
+      // The choice is this device's own (F-309). A device that joins later starts with everything on; Settings › Features changes it.
       setHiddenModules(hidden);
       props.onStarted();
       // A share link was opened first: carry on with it.
@@ -91,26 +104,16 @@ export function Welcome(props: { onStarted(): void }) {
             Time, notes and tasks
           </Button>
         </div>
-        <p class="hint">Time tracker hides Notes and Tasks; the other choice shows Time, Notes and Tasks. You can change this any time in Settings › Preferences › Tabs shown.</p>
+        <p class="hint">Time tracker hides Notes and Tasks; the other choice shows Time, Notes and Tasks. You can change this any time in Settings › Features.</p>
       </div>
 
-      <details class="welcome-more">
+      <details class="welcome-more" open={link ? true : undefined}>
         <summary>Already use {APP_NAME}? Join a device or restore a backup</summary>
         <div class="card welcome-choice">
           <h2>Join my other device</h2>
-          <p class="hint">On the other device open Settings, choose + Add a device, then Make a one-time code, and enter or scan it here. That device approves this one. This device gets that account's spaces.</p>
+          <p class="hint">On the other device open Settings, choose + Add a device, then Make a one-time code, and scan it here, open its link here, or paste the link or type the code. That device approves this one. This device gets that account's spaces.</p>
           <div class="row">
-            <input
-              aria-label="One-time code"
-              placeholder="One-time code from your other device"
-              value={code}
-              size={36}
-              autocapitalize="off"
-              autocorrect="off"
-              spellcheck={false}
-              autocomplete="off"
-              onInput={(e) => setCode((e.target as HTMLInputElement).value)}
-            />
+            <JoinCodeInput value={code} onCode={setCode} onSignaling={setSignaling} onEnter={() => void join()} />
             <Button variant="primary" disabled={busy || !code.trim()} onClick={() => void join()}>
               Join
             </Button>

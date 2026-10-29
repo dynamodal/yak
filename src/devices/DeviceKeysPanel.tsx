@@ -5,31 +5,21 @@ import { formatFingerprint } from '../core/keys';
 import { switchDevices, type SwitchDevice } from '../core/key-switch';
 import { ownerKeys } from '../app/account-keys-runtime';
 import { useKeyTrust } from '../app/key-hooks';
-import { invites } from '../app/invites';
 import { Button } from '../app/ui';
 import { withKey } from '../app/key-prompt';
-import { PairingExtras } from './extras';
 import { devicesMap, readDevices, setDeviceName, suggestedName } from '../core/devices';
 import { useYVersion } from '../app/hooks';
 
 /**
- * Device keys on Devices (#257): in compatible mode, the review of every device and the one-way
- * "Require device keys" switch; once keys are required, approving devices and one-time invites.
+ * Device keys, in Settings › Advanced (#257, F-33b): in compatible mode, the review of every device and the one-way
+ * "Require device keys" switch; once keys are required, approving devices. One-time invites are on the Add a device page (`AddDevicePanel`).
  * Owner actions need the passphrase, kept unlocked for a few minutes.
  */
 
 const shortId = (id: string): string => id.slice(0, 8);
-const grouped = (secret: string): string => secret.match(/.{1,4}/g)?.join('-') ?? secret;
 
-/** Re-render when invites change; returns them. */
-function useInvites(): typeof invites {
-  const [, setTick] = useState(0);
-  useEffect(() => invites.subscribe(() => setTick((t) => t + 1)), []);
-  return invites;
-}
-
-/** The fingerprint of a device's keys, as its own Devices page shows it: compare the two screens. */
-function Fingerprint(props: { keys: DeviceKeyRecord | undefined }) {
+/** The fingerprint of a device's keys, as its own Advanced section shows it: compare the two screens. */
+export function Fingerprint(props: { keys: DeviceKeyRecord | undefined }) {
   const [fp, setFp] = useState('');
   useEffect(() => {
     let live = true;
@@ -42,7 +32,7 @@ function Fingerprint(props: { keys: DeviceKeyRecord | undefined }) {
 }
 
 /** This device's name, asked for when it makes a one-time code: the new device and the device lists show it instead of an id. */
-function OwnName(props: { account: Y.Doc; deviceId: string }) {
+export function OwnName(props: { account: Y.Doc; deviceId: string }) {
   useYVersion(devicesMap(props.account) as unknown as Y.AbstractType<unknown>);
   const [draft, setDraft] = useState<string | undefined>();
   const saved = readDevices(props.account).get(props.deviceId)?.name;
@@ -78,7 +68,6 @@ function stragglerText(d: SwitchDevice): string {
 export function DeviceKeysPanel(props: { account: Y.Doc; deviceId: string; seen: string[]; keysVersion: number }) {
   const { account, deviceId } = props;
   const trust = useKeyTrust();
-  const inv = useInvites();
   const [, setTick] = useState(0);
   const rerender = (): void => setTick((t) => t + 1);
   // The unlock lasts a few minutes: look again now and then so the page asks again when it ran out.
@@ -113,10 +102,10 @@ export function DeviceKeysPanel(props: { account: Y.Doc; deviceId: string; seen:
     const name = (d: SwitchDevice): string => d.name ?? shortId(d.id);
     return (
       <section class="device-keys" aria-label="Device keys">
-        <h2>Switch to device keys</h2>
+        <h3>Switch to device keys</h3>
         <p class="hint">
           This account still lets any device that holds its old code join. Switch it to device keys: from then on a device joins only with a one-time code that one of yours approves with your passphrase.
-          Compare each device's fingerprint with the one its own Devices page shows, and tick only devices you recognise.
+          Compare each device's fingerprint with the one in Advanced on that device, and tick only devices you recognise.
         </p>
         <ul class="key-review">
           {devices.map((d) => (
@@ -170,18 +159,15 @@ export function DeviceKeysPanel(props: { account: Y.Doc; deviceId: string; seen:
   }
 
   const waiting = devices.filter((d) => d.state === 'ready' && !trust.certs.has(d.id));
-  const hosting = inv.hosting;
-  // Every asker has been answered and the code is used: the code and QR are no longer needed.
-  const settled = !!hosting && hosting.used && hosting.requests.length > 0 && hosting.requests.every((r) => r.state === 'approved' || r.state === 'declined');
   return (
     <section class="device-keys" aria-label="Device keys">
-      <h2>Device keys</h2>
+      <h3>Device keys</h3>
       <p class="hint" data-keys="required">
         This account requires device keys: a device syncs only once one of your devices approved it.
       </p>
       {waiting.length > 0 && (
         <>
-          <p class="hint">Not approved yet. Compare the fingerprint with the one on that device's own Devices page.</p>
+          <p class="hint">Not approved yet. Compare the fingerprint with the one in Advanced on that device.</p>
           <ul class="key-review">
             {waiting.map((d) => (
               <li key={d.id} data-device={d.id}>
@@ -193,74 +179,6 @@ export function DeviceKeysPanel(props: { account: Y.Doc; deviceId: string; seen:
             ))}
           </ul>
         </>
-      )}
-      <h3>Add a device</h3>
-      <OwnName account={account} deviceId={deviceId} />
-      {!hosting ? (
-        <>
-          <p class="hint">Make a one-time code and enter it on the new device. It works once and for 15 minutes; you approve the device here after comparing a code both screens show.</p>
-          <div class="row">
-            <Button disabled={busy} onClick={() => act(() => inv.open())}>
-              Make a one-time code
-            </Button>
-          </div>
-        </>
-      ) : (
-        <div class="invite" data-collapsed={settled ? '' : undefined}>
-          <ul class="invite-requests">
-            {hosting.requests.map((r) => (
-              <li key={r.request.deviceId} data-device={r.request.deviceId} data-state={r.state}>
-                <p>
-                  <strong>{r.request.name ?? 'A new device'}</strong> <code class="hint">{shortId(r.request.deviceId)}</code> asks to join. Approve only if the new device shows the same code and says the codes match:{' '}
-                  <code class="compare-code" data-compare>
-                    {r.compare}
-                  </code>
-                </p>
-                {r.state === 'waiting' || r.state === 'approving' ? (
-                  <div class="row">
-                    <Button variant="primary" disabled={busy || r.state === 'approving'} onClick={() => act(() => withKey({ verb: `approve ${r.request.name ?? 'the new device'}`, run: () => inv.approve(r.request.deviceId) }))}>
-                      Approve
-                    </Button>
-                    <Button onClick={() => act(() => inv.decline(r.request.deviceId))}>Decline</Button>
-                  </div>
-                ) : (
-                  <p class="hint">{r.state === 'approved' ? 'Approved: it joins in a moment.' : 'Declined.'}</p>
-                )}
-                {r.error ? <p class="error">{r.error}</p> : null}
-              </li>
-            ))}
-          </ul>
-          {settled ? null : (
-            <>
-              <div class="secret-box">
-                <p class="hint">One-time code, until {new Date(hosting.expiresAt).toLocaleTimeString()}</p>
-                <code class="secret" data-invite-code>
-                  {grouped(hosting.code)}
-                </code>
-              </div>
-              <PairingExtras secret={hosting.code} signaling={hosting.signalingUrl} onSecret={() => undefined} />
-            </>
-          )}
-          {hosting.requests.length === 0 ? <p class="hint">On the new device: open Yak → Join my other device, and enter this code or scan it.</p> : null}
-          {hosting.used && !settled ? (
-            <p class="hint" role="status" data-invite-used>
-              This code is used up: it admits one device. Make a new one to add another.
-            </p>
-          ) : null}
-          {hosting.oldBuilds.length > 0 ? (
-            <p class="error" role="status">
-              A device tried this code with an older Yak ({hosting.oldBuilds.map(shortId).join(', ')}). Reload Yak on it to update, then enter the code again.
-            </p>
-          ) : null}
-          <div class="row">
-            {hosting.used ? (
-              <Button disabled={busy} onClick={() => act(() => inv.open())}>
-                Make a new one-time code
-              </Button>
-            ) : null}
-            <Button onClick={() => inv.close()}>{settled ? 'Done' : 'Close the code'}</Button>
-          </div>
-        </div>
       )}
       {errorLine}
     </section>

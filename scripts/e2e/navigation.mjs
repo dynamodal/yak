@@ -7,7 +7,7 @@ import { BASE, launch, check, watchPage, finish, openDetails } from './lib.mjs';
 
 const browser = await launch();
 const TABS = ['Time', 'Notes', 'Tasks', 'Settings'];
-const CARDS = ['Your data', 'Preferences', 'About & help'];
+const CARDS = ['Backup and safety', 'Devices and sync', 'Spaces', 'Sharing', 'Display', 'Features', 'Help', 'Advanced'];
 
 async function open(name, viewport, hash = '#/time') {
   const context = await browser.newContext({ viewport });
@@ -70,11 +70,11 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await p.locator('.st-home').waitFor();
   check((await route(p)) === '#/settings', 'wide: Settings opens its one page');
   check((await p.locator('.manage-list, .manage-tabs, .manage-menu').count()) === 0, 'wide: Settings has no page list or phone menu');
-  const cards = await p.getByRole('heading', { level: 2 }).allInnerTexts();
-  check(cards.join('|') === CARDS.join('|'), `wide: the cards are ${CARDS.join(', ')} (${cards.join(', ')})`);
-  const cols = await p.evaluate(() => [...document.querySelectorAll('.st-col')].map((c) => Math.round(c.getBoundingClientRect().left)));
-  check(cols.length === 2 && cols[0] !== cols[1], `wide: two columns at 1100 px (${cols.join(', ')})`);
-  for (const [old, to] of [['#/manage/settings', '#/settings'], ['#/settings/general', '#/settings'], ['#/settings/spaces', '#/settings'], ['#/settings/sharing', '#/settings'], ['#/settings/security', '#/settings'], ['#/settings/features', '#/settings'], ['#/settings/home', '#/settings'], ['#/general', '#/settings'], ['#/spaces', '#/settings'], ['#/manage', '#/settings'], ['#/backups', '#/settings/backup'], ['#/history', '#/settings/backup'], ['#/manage/backups', '#/settings/backup'], ['#/manage/history', '#/settings/backup'], ['#/devices', '#/settings/devices'], ['#/import', '#/settings/import'], ['#/manage/devices', '#/settings/devices']]) {
+  const cards = (await p.locator('section.st-section > h2').allInnerTexts()).map((t) => t.trim());
+  check(cards.join('|') === CARDS.join('|'), `wide: the sections are ${CARDS.join(', ')} (${cards.join(', ')})`);
+  const lefts = await p.evaluate(() => [...document.querySelectorAll('section.st-section')].map((c) => Math.round(c.getBoundingClientRect().left)));
+  check(lefts.length === CARDS.length && new Set(lefts).size === 1, `wide: one column at 1100 px (${lefts.join(', ')})`);
+  for (const [old, to] of [['#/manage/settings', '#/settings'], ['#/settings/general', '#/settings/display'], ['#/settings/security', '#/settings/backup-safety'], ['#/settings/home', '#/settings'], ['#/general', '#/settings/display'], ['#/spaces', '#/settings/spaces'], ['#/sharing', '#/settings/sharing'], ['#/settings/space/abc', '#/settings/spaces/abc'], ['#/settings/account/fp1', '#/settings/sharing/fp1'], ['#/settings/devices/abc', '#/settings/devices-sync/abc'], ['#/manage', '#/settings'], ['#/backups', '#/settings/backup'], ['#/history', '#/settings/backup'], ['#/manage/backups', '#/settings/backup'], ['#/manage/history', '#/settings/backup'], ['#/devices', '#/settings/devices'], ['#/import', '#/settings/import'], ['#/manage/devices', '#/settings/devices']]) {
     await p.evaluate((h) => { location.hash = h; }, old);
     await p.waitForFunction((h) => location.hash === h, to, { timeout: 3000 }).catch(() => {});
     check((await route(p)) === to, `wide: the old route ${old} redirects to ${to}`);
@@ -87,9 +87,9 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   // A detail view: the Settings tab stays lit and Back returns to the page.
   await p.evaluate(() => { location.hash = '#/settings'; });
   await p.locator('.st-home').waitFor();
-  await p.locator('table.st-keeps thead').getByRole('link', { name: 'This device' }).click();
-  await p.getByRole('heading', { name: 'Devices', level: 1 }).waitFor();
-  check((await route(p)) === '#/settings/devices' && (await p.locator('.tabs a.active').innerText()) === 'Settings', 'wide: a device opens its detail view and the Settings tab stays lit');
+  await p.locator('.st-actions').getByRole('link', { name: '+ Add a device' }).first().click();
+  await p.getByRole('heading', { name: 'Add a device', level: 1 }).waitFor();
+  check((await route(p)) === '#/settings/devices/add' && (await p.locator('.tabs a.active').innerText()) === 'Settings', 'wide: Add a device opens its own page and the Settings tab stays lit');
   await p.goBack();
   await p.locator('.st-home').waitFor();
   check((await route(p)) === '#/settings', 'wide: browser Back returns to Settings');

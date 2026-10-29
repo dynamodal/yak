@@ -11,3 +11,4 @@
 .keeps legend { float: left; padding: 0; margin-right: 0.75rem; color: var(--muted); }
 .keeps label { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap; }
 .erase-list { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.25rem; }
+.secret-box .row .secret { display: inline-block; font-family: var(--font-mono); }

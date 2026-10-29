@@ -77,6 +77,7 @@ await sleep(waitFor(4000));
 check(!(await text(h)).includes('after-switch'), 'the unapproved device gets nothing new');
 
 // A one-time invite: the new device asks, both screens show the same code, the owner approves.
+await a.evaluate(() => { location.hash = '#/settings/devices/add'; });
 await a.getByRole('button', { name: 'Make a one-time code' }).click();
 const invite = (await a.locator('[data-invite-code]').innerText()).trim();
 check(invite.replace(/-/g, '') !== code.replace(/-/g, ''), 'the invite is a new code');
@@ -87,6 +88,13 @@ await n.getByRole('button', { name: 'Join' }).click();
 const nCompare = await n.locator('[data-join="compare"] code.compare-code').innerText({ timeout: 30000 });
 const aCompare = await a.locator('[data-compare]').first().innerText({ timeout: 30000 });
 check(/^[0-9a-f]{4} [0-9a-f]{4} [0-9a-f]{4} [0-9a-f]{4}$/.test(nCompare) && nCompare === aCompare, `both screens show the same 64-bit code (${nCompare} / ${aCompare})`);
+// Needs you (F-33): while the request waits, Settings lists it first and the Settings tab carries a dot.
+check((await a.locator('.main-tabs a', { hasText: /^Settings/ }).locator('.tab-dot').count()) === 1, 'the Settings tab shows a dot while a device asks to join');
+await a.evaluate(() => { location.hash = '#/settings'; });
+await a.locator('[data-need^="join:"]').waitFor({ timeout: 10000 });
+check((await a.locator('section.st-section > h2').first().innerText()).trim() === 'Needs you' && /asks to join/.test(await a.locator('[data-need^="join:"]').innerText()) && /min left/.test(await a.locator('[data-need^="join:"]').innerText()), 'Settings lists the request first, under Needs you, with the minutes left');
+await a.locator('[data-need^="join:"] a').click();
+await a.locator('.invite-requests').waitFor();
 // Approved before the new device confirmed: it waits for its person to say the codes match.
 await a.locator('.invite-requests').getByRole('button', { name: 'Approve' }).click();
 await sleep(waitFor(3000));
@@ -99,7 +107,7 @@ await n.waitForFunction(() => window.__app);
 (await until(async () => (await keys(n)).certified && (await keys(n)).required, 30000)) >= 0 ? ok('N is approved and knows keys are required') : fail(`N keys ${JSON.stringify(await keys(n))}`);
 (await until(async () => (await text(n)).includes('after-switch'), 30000)) >= 0 ? ok('N receives the data') : fail('no data on N');
 
-check(await until(async () => (await a.locator('[data-invite-code]').count()) === 0 && (await a.locator('section[aria-label="Device keys"] .qr-pair').count()) === 0, 15000) >= 0, 'once the device joined, the approving device folds away the used code and its QR code');
+check(await until(async () => (await a.locator('[data-invite-code]').count()) === 0 && (await a.locator('section[aria-label="Add a device"] .qr-pair').count()) === 0, 15000) >= 0, 'once the device joined, the approving device folds away the used code and its QR code');
 
 // A leaked code alone gets nobody in: the account's old sync code, and the spent invite (which says so).
 for (const [label, c] of [['old sync code', code], ['spent invite', invite]]) {
@@ -117,6 +125,8 @@ for (const [label, c] of [['old sync code', code], ['spent invite', invite]]) {
 }
 
 // H approved later from Devices (passphrase still unlocked on A).
+await openAdvanced(a);
+await a.locator(`section[aria-label="Device keys"] li[data-device="${idH}"]`).waitFor({ timeout: 60000 });
 await a.locator(`section[aria-label="Device keys"] li[data-device="${idH}"]`).getByRole('button', { name: /^Approve/ }).click();
 (await until(async () => (await keys(h)).certified, 30000)) >= 0 ? ok('H approved later') : fail('H not approved');
 await hook(h, () => window.__app.dropLink());

@@ -15,7 +15,7 @@ export interface SectionDef {
   title: string;
   /** Position on the page, lowest first. */
   order: number;
-  /** Left out while this device hides the feature (Settings › Preferences). */
+  /** Left out while this device hides the feature (Settings › Features). */
   feature?: FeatureId;
   component: ComponentType<ViewProps>;
 }

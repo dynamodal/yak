@@ -20,7 +20,19 @@ const st = (p) => p.evaluate(() => window.__app?.state());
 const peersOf = (p) => p.evaluate(() => window.__app.peers());
 const connectedIds = async (p) => (await peersOf(p)).filter((x) => x.state === 'connected').map((x) => x.id).sort();
 const idOf = (p) => p.evaluate(() => window.__app.deviceId());
-const row = (p, id) => p.locator(`li.device-row#device-${id}`);
+const row = (p, id) => p.locator(`[data-device-row="${id}"]`);
+/** Opens a device row of Settings (id, or 'this') and returns it. */
+const open = async (p, id) => {
+  if (!(await p.locator('.st-home').count())) await goSettings(p);
+  const r = row(p, id);
+  await r.waitFor({ timeout: 20000 });
+  const head = r.locator('.st-row-head');
+  if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
+  return r;
+};
+function goSettings(p) { return p.evaluate(() => { location.hash = '#/settings/devices-sync'; }); }
+const unusedGo = (p) => p.evaluate(() => { location.hash = '#/settings/devices-sync'; });
+const thisName = async (p) => (await open(p, 'this')).locator('input[aria-label="This device\'s name"]');
 // The sync popover says how this device syncs: off for one that never paired (it offers "Set up sync"), else the shape's words.
 const chip = async (p) => {
   await p.getByRole('button', { name: /^(Sync off|Synced|Via relay|Not connected)/ }).click();
@@ -52,24 +64,30 @@ check((await until(async () => /Synced (directly|through the relay) · 1 of 1/.t
 check((await a.locator('.status-line').innerText()).includes('Syncing · 1 of 1'), 'the top of the page says the same about this device');
 
 // Names: B names itself; A shows it.
-await b.locator('input[aria-label="This device\'s name"]').fill('Phone');
-await b.locator('input[aria-label="This device\'s name"]').press('Enter');
-await b.locator('input[aria-label="This device\'s name"]').blur();
+await goSettings(a);
+await goSettings(b);
+const bName = await thisName(b);
+await bName.fill('Phone');
+await bName.press('Enter');
+await bName.blur();
 const nameInput = (page, id) => row(page, id).locator('input.peer-name');
+await open(a, await idOf(b));
 check((await until(async () => (await nameInput(a, await idOf(b)).inputValue()) === 'Phone', 5000)) >= 0, 'a device name shows on the other device');
 check((await row(a, await idOf(b)).innerText()).includes('Syncing'), "the other device's row says Syncing");
 
 // Shared logs: B's lines show on A (filtered by B), and A's on B.
 const logText = (p) => p.locator('pre[aria-label="Shared log"]').textContent();
+for (const p of [a, b]) {
+  await openAdvanced(p);
+  await p.locator('summary', { hasText: 'Logs from all devices' }).click();
+}
 check((await until(async () => (await logText(a)).includes('[Phone]') && (await logText(b)).includes('['), 15000)) >= 0, "the other device's log lines show on this device");
-await (await openJoin(a)).locator('summary', { hasText: 'Logs from all devices' }).click();
 await a.locator('select[aria-label="Filter logs by device"]').selectOption({ label: 'Phone' });
 const filtered = await logText(a);
 check(filtered.length > 0 && filtered.split('\n').every((l) => l.includes('[Phone]')), 'the log filters by device');
 
 // Turning sharing off on B clears B's lines on A; turning it on again writes new ones.
 await a.locator('select[aria-label="Filter logs by device"]').selectOption({ label: 'All devices' });
-await (await openJoin(b)).locator('summary', { hasText: 'Logs from all devices' }).click();
 await b.getByLabel('Share debug logs between my devices').uncheck();
 check((await until(async () => !(await logText(a)).includes('[Phone]'), 15000)) >= 0, "turning sharing off removes this device's lines on the other device");
 await sleep(1500);
@@ -77,10 +95,11 @@ check(!(await logText(a)).includes('[Phone]'), 'and nothing new is written while
 await b.getByLabel('Share debug logs between my devices').check();
 
 // Any device renames any other: A renames B, B shows it as its own name.
+await open(a, await idOf(b));
 await nameInput(a, await idOf(b)).fill('Pocket');
 await nameInput(a, await idOf(b)).press('Enter');
 await nameInput(a, await idOf(b)).blur();
-check((await until(async () => (await b.locator('input[aria-label="This device\'s name"]').inputValue()) === 'Pocket', 5000)) >= 0, 'a rename made on another device reaches the renamed device');
+check((await until(async () => (await (await thisName(b)).inputValue()) === 'Pocket', 5000)) >= 0, 'a rename made on another device reaches the renamed device');
 
 // C joins with a one-time code made on A (B's own code is still unused).
 await joinByInvite(a, c);
@@ -90,13 +109,15 @@ const [ia, ib, ic] = [await idOf(a), await idOf(b), await idOf(c)];
 
 // Remove C on A (keys required, so it needs the passphrase): asks first, with the reach in plain words; then A and B both drop it.
 (await until(async () => (await a.evaluate((p) => window.__app.unlock(p), PASS)) === 'ok', 30000)) >= 0 ? ok('A unlocked the account key') : fail('A could not unlock');
+await open(a, ic);
 await row(a, ic).getByRole('button', { name: /^Remove .* from account…$/ }).click();
 check((await row(a, ic).locator('.confirm-panel', { hasText: 'your other devices no longer accept it' }).count()) === 1, 'remove explains that it reaches all devices, in place');
 check((await row(a, ic).locator('.confirm-panel', { hasText: 'nothing can take that back' }).count()) === 1, 'and that the data it already has stays on it');
 await row(a, ic).getByRole('button', { name: /^Remove .* from the account$/ }).click();
 (await until(async () => !(await connectedIds(a)).includes(ic) && !(await connectedIds(b)).includes(ic), 10000)) >= 0
   ? ok('removed device dropped on A and, through sync, on B') : fail(`removed device still connected: A ${await connectedIds(a)} B ${await connectedIds(b)}`);
-check((await until(async () => (await c.locator('p.error', { hasText: 'removed this one' }).count()) === 1, 10000)) >= 0, 'removed device is told');
+await goSettings(c);
+check((await until(async () => (await c.locator('p.error', { hasText: 'was removed from your account' }).count()) === 1, 10000)) >= 0, 'removed device is told');
 await sleep(3000);
 check(!(await connectedIds(a)).includes(ic), 'removed device stays out');
 // There is no "Allow again" with keys required: C joins again with a new one-time code.
@@ -111,17 +132,22 @@ await a.evaluate(() => {
   localStorage.setItem(key, JSON.stringify(pairing));
 });
 await a.reload();
-await a.locator('li.device-row', { hasText: '00000000' }).waitFor({ timeout: 20000 });
-const ghost = a.locator('li.device-row', { hasText: '00000000' });
+await goSettings(a);
+const ghost = await open(a, '00000000-ghost-device');
 check((await ghost.innerText()).includes('Waiting') && (await ghost.innerText()).includes('Phones pause Yak in the background'), 'a device that is not online shows as Waiting, with a hint');
+await open(a, ib);
 await until(async () => (await row(a, ib).innerText()).includes('Syncing'), 30000);
-check((await ghost.getByRole('button', { name: /^Check again/ }).count()) === 1 && (await row(a, ib).getByRole('button', { name: /^Check again/ }).count()) === 0, '"Check again" is on the Waiting row only');
+const noCheckOnSyncing = (await row(a, ib).getByRole('button', { name: /^Check again/ }).count()) === 0;
+await open(a, '00000000-ghost-device');
+check((await ghost.getByRole('button', { name: /^Check again/ }).count()) === 1 && noCheckOnSyncing, '"Check again" is on the Waiting row only');
 await ghost.getByRole('button', { name: /^Check again/ }).click();
 // (Removing a device that never published keys has no effect with keys required, so that is not checked here.)
 (await until(async () => (await connectedIds(a)).length === 2, 30000)) >= 0 ? ok('A is linked to B and C again after its reload') : fail('A did not relink');
 
 // Removing this device: it asks, offers to erase a space's copy (off by default), and the others keep syncing.
 const workId = await c.evaluate(() => window.__app.spaces().work);
+await goSettings(c);
+await open(c, 'this');
 await c.locator('summary', { hasText: 'Join again or remove this device' }).click();
 await c.getByRole('button', { name: 'Remove this device from the account…' }).click();
 check((await c.getByLabel('Also erase Work on this device').isChecked()) === false, 'erasing a space is off by default');
@@ -133,6 +159,8 @@ check((await until(async () => (await row(a, ic).count()) === 0 && (await connec
 const databases = await c.evaluate(async () => (await indexedDB.databases()).map((d) => d.name));
 check(!databases.some((n) => n.includes(`space/${workId}`)), "the erased space's local copy is gone");
 check(databases.some((n) => n.startsWith('app-doc-space/')), "the other spaces' local copies stay");
+await c.evaluate(() => { location.hash = '#/settings/devices/add'; });
+await c.getByRole('button', { name: 'Start syncing my devices' }).waitFor();
 check((await c.getByRole('button', { name: 'Start syncing my devices' }).count()) === 1, 'it can start or join an account again');
 void ia;
 

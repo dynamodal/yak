@@ -1,10 +1,10 @@
-// End-to-end for the Settings page (one page, F-326): hours format and week start change Timer, Entries and
+// End-to-end for the Settings page (one long page with a contents row, F-33): hours format and week start change Timer, Entries and
 // Reports; theme switch applies; no CSP violations or page errors.
 // Runs against dist/ served with the real headers.
 //
 //   npm run e2e settings
 //
-import { BASE, launch, check, watchPage, poll, finish } from './lib.mjs';
+import { BASE, launch, check, watchPage, poll, finish, openRow } from './lib.mjs';
 
 
 const browser = await launch();
@@ -37,9 +37,31 @@ check((await page.getByLabel('Hours shown as').inputValue()) === 'decimal', 'hou
 check((await page.getByRole('link', { name: 'Import from Toggl' }).count()) === 0, 'Settings does not repeat the Toggl import in Preferences');
 check((await page.locator('details > summary', { hasText: 'History warnings' }).count()) === 1, 'Settings folds the history warnings');
 check((await page.locator('.manage-list, .manage-tabs').count()) === 0, 'Settings has no sub-menu');
-check((await page.getByRole('heading', { level: 2 }).allInnerTexts()).join('|') === 'Your data|Preferences|About & help', 'Settings is three cards: Your data, Preferences, About & help');
+check((await page.locator('section.st-section > h2').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backup and safety|Devices and sync|Spaces|Sharing|Display|Features|Help|Advanced', 'Settings sections in order (no Needs you while nothing waits)');
+check((await page.locator('nav.st-toc a').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backup and safety|Devices and sync|Spaces|Sharing|Display|Features|Help|Advanced', 'the contents row has one chip per section');
+check((await page.locator('[data-line="sync"], [data-line="backup"], [data-line="passphrase"]').count()) === 3, 'Sync, Backup and Passphrase lines are shown on a device that never synced');
+check(/Off/.test(await page.locator('[data-line="sync"]').innerText()) && /Not set/.test(await page.locator('[data-line="passphrase"]').innerText()), 'the lines say "Off" and "Not set"');
+check((await page.locator('table').count()) === 0, 'no spaces-by-devices table');
+// A section link scrolls to the section; a row link opens the row.
+await page.goto(`${BASE}?test#/settings/display`);
+await page.locator('#st-display').waitFor();
+check(await poll(async () => (await page.locator('#st-display').evaluate((e) => e.getBoundingClientRect().top)) < 200), '#/settings/display scrolls to Display');
+await page.goto(`${BASE}?test#/settings`);
+await page.locator('nav.st-toc a[data-toc="features"]').click();
+check((await page.evaluate(() => location.hash)) === '#/settings/features', 'a chip sets the section address');
+await page.goto(`${BASE}?test#/settings`);
+await page.locator('h1', { hasText: 'Settings' }).waitFor();
+// The old detail routes open their row in place.
+const spaceId = await page.evaluate(() => [...document.querySelectorAll('[data-space]')][0].getAttribute('data-space'));
+await page.evaluate((id) => { location.hash = `#/settings/space/${id}`; }, spaceId);
+await page.locator(`[data-space="${spaceId}"] .st-row-head[aria-expanded="true"]`).waitFor();
+check((await page.evaluate(() => location.hash)) === `#/settings/spaces/${spaceId}`, 'an old space route opens the Spaces row');
+await page.evaluate(() => { location.hash = '#/settings/devices/someone'; });
+await page.locator('#st-devices-sync').waitFor();
+check((await page.evaluate(() => location.hash)) === '#/settings/devices-sync/someone', 'an old device route goes to the device row');
+await go('#/settings', 'h1');
 // A space: no raw id is shown; renaming keeps the id, and a taken name is refused.
-await page.locator('table.st-keeps').getByRole('link', { name: 'Personal', exact: true }).click();
+await openRow(page, 'Personal');
 await page.getByLabel('Name of space Personal').waitFor();
 const ids = await page.locator('.st-space-id').allInnerTexts();
 check(ids.length === 0, 'a space shows no raw id');
@@ -50,14 +72,14 @@ check(
   (await poll(async () => (await page.locator('.st-space-id').allInnerTexts()).map((t) => t.trim()).join() === ids.map((t) => t.trim()).join() && (await page.getByLabel('Name of space Home').count()) === 1)) >= 0,
   'renaming a space keeps its id',
 );
-await go('#/settings', 'table.st-keeps');
-await page.locator('table.st-keeps').getByRole('link', { name: 'Work', exact: true }).click();
+await go('#/settings', '.st-row');
+await openRow(page, 'Work');
 const work = page.getByLabel('Name of space Work');
 await work.fill('home');
 await work.press('Enter');
 check((await poll(async () => (await page.getByText('There is already a space called').count()) === 1)) >= 0, 'a name already used by another space (any case) is refused');
-await go('#/settings', 'table.st-keeps');
-await page.locator('table.st-keeps').getByRole('link', { name: 'Home', exact: true }).click();
+await go('#/settings', '.st-row');
+await openRow(page, 'Home');
 await page.getByLabel('Name of space Home').fill('Personal');
 await page.getByLabel('Name of space Home').press('Enter');
 check((await poll(async () => (await page.getByLabel('Name of space Personal').count()) === 1)) >= 0, 'the space is renamed back');

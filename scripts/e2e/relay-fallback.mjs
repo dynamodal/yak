@@ -26,7 +26,15 @@ const mk = async (n) => {
   return page;
 };
 const st = (p) => p.evaluate(() => window.__app.state());
-const rowText = (p) => p.locator('.device-list').innerText();
+// The other device's row on Settings, opened (its state line is in the open row).
+const rowText = async (p) => {
+  if (!(await p.locator('.st-home').count())) await p.evaluate(() => { location.hash = '#/settings/devices-sync'; });
+  const r = p.locator('[data-device-row]:not([data-device-row="this"])').first();
+  await r.waitFor();
+  const head = r.locator('.st-row-head');
+  if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
+  return r.innerText();
+};
 
 const a = await mk('A');
 const b = await mk('B');

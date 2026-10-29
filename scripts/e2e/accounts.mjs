@@ -44,7 +44,7 @@ check((await a.locator('.st-accounts [data-edit-warning], .st-accounts .hint').f
 
 // The space page: Kept on, and Shared with with no share yet.
 await goto(a, `#/settings/space/${spaceP}`);
-await a.getByRole('heading', { name: 'Kept on' }).waitFor();
+await a.locator('legend', { hasText: 'Kept on' }).waitFor();
 const keepBox = a.getByLabel('This device keeps Personal');
 check(await keepBox.isChecked(), 'Kept on lists this device, ticked');
 await keepBox.uncheck();
@@ -83,16 +83,16 @@ await until(async () => (await hook(a, (s) => window.__app.shareView(s), spaceP)
 await a.locator(`.share-members li[data-member="${fpB}"]`).waitFor();
 check((await a.locator('[data-share-link]').count()) === 0, 'the finished link and its request are gone from the space page');
 check((await a.getByRole('button', { name: '+ Share Personal with an account' }).count()) === 1, 'the share button is back');
-const order = await a.locator('h2').allInnerTexts();
-check(order.join('|').startsWith('Kept on|Shared with') && order[order.length - 1] === 'Space', `space page order (${order.join(' | ')})`);
+const order = await a.locator('[data-space] .st-row-body > legend, [data-space] .st-row-body legend, [data-space] .st-row-body > h3').allInnerTexts();
+check(order.join('|').startsWith('Kept on|Shared with') && order[order.length - 1] === 'Space', `space row order (${order.join(' | ')})`);
 await goto(a, '#/settings');
 const rowA = a.locator(`.st-accounts li[data-account="${fpB}"]`);
 await rowA.waitFor();
 const textA = await rowA.innerText();
 check(/Bob/.test(textA) && /you share 1 space/.test(textA), `A's list: Bob, you share 1 space (${textA.replace(/\s+/g, ' ')})`);
-check((await a.locator('tr[data-space] [data-chip]').filter({ hasText: 'Bob' }).count()) === 1, 'A: the Personal row carries a "Bob" chip');
+check((await a.locator('[data-space] [data-chip]').filter({ hasText: 'Bob' }).count()) === 1, 'A: the Personal row carries a "Bob" chip');
 check((await a.getByRole('button', { name: /^Share .* with another account$/ }).count()) === 0, 'A: no per-row Share… any more');
-check((await a.locator('tr[data-space] [data-chip]').filter({ hasText: 'link open' }).count()) === 0, 'A: no "link open" chip after the link was used');
+check((await a.locator('[data-space] [data-chip]').filter({ hasText: 'link open' }).count()) === 0, 'A: no "link open" chip after the link was used');
 await goto(a, `#/settings/space/${spaceP}`);
 const memberRow = a.locator(`.share-members li[data-member="${fpB}"]`);
 await memberRow.waitFor();
@@ -106,7 +106,7 @@ const rowB = b.locator(`.st-accounts li[data-account="${fpA}"]`);
 await rowB.waitFor();
 const textB = await rowB.innerText();
 check(/Alice/.test(textB) && /shares 1 with you/.test(textB), `B's list: Alice shares 1 with you (${textB.replace(/\s+/g, ' ')})`);
-check((await b.locator('tr[data-space] [data-chip]').filter({ hasText: 'from Alice' }).count()) === 1, 'B: the row carries a "from Alice" chip');
+check((await b.locator('[data-space] [data-chip]').filter({ hasText: 'from Alice' }).count()) === 1, 'B: the row carries a "from Alice" chip');
 await goto(b, `#/settings/space/${spaceP}`);
 const ownerRow = b.locator(`.share-members li[data-member="${fpA}"]`);
 await ownerRow.waitFor();
@@ -114,17 +114,21 @@ check(/owner/.test(await ownerRow.innerText()) && (await b.getByRole('button', {
 
 // The account page: full fingerprint, rename.
 await goto(a, '#/settings');
-await a.locator(`.st-accounts li[data-account="${fpB}"] a`).click();
-await a.getByRole('heading', { name: 'Bob', level: 1 }).waitFor();
-check((await a.evaluate(() => location.hash)) === `#/settings/account/${fpB}`, 'the row opens the account page');
+const openAcct = async (p, fp) => {
+  const head = p.locator(`.st-accounts li[data-account="${fp}"] .st-row-head`);
+  if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
+};
+await openAcct(a, fpB);
+await a.locator('[data-account-fingerprint]').waitFor();
+check((await a.locator(`.st-accounts li[data-account="${fpB}"] .st-row-head`).getAttribute('aria-expanded')) === 'true', 'the row opens the account in place');
 const fullFp = (await a.locator('[data-account-fingerprint]').innerText()).replace(/\s+/g, '');
-check(fullFp === fpB, 'the page shows the full fingerprint');
+check(fullFp === fpB, 'the row shows the full fingerprint');
 await a.getByLabel('Your name for this account').fill('Bobby');
-await a.getByRole('button', { name: 'Rename' }).click();
-await a.getByRole('heading', { name: 'Bobby', level: 1 }).waitFor();
+await a.getByRole('button', { name: 'Rename', exact: true }).click();
+await a.locator(`.st-accounts li[data-account="${fpB}"] .st-row-title`, { hasText: 'Bobby' }).waitFor();
 await goto(a, '#/settings');
 check((await a.locator(`.st-accounts li[data-account="${fpB}"]`).innerText()).includes('Bobby'), 'the list shows your name for the account');
-await a.locator(`.st-accounts li[data-account="${fpB}"] a`).click();
+await openAcct(a, fpB);
 await a.getByRole('heading', { name: 'You share with Bobby' }).waitFor();
 check((await a.getByRole('heading', { name: 'You share with Bobby' }).count()) === 1 && (await a.locator(`[data-shared-space="${spaceP}"]`).count()) === 1, 'the page lists Personal under "You share with Bobby"');
 await b.locator('a[href="#/settings"]').first().click().catch(() => {});

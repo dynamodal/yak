@@ -43,7 +43,7 @@ const peerKeepsWork = (p) => p.evaluate(() => {
   const me = window.__app.deviceId();
   return Object.entries(keeps).some(([key, on]) => key.endsWith(`:${work}`) && !key.startsWith(`${me}:`) && on === true);
 });
-await a.evaluate(() => { location.hash = '#/settings'; });
+await a.evaluate(() => { location.hash = '#/settings/devices-sync/this'; });
 
 // 1. Nothing else keeps Work: the reset is refused.
 await a.locator('input[aria-label="This device keeps Work"]').uncheck();
@@ -71,6 +71,8 @@ await Promise.all([b.waitForEvent('download'), b.getByRole('button', { name: 'Sa
 await Promise.all([b.waitForEvent('load', { timeout: 30000 }), b.getByRole('button', { name: 'Reset and reload' }).click()]);
 await b.waitForFunction(() => window.__app);
 check((await text(b)) === '', 'everything was erased on B');
+await b.evaluate(() => { location.hash = '#/settings/devices/add'; });
+await b.getByRole('button', { name: 'Start syncing my devices' }).waitFor();
 check((await b.getByRole('button', { name: 'Start syncing my devices' }).count()) === 1, 'B is not in the account any more');
 await (await openJoin(b)).locator('summary', { hasText: /^Connection server$/ }).click();
 await b.locator('input[aria-label="Connection server"]').fill(mock.url);

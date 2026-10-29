@@ -4,7 +4,7 @@
 //
 //   npm run e2e relay-default
 //
-import { BASE, launch, ok, fail, watchPage, until, finish, keepAllSpaces, openJoin, startSyncing, joinByInvite } from './lib.mjs';
+import { BASE, launch, ok, fail, watchPage, until, finish, keepAllSpaces, openJoin, openAdvanced, startSyncing, joinByInvite } from './lib.mjs';
 
 const RELAY = BASE.replace(/^http/, 'ws').replace(/\/$/, '') + '/signal';
 
@@ -32,9 +32,10 @@ const secret = await joinByInvite(a, b);
 const t = await until(async () => (await st(a)) === 'connected' && (await st(b)) === 'connected', 20000);
 t >= 0 ? ok(`paired over the site relay in ${t} ms`) : fail('did not connect over the site relay');
 await a.evaluate(() => window.__app.append('space/work', 't', 'via site relay '));
-// The Devices page counts this account's relay room: two devices connected, some messages today.
+// Settings › Advanced counts this account's relay room: two devices connected, some messages today.
+await openAdvanced(a);
 (await until(async () => /Relay: 2 devices connected · [1-9]\d* messages? today/.test(await a.locator('.relay-stats summary').textContent().catch(() => '')), 90000)) >= 0
-  ? ok('the Devices page shows the relay room stats') : fail(`relay stats: ${await a.locator('.relay-stats').textContent().catch(() => 'missing')}`);
+  ? ok('Advanced shows the relay room stats') : fail(`relay stats: ${await a.locator('.relay-stats').textContent().catch(() => 'missing')}`);
 (await until(async () => (await b.evaluate(() => window.__app.text('space/work', 't'))).includes('via site relay'), 5000)) >= 0
   ? ok('edit synced') : fail('edit did not sync');
 const sa = await stored(a);

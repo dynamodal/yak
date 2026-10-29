@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { commandHidden, effectiveHidden, featureBlock, hiddenRoute, landingRoute, readHiddenModules, searchKindHidden, setFeatureBlock, viewHidden } from './features';
+import { commandHidden, effectiveHidden, featureBlock, hiddenRoute, landingRoute, readHiddenModules, searchKindFor, searchKindHidden, setFeatureBlock, viewHidden } from './features';
 
 const store = (v: string | null) => ({ getItem: () => v });
 const views = [
@@ -81,7 +81,12 @@ describe('registry filter', () => {
     expect(searchKindHidden('task', hidden)).toBe(false);
     expect(searchKindHidden('task', effectiveHidden(['notes', 'tasks']))).toBe(true);
     expect(searchKindHidden('entry', hidden)).toBe(false);
-    expect(searchKindHidden('task', effectiveHidden(['tasks']))).toBe(true);
+    // Tasks off with Notes on: a task is still found, as a note (#44).
+    expect(searchKindHidden('task', effectiveHidden(['tasks']))).toBe(false);
+    expect(searchKindFor('task', effectiveHidden(['tasks']))).toBe('note');
+    expect(searchKindFor('task', effectiveHidden([]))).toBe('task');
+    expect(searchKindFor('task', effectiveHidden(['notes']))).toBe('task');
+    expect(searchKindFor('note', effectiveHidden(['notes']))).toBeUndefined();
     expect(searchKindHidden('note', effectiveHidden(['tasks']))).toBe(false);
   });
   it('knows a hidden page by its route, in Settings too', () => {

@@ -1,5 +1,15 @@
 # What's new
 
+## 2026-11-01: Settings is one long page
+
+- **Settings** is one page with a row of section chips under the title: Backup and safety, Devices and sync, Spaces, Sharing, Display, Features, Help, Advanced. A **Needs you** section appears first while something waits: a device or account asking to join, or "No backup yet". The Settings tab shows a dot for a request.
+- The Sync, Backup and Passphrase lines are always there, whatever the state ("Sync: Off · Set up").
+- Devices, spaces and accounts are rows that open where they are. The spaces-by-devices table is gone: each device and each space shows what it keeps as toggle chips.
+- Device keys and ids, the connection, logs and Reset this device's data moved to **Advanced**.
+- Adding a device: the QR code and a link come first, with **Send link** where your browser can share. The code is shown in groups of four with a copy button, and the join field accepts a pasted link.
+- Searching: a task is still found, as a note, when only Tasks is switched off.
+- Nothing stored changed; old Settings addresses open the right row.
+
 ## 2026-10-31: Tasks work without Notes
 
 - **Notes** and **Tasks** are separate switches in Settings › Preferences › Tabs shown. Hide Notes and keep Tasks if you only want a task list.

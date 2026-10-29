@@ -27,9 +27,9 @@ await startSyncing(a);
 const accountA = await accountId(a);
 // Fresh account (F-20): not "removed or missed a change", and the sync line says it waits for the first device.
 check(!/missed a change/.test(await a.locator('main').innerText()), 'fresh account: the Devices page does not claim this device was removed');
-check(/No other device yet/.test(await a.locator('main').innerText()), 'fresh account: it says no other device yet');
 await a.evaluate(() => { location.hash = '#/settings'; });
-check((await until(async () => /On · waiting for your first device/.test(await a.locator('[aria-label="Status"]').innerText().catch(() => '')), 10000)) >= 0, 'fresh account: Sync says On · waiting for your first device');
+check((await until(async () => /No other device yet/.test(await a.locator('main').innerText()), 10000)) >= 0, 'fresh account: it says no other device yet');
+check((await until(async () => /On · waiting for your first device/.test(await a.locator('[aria-label="Sync status"]').innerText().catch(() => '')), 10000)) >= 0, 'fresh account: Sync says On · waiting for your first device');
 await a.evaluate(() => { location.hash = '#/settings/devices'; });
 await a.getByRole('button', { name: /Make a (new )?one-time code/ }).first().waitFor({ timeout: 15000 });
 const spacesA = await spaces(a);
@@ -61,6 +61,7 @@ await joinByInvite(a, b);
 
 // A device with its own data joins: its Personal is kept, named after the device.
 const c = await mk('C');
+await c.evaluate(() => { location.hash = '#/settings/devices-sync/this'; });
 await c.locator('input[aria-label="This device\'s name"]').fill('Phone');
 await c.locator('input[aria-label="This device\'s name"]').blur();
 await c.evaluate(() => window.__app.append('space/personal', 't', 'from C '));
@@ -70,12 +71,14 @@ const expected = '["personal","personal (phone)","work"]';
 (await until(async () => JSON.stringify(await spaceNames(c)) === expected, 25000)) >= 0 ? ok('its own Personal is kept as "Personal (Phone)"') : fail(`C spaces ${JSON.stringify(await spaceNames(c))}`);
 (await until(async () => JSON.stringify(await allSpaceNames(a)) === expected, 25000)) >= 0 ? ok('the other devices see the space in the account') : fail(`A account spaces ${JSON.stringify(await allSpaceNames(a))}`);
 // The space is new to A: A has not decided on it, so nothing of it reaches A until A keeps it.
+await a.evaluate(() => { location.hash = '#/settings'; });
 await a.locator('.notice', { hasText: 'Personal (Phone)' }).waitFor({ timeout: 25000 });
 const kept = (await spaces(c))['personal (phone)'];
 check(JSON.stringify(await spaceNames(a)) === '["personal","work"]', 'A does not keep the new space until it decides');
 await a.getByRole('button', { name: 'Keep all spaces' }).click();
 (await until(async () => ((await a.evaluate((id) => window.__app.text(`space/${id}`, "t"), kept)) ?? '').includes('from C'), 25000)) >= 0
   ? ok('the kept data reached A once A kept the space') : fail('kept data not on A');
+await c.evaluate(() => { location.hash = '#/settings/devices-sync/this'; });
 check((await c.locator('input[aria-label="This device\'s name"]').inputValue()) === 'Phone', 'the device kept its name');
 
 // First start: the welcome creates nothing until a choice is made.

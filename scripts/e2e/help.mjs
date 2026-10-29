@@ -18,7 +18,7 @@ await page.waitForFunction(() => window.__app);
 // Help is in Settings (About & help); the header has no "?" any more.
 check((await page.locator('.topbar').getByRole('link', { name: /^Help/ }).count()) === 0, 'the header has no Help button');
 await page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Settings' }).click();
-await page.getByRole('link', { name: 'Help & About' }).click();
+await page.getByRole('link', { name: 'Guide and About' }).click();
 await page.getByRole('heading', { name: 'Help & About', level: 1 }).waitFor();
 check(page.url().endsWith('#/help'), 'Settings, About & help opens #/help');
 const main = await page.locator('main').innerText();
@@ -131,6 +131,14 @@ await nudge.waitForFunction(() => window.__backup !== undefined);
 await nudge.evaluate(async () => { await window.__backup.ready(); window.__backup.seed('personal', 'Personal'); });
 check(await poll(async () => /No backup yet/.test(await nudge.locator('.backup-banner').innerText().catch(() => ''))), 'with data and no backup: the bar says No backup yet');
 check((await nudge.getByRole('button', { name: 'Remind me tomorrow' }).count()) === 0, 'and there is no snooze');
+// Needs you (F-33): Settings lists it first, and its chip carries a dot.
+await nudge.evaluate(() => { location.hash = '#/settings'; });
+await nudge.locator('[data-need="backup-never"]').waitFor();
+check((await nudge.locator('section.st-section > h2').first().innerText()).trim() === 'Needs you' && /No backup yet/.test(await nudge.locator('[data-need="backup-never"]').innerText()), 'Settings lists "No backup yet" first, under Needs you');
+check((await nudge.locator('[data-toc="needs-you"] [data-dot="warn"]').count()) === 1 && (await nudge.locator('.main-tabs a', { hasText: /^Settings/ }).locator('.tab-dot.warn').count()) === 1, 'its chip and the Settings tab carry an amber dot');
+await nudge.locator('[data-need="backup-never"] a').click();
+check(await poll(async () => nudge.url().endsWith('#/settings/backup')), 'its Set up link opens Backup & restore');
+await nudge.goBack();
 await nudge.locator('[data-backup-never]').getByRole('button', { name: 'Set up' }).click();
 check(await poll(async () => nudge.url().endsWith('#/settings/backup')), 'Set up opens Backup & restore');
 await nudge.locator('[data-storage]').waitFor();

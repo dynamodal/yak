@@ -117,7 +117,7 @@ export function SharePanel(props: {
                   <li key={m.fp} data-member={m.fp}>
                     <div class="share-member-main">
                       <div>
-                        <a href={`#/settings/account/${m.fp}`}>
+                        <a href={`#/settings/sharing/${m.fp}`}>
                           <strong>{label}</strong>
                         </a>
                         {m.fp === view.state!.owner ? <span class="hint"> (owner)</span> : null} <code class="hint">{short(m.fp)}</code>

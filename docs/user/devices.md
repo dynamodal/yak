@@ -6,25 +6,25 @@ Sync is optional and only between your own devices. Everything works without it.
 
 1. On the first device open **Settings**, choose **+ Add a device**, then **Start syncing my devices**. If you have no passphrase yet, a sheet asks you to create one: Yak suggests words, or you type your own, and you tick **I've written it down**.
 2. On the new device choose **Join my other device** when it starts, or open **Settings** and choose **+ Add a device** if it already runs. Enter the one-time code from step 3.
-3. On the first device choose **Make a one-time code** on the same device page. Both screens show a short code. If they match, choose **The codes match** on the new device and **Approve** on the other. If not, start again. A code adds one device and works for 15 minutes.
+3. On the first device choose **Make a one-time code** on the same page. It shows a QR code and a link first: scan the QR code on the new device, or choose **Send link** (where your browser has a share sheet) or **Copy link** and open it there. To type instead, the code is shown in groups of four with a **Copy code** button, and the new device's code field also takes a pasted link. Both screens then show a short code. If they match, choose **The codes match** on the new device and **Approve** on the other. If not, start again. A code adds one device and works for 15 minutes.
 4. Pairing is done once. Devices reconnect by themselves while the app is open.
 
 - A new passphrase needs at least 20 characters. Under 28 it works but is warned about: four or more random words is best.
 - Approving, removing a device and sharing ask for your passphrase in a sheet, and then carry on by themselves. It stays unlocked for 5 minutes after you last used it, so a run of actions asks once.
-- A device you did not approve stops syncing. You can approve it later on its device page.
+- A device you did not approve stops syncing. You can approve it later under **Settings › Advanced › Device keys and ids**.
 - If Yak ever has to go back to an earlier version, your devices stop syncing until it is updated again. Nothing is lost.
 
 ## Switching an older account to device keys
 
 An account made before device keys were always on still lets any device that holds its old code join.
-A device page shows **Switch to device keys** on it.
+**Settings › Advanced › Device keys and ids** shows **Switch to device keys** on it.
 
-1. Compare each device's fingerprint with the one its own device page shows, and tick the ones you recognise.
+1. Compare each device's fingerprint with the one in Advanced on that device, and tick the ones you recognise.
 2. Choose **Switch to device keys**; a sheet asks for your passphrase (to create one if you have none). This cannot be undone.
 3. Before you press it, the page lists the devices that will have to join again.
 
 A device that is not ticked, has no keys yet or runs an older Yak stops syncing, but nothing on it is deleted.
-Open its device page (Settings, then the device's name or **+ Add a device**), choose **Join again with a one-time code**, and approve it from another device: what it wrote meanwhile merges back.
+Open its row in **Settings › Devices and sync**, choose **Join again or remove this device**, then **Join again with a one-time code**, and approve it from another device: what it wrote meanwhile merges back.
 Update Yak on it first if it is old.
 
 ## What to expect
@@ -36,7 +36,7 @@ Update Yak on it first if it is old.
   - Filled green circle: linked to at least one device directly.
   - Green ring: linked only through the relay, which only carries sealed data and is slower.
   - Amber triangle: paired, but no device is linked now.
-- The **Sync** line on Settings and the device pages explain it further.
+- The **Sync** line on Settings (always shown, even when sync is off) and the device rows explain it further.
 - Phones pause pages in the background, so sync happens while the page is open.
 - If two devices edit the same thing, both edits are merged; nothing is lost silently.
 
@@ -48,7 +48,7 @@ Backups are the safety net for either: see [Backups and history](#/help/backups)
 
 ## Sharing a space
 
-With device keys required, a space can be shared with another account: open the space's page from **Settings** and choose **+ Share <space> with an account** (the page also tells which of your devices keep the space). A share does not give them any of your devices or your other spaces. Removing one of your devices from your account also removes it from your shares.
+With device keys required, a space can be shared with another account: open the space's row under **Settings › Spaces** and choose **+ Share <space> with an account** under Shared with (the row also tells which of your devices keep the space). A share does not give them any of your devices or your other spaces. Removing one of your devices from your account also removes it from your shares.
 
 ## Passphrase
 

@@ -21,6 +21,8 @@ async function scenario(name, answer, expected) {
   watchPage(page, name, { ignore: () => true });
   await page.goto(BASE + '?test#/devices');
   await startSyncing(page);
+  // The relay notices sit under the Sync line in Devices and sync (F-33).
+  await page.evaluate(() => { location.hash = '#/settings/devices-sync'; });
   const t = await until(async () => expected.test(await page.locator('main').innerText()), 40000, 500);
   check(t >= 0, `${name}: the page says ${expected}`);
   check(/Direct sync/.test(await page.locator('main').innerText()), `${name}: and that direct sync is not affected`);

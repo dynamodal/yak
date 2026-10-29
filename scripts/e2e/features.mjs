@@ -38,7 +38,6 @@ const hash = (p) => p.evaluate(() => location.hash);
 
   // Features page: Notes back on shows Notes only; Tasks stays hidden until ticked.
   await p.evaluate(() => (location.hash = '#/settings'));
-  await p.locator('details.st-tabs-shown > summary').click();
   await p.getByLabel('Notes', { exact: true }).check();
   check((await tabs(p)).join() === 'Time,Notes,Settings', `Notes on: Notes tab only (${(await tabs(p)).join()})`);
   await p.getByLabel('Tasks', { exact: true }).check();
@@ -56,7 +55,6 @@ const hash = (p) => p.evaluate(() => location.hash);
   check((await hash(p)) === '#/time/reports', 'a stale `reports` entry in hidden_modules leaves Reports shown');
   await p.evaluate(() => localStorage.setItem('hidden_modules', '[]'));
   await p.evaluate(() => (location.hash = '#/settings'));
-  await p.locator('details.st-tabs-shown > summary').click();
   // Notes and Tasks are separate switches (F-33n): Notes off keeps Tasks, and the Tasks switch stays usable.
   await p.getByLabel('Notes', { exact: true }).uncheck();
   check((await tabs(p)).join() === 'Time,Tasks,Settings', `Notes off keeps Tasks (${(await tabs(p)).join()})`);
@@ -117,7 +115,6 @@ const hash = (p) => p.evaluate(() => location.hash);
   await startRound(p).click();
   await poll(async () => (await running()) === 1);
   await p.evaluate(() => (location.hash = '#/settings'));
-  await p.locator('details.st-tabs-shown > summary').click();
   check(await p.getByLabel('Time', { exact: true }).isDisabled(), 'the Time switch is locked while a timer runs');
   check(await p.getByText('A timer is running. Stop it before hiding Time.').isVisible(), 'and says why');
   await stopRound(p).click();
@@ -140,7 +137,6 @@ const hash = (p) => p.evaluate(() => location.hash);
   check((await p.title()) === 'Yak' || !(await p.title()).includes('Not tracking'), `the title cue is off (${await p.title()})`);
   // Every other feature off too: Settings, which is never hidden.
   await p.evaluate(() => (location.hash = '#/settings'));
-  await p.locator('details.st-tabs-shown > summary').click();
   await p.getByLabel('Notes', { exact: true }).uncheck();
   await p.getByLabel('Tasks', { exact: true }).uncheck();
   check((await tabs(p)).join() === 'Settings', `all features off: only Settings (${(await tabs(p)).join()})`);
@@ -148,7 +144,6 @@ const hash = (p) => p.evaluate(() => location.hash);
   await p.waitForFunction(() => location.hash === '#/settings', null, { timeout: 5000 }).catch(() => {});
   check((await hash(p)) === '#/settings', 'with every other feature off the app lands on Settings');
   // Back on: data was kept, the pill returns.
-  await p.locator('details.st-tabs-shown > summary').click();
   await p.getByLabel('Time', { exact: true }).check();
   check((await tabs(p)).join() === 'Time,Settings', 'Time on again: the tab returns');
   check(await poll(async () => (await pill(p).count()) === 1), 'Time on again: the pill returns');

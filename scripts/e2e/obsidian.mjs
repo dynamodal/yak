@@ -11,7 +11,7 @@
 //
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { BASE, launch, check, watchPage, until, finish, startSyncing, unlockIfAsked } from './lib.mjs';
+import { BASE, launch, check, watchPage, until, finish, startSyncing, unlockIfAsked, openRow } from './lib.mjs';
 
 // The bundle is rebuilt each run (about a second), so the suite never tests a stale one.
 execSync('npm run build:obsidian', { cwd: new URL('../..', import.meta.url), stdio: 'ignore' });
@@ -223,8 +223,9 @@ check(t >= 0, `the account document arrived through the relay${t >= 0 ? ` in ${t
 
 // It is a device of its own; nothing reaches it until the owner ticks spaces.
 await app.evaluate(() => (location.hash = '#/settings'));
+await openRow(app, 'Obsidian (TestVault)');
 await app.getByLabel('Obsidian (TestVault) keeps Personal').waitFor({ timeout: 20000 });
-check(true, 'the Settings table lists the plugin by name, with a Keeps box per space');
+check(true, 'Settings lists the plugin by name, with a keep chip per space');
 await settle();
 check(!(await P(() => window.__vault.paths().some((p) => p.startsWith('Yak/')))), 'no notes are written before the owner chooses spaces');
 check((await P(() => [...window.__plugin.store.opened().keys()].filter((id) => id.startsWith('space/')).length)) === 0, 'no space document is held yet');
@@ -291,7 +292,7 @@ await A(() => window.__mirror.run());
 const signed = await plugged(async () => (await window.__plugin.mirror.run(), window.__vault.text('Yak/Personal/Inbox.md')?.endsWith('+ keys')), 40000);
 check(signed >= 0, 'notes keep syncing to the vault with keys required');
 
-await A(() => (location.hash = '#/devices'));
+await A(() => (location.hash = '#/settings/devices/add'));
 await app.getByRole('button', { name: /Make a (new )?one-time code/ }).click();
 const invite = (await app.locator('[data-invite-code]').innerText()).trim();
 const second = await (await browser.newContext({ bypassCSP: true })).newPage();

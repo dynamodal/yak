@@ -4,7 +4,7 @@ import { cx } from './cx';
 export type DataLineTone = 'ok' | 'warn' | 'off';
 
 /**
- * One status row under the Your data table (F-326): a coloured dot (ok, warn or off), a label and short
+ * One status row on Settings (F-326, F-33): a coloured dot (ok, warn or off), a label and short
  * text, and the link or action at the end of the same line. It never wraps: the text is cut with an ellipsis.
  */
 export function DataLine(props: { id: string; tone: DataLineTone; label: string; text: string; children?: ComponentChildren }) {

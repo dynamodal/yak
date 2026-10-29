@@ -56,4 +56,35 @@ check(box && box.x >= 0 && box.x + box.width <= 375, 'the search fits at 375 px'
 await p.locator('dialog.search-dialog').getByRole('button', { name: 'Close' }).click();
 check((await p.locator('dialog.search-dialog').count()) === 0, 'and has a Close button');
 
+// #44: a task is a note. Both on: found under Tasks. Only Tasks off: found under Notes and opened in Notes. Only Notes off: still a task.
+await p.setViewportSize({ width: 1100, height: 900 });
+await p.evaluate(() => { location.hash = '#/tasks'; });
+await p.locator('input[aria-label="New task"]').fill('Quokka errand');
+await p.locator('input[aria-label="New task"]').press('Enter');
+await p.getByRole('link', { name: /Quokka errand/ }).first().waitFor();
+const find = async () => {
+  await p.locator('.main-tabs').waitFor();
+  for (let i = 0; i < 6 && !(await p.locator('dialog.search-dialog').count()); i++) {
+    await p.keyboard.press('Control+Shift+F');
+    await p.waitForTimeout(500);
+  }
+  await p.getByLabel('Search query').fill('quokka');
+  await p.getByRole('option', { name: /Quokka errand/ }).waitFor();
+};
+await find();
+check((await p.locator('.search-group', { hasText: 'Tasks' }).count()) === 1 && (await p.locator('.search-group', { hasText: 'Notes' }).count()) === 0, 'both on: the task is listed once, under Tasks');
+await p.keyboard.press('Escape');
+await p.evaluate(() => { localStorage.setItem('hidden_modules', '["tasks"]'); });
+await p.reload();
+await p.waitForFunction(() => window.__app);
+await find();
+check((await p.locator('.search-group', { hasText: 'Notes' }).count()) === 1 && (await p.locator('.search-group', { hasText: 'Tasks' }).count()) === 0 && (await p.getByRole('option', { name: /Quokka errand/ }).count()) === 1, 'only Tasks off: the task is listed once, under Notes');
+await p.getByRole('option', { name: /Quokka errand/ }).click();
+check((await until(async () => p.url().includes('#/notes/'))) >= 0, 'and it opens in Notes');
+await p.evaluate(() => { localStorage.setItem('hidden_modules', '["notes"]'); });
+await p.reload();
+await p.waitForFunction(() => window.__app);
+await find();
+check((await p.locator('.search-group', { hasText: 'Tasks' }).count()) === 1, 'only Notes off: the task is still a task');
+
 await finish(browser);

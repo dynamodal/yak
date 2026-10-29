@@ -67,6 +67,13 @@ const norm = secret.replace(/-/g, '');
 check(decoded?.data.startsWith('yak:pair?v=1&s=' + norm) ?? false, 'QR payload carries the displayed one-time code');
 check((decoded?.data ?? '').includes('sig='), 'QR payload names the non-default signaling server');
 check((await a.locator('[style]').count()) === 0, 'no inline style attributes in the page');
+// One-time code option A+ (#22): QR and link first, the code in groups of four below with a copy button; Send link only where the browser can share.
+check(/^([A-Z2-7]{4}-){6}[A-Z2-7]{4}$/.test(secret), 'the one-time code is shown in groups of four');
+check((await a.getByRole('button', { name: 'Copy link' }).count()) === 1 && (await a.getByRole('button', { name: 'Copy code' }).count()) === 1, 'it offers Copy link and Copy code');
+const canShare = await a.evaluate(() => typeof navigator.share === 'function');
+check((await a.getByRole('button', { name: 'Send link' }).count()) === (canShare ? 1 : 0), `Send link is offered only where the browser has a share sheet (${canShare ? 'it has' : 'it has none'})`);
+const [qrBox, codeBox] = await Promise.all([a.locator('svg.qr-code').boundingBox(), a.locator('[data-invite-code]').boundingBox()]);
+check(qrBox && codeBox && qrBox.y < codeBox.y, 'the QR code comes before the typed code');
 
 // Part 2: B scans it with a fake camera.
 const file = join(dir, 'qr.y4m');
@@ -86,6 +93,13 @@ await joinBtn.waitFor({ timeout: 5000 });
 check((await b.getByText('Code found').count()) === 1, 'scan shows "Code found"');
 check(await joinBtn.evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }), 'Join this account is visible at 375 px');
 check(await joinBtn.evaluate((el) => el === document.activeElement), 'Join this account has focus');
+// A pasted join link (or the QR text) fills the code field; a plain code is left as typed.
+const field = b.locator('input[aria-label="One-time code"]');
+await field.fill(`https://yak.example.com/#/join/${norm}`);
+check((await field.inputValue()) === secret, 'a pasted join link fills the code field in groups');
+await field.fill(`yak:pair?v=1&s=${norm}`);
+check((await field.inputValue()) === secret, 'so does the text of the QR code');
+
 // Joining compares codes, A approves, B confirms and reloads once.
 const loaded = b.waitForEvent('load', { timeout: 60000 });
 await joinBtn.click();

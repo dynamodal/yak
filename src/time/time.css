@@ -86,7 +86,7 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .te-line:hover .te-actions, .te-line:focus-within .te-actions, .te-line:hover .picker-btn.empty, .te-line:focus-within .picker-btn.empty { opacity: 1; }
 @media (hover: none) {
   .day { --te-actions-w: 5.6rem; }
-  .te-actions { opacity: 1; }
+  .te-actions, .te-meta .picker-btn.empty { opacity: 1; }
 }
 /* A narrow window with a mouse (the "mini" timer): actions float over the end of the row on hover
    instead of taking room from the description. */

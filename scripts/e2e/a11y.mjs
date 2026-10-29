@@ -47,8 +47,19 @@ async function scan([scheme, width]) {
   await page.getByRole('button', { name: 'Start timer' }).click();
   await nameRunning(page, 'Still running');
   const personal = await page.evaluate(() => window.__app.spaces().personal);
-  // The pointer rests on the timer's row from the clicks above; a hovered list row reveals its hover-only controls, which the scan is not about.
-  await page.mouse.move(1, 1);
+  // The pointer rests on the timer's row from the clicks above, so the scans cover a hovered, project-less row (its "Add project" button shows on hover).
+  await page.evaluate(() => { location.hash = '#/time/list'; });
+  await page.locator('.te-line').first().waitFor();
+  const box = await page.locator('.te-line').first().boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  // On a phone the row shows a chip instead. Elsewhere the button is in the Tab order: Tab from the description lands on it.
+  const addProject = page.getByRole('button', { name: /^Add project/ }).first();
+  if (width > 640) {
+    await addProject.waitFor();
+    await page.locator('.te-line').first().getByRole('button', { name: /^Description of/ }).focus();
+    await page.keyboard.press('Tab');
+    check(await addProject.evaluate((el) => el === document.activeElement), `${tag}: Add project is reachable by Tab`);
+  }
   for (const hash of PAGES) {
     await page.evaluate((h) => { location.hash = h; }, hash.replace('PERSONAL', personal));
     // The page is up when the route is set, the view has content and nothing is still animating (a fade skews contrast).

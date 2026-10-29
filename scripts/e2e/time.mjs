@@ -36,7 +36,7 @@ const all = (p) => p.evaluate(() => ['space/personal/time', 'space/work/time'].f
 const runningCount = (p) => p.evaluate(() => ['space/personal/time', 'space/work/time'].reduce((n, id) => n + Object.values(window.__app.json(id, 'time_entries')).filter((e) => e.stop === null && !e.deleted).length, 0));
 const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 const pickProject = async (p, scope, name) => {
-  await scope.getByRole('button', { name: /^Project/ }).first().click();
+  await scope.getByRole('button', { name: /^(Project|Add project)/ }).first().click();
   await p.getByLabel('Find a project').fill(name);
   await p.getByLabel('Find a project').press('Enter');
 };
@@ -627,7 +627,7 @@ for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }
   check((await actions.evaluate((el) => getComputedStyle(el).opacity)) === '1' && (await actions.getByRole('button', { name: 'Continue: Touch' }).isVisible()), 'on a touch screen continue and more actions are always visible');
   // A tap anywhere on the row, the description included, opens the editor in a bottom sheet.
   const touchRow = p.locator('.te-row').first();
-  check((await touchRow.getByRole('button', { name: /^Description of|^Duration of|^Project of/ }).count()) === 0, 'phone: the row has no inline edit controls');
+  check((await touchRow.getByRole('button', { name: /^Description of|^Duration of|^Project of|^Add project/ }).count()) === 0, 'phone: the row has no inline edit controls');
   await touchRow.locator('.te-desc').tap();
   const sheet = p.getByRole('dialog', { name: 'Edit Touch' });
   await sheet.waitFor({ timeout: 3000 }).catch(() => {});

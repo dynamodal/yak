@@ -7,7 +7,7 @@
 //
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BASE, launch, check, watchPage, finish } from './lib.mjs';
+import { BASE, launch, check, watchPage, finish, pickSpace, spaceValue } from './lib.mjs';
 
 
 const browser = await launch();
@@ -42,7 +42,7 @@ const text = (sel) => page.locator(sel).first().innerText();
 const select = async (label, value) => { await page.getByLabel(label, { exact: true }).selectOption(value); };
 const settle = () => page.waitForTimeout(150);
 // The one space filter in the page header (shared with Timer and Week).
-const spaceFilter = (v) => page.getByLabel('Show space').selectOption(v === 'all' ? 'all' : { label: v });
+const spaceFilter = (v) => pickSpace(page, v);
 
 await page.goto(BASE + '?test#/time/reports');
 await page.waitForFunction(() => window.__reports);
@@ -233,8 +233,8 @@ await settle();
 // the space filter is the Time page's: change it here, see it on List
 await spaceFilter('Work');
 await page.getByRole('link', { name: 'List' }).click();
-await page.locator('.tl-summary').waitFor();
-check((await page.getByLabel('Show space').inputValue()) !== 'all', 'the space filter is shared with the List view');
+await page.locator('.tl-list').waitFor();
+check((await spaceValue(page)) !== 'all', 'the space filter is shared with the List view');
 await page.getByRole('link', { name: 'Reports' }).click();
 await page.locator('.rp-nav').waitFor();
 await spaceFilter('Personal');

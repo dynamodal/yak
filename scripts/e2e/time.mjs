@@ -5,7 +5,7 @@
 //   npm run e2e time
 //
 import { join } from 'node:path';
-import { BASE, launch, startMock, sleep, ok, fail, check, watchPage, until, finish, keepAllSpaces, startSelecting, openJoin, startSyncing, joinByInvite, pill, startRound, stopRound, detailsDialog, openDetails } from './lib.mjs';
+import { BASE, launch, startMock, sleep, ok, fail, check, watchPage, until, finish, keepAllSpaces, startSelecting, pickSpace, openJoin, startSyncing, joinByInvite, pill, startRound, stopRound, detailsDialog, openDetails } from './lib.mjs';
 
 
 const mock = await startMock();
@@ -345,9 +345,9 @@ const addTag = async (p, scope, name) => {
   // Every kept space is listed: Personal's entries and the one entry started in Work.
   check((await rows(p).count()) === personalCount + 2, `entries view shows this week, one row per entry of every space (${await rows(p).count()} of ${personalCount + 2})`);
   check((await p.locator('.te-row .te-space').count()) === (await rows(p).count()), 'with two spaces, every row carries its space name');
-  await p.getByLabel('Show space').selectOption({ label: 'Personal' });
+  await pickSpace(p, 'Personal');
   check((await rows(p).count()) === personalCount, 'the space filter narrows the list to one space');
-  await p.getByLabel('Show space').selectOption('all');
+  await pickSpace(p, 'all');
   check((await rows(p).count()) === personalCount + 2, 'and "All spaces" brings the rest back');
   await p.getByRole('button', { name: 'Previous week' }).click();
   check((await rows(p).count()) === 0, 'previous week is empty');

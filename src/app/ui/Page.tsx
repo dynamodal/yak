@@ -25,7 +25,7 @@ export interface PageHeaderProps {
   title: string;
   /** Hide the title visually (screen readers still read it) where the tab already says it. */
   hideTitle?: boolean;
-  /** Filters of the page's list (selects), before the view switch. */
+  /** The page's one `FiltersButton`, after the view switch. */
   filters?: ComponentChildren;
   /** View switch: a `.seg` of links. */
   views?: ComponentChildren;
@@ -38,7 +38,7 @@ export interface PageHeaderProps {
 }
 
 /**
- * Same slots on every page, in this order: title, filters, view switch, space, Select, "…" menu, primary action.
+ * Same slots on every page, in this order: title, view switch, filters, space, Select, "…" menu, primary action.
  * A slot with nothing in it takes no room.
  */
 export function PageHeader({ title, hideTitle, filters, views, space, menu = [], primary }: PageHeaderProps) {
@@ -53,8 +53,8 @@ export function PageHeader({ title, hideTitle, filters, views, space, menu = [],
     <header class="page-header">
       <h1 class={hideTitle ? 'visually-hidden' : undefined}>{title}</h1>
       <div class="page-header-tools toolbar">
-        {filters && <div class="page-filters">{filters}</div>}
         {views}
+        {filters && <div class="page-filters">{filters}</div>}
         {space}
         <PageSelectButton />
         {items.length > 0 && <MenuButton label="Page actions" icon={<IconMore />} items={items} />}
@@ -99,7 +99,7 @@ export function PageSelectButton() {
   if (!select) return null;
   return (
     <Button class="page-select" disabled={select.disabled} aria-pressed={select.active} onClick={select.toggle}>
-      <IconCheck /> {select.active ? 'Done' : 'Select'}
+      <IconCheck /> <span class="page-select-label">{select.active ? 'Done' : 'Select'}</span>
     </Button>
   );
 }

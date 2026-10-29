@@ -38,14 +38,10 @@
 
 /* Totals above the list. */
 /* Side by side; stacked in a very narrow window. */
-.tl-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr)); gap: var(--space-3); margin: var(--space-3) 0; }
-.tl-stat { display: flex; flex-direction: column; gap: 0.1rem; padding: var(--space-2) var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
-.tl-stat-label { color: var(--muted); font-size: var(--text-sm); }
-.tl-stat .total { font-variant-numeric: tabular-nums; font-size: var(--text-2xl); line-height: 1.2; }
 .tl-more { justify-content: center; }
 
 /* Days: one card per day with its total; rows inside. */
-.total, .tl-summary, .section-head, .day-head { font-variant-numeric: tabular-nums; }
+.total, .section-head, .day-head { font-variant-numeric: tabular-nums; }
 .section-head .total { font-size: var(--text-lg); }
 .section-head, .day-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--gap); }
 .section-head { border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
@@ -183,7 +179,7 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 .selecting .te-line { cursor: default; touch-action: pan-y; }
 .te-line { -webkit-touch-callout: none; }
 /* Select and Done are the same width, so the header controls do not shift. */
-.page-select { min-width: 5.75rem; justify-content: center; }
+.page-select { min-width: 6.5rem; justify-content: center; }
 .sheet .edit-panel { padding: 0; border-top: 0; }
 
 .row-check { flex: none; width: 1.25rem; height: 1.25rem; margin: 0 var(--space-2) 0 0; }

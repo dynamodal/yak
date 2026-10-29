@@ -1,6 +1,6 @@
 import { STORAGE_PREFIX } from '../constants';
 
-/** One entry of `docs/user/changes.md`: `## <id>: <title>` and its bullets (Markdown). */
+/** One entry of `docs/user/changes.md` or a `docs/user/changes/*.md` file: `## <id>: <title>` and its bullets (Markdown). */
 export interface Change {
   /** The date, for example `2026-10-19`; entries are newest first and ids sort by time. */
   id: string;
@@ -23,6 +23,22 @@ export function parseChanges(source: string): Change[] {
     .filter((c): c is Change => c !== undefined)
     // Newest date first; entries of one date keep the file's order (already newest first), so they never swap.
     .sort((a, b) => (a.id === b.id ? 0 : a.id < b.id ? 1 : -1));
+}
+
+/** A fragment file name: `YYYY-MM-DD-HHMM-<slug>.md` (UTC time of writing). Other names are ignored. */
+export const FRAGMENT_NAME = /^\d{4}-\d{2}-\d{2}-\d{4}-[a-z0-9][a-z0-9-]*\.md$/;
+
+/**
+ * All entries, newest first: the archive (`changes.md`) plus one file per entry (`changes/*.md`, keyed by path).
+ * Same date: fragments before archive entries, fragments by file name descending, so the order never depends on merge order.
+ */
+export function mergeChanges(archive: string, fragments: Record<string, string>): Change[] {
+  const named = Object.entries(fragments)
+    .map(([path, src]) => [path.replace(/^.*\//, ''), src] as const)
+    .filter(([name]) => FRAGMENT_NAME.test(name))
+    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0));
+  const all = [...named.flatMap(([, src]) => parseChanges(src)), ...parseChanges(archive)];
+  return all.sort((a, b) => (a.id === b.id ? 0 : a.id < b.id ? 1 : -1));
 }
 
 /** What a device stores as seen: the date and title of the newest entry, so a new entry on an already-seen date still counts as new. */

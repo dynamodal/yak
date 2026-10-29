@@ -44,7 +44,7 @@ export function DeviceNotices() {
   const required = trust.required();
   const device = deviceStatus({ paired: status.paired, online, signalingProblem: status.signalingProblem, peers: status.peers, otherTab: status.otherTab === true });
   const thisRemoved = required ? trust.removedDevices.has(deviceId) && !trust.certs.has(deviceId) : readDevices(account).get(deviceId)?.removed === true;
-  const relay = relayNotice({ relayLimit: status.relayLimit, diagnosis: status.relayDiagnosis });
+  const relay = relayNotice({ relayLimit: status.relayLimit, refusal: status.relayRefusal, diagnosis: status.relayDiagnosis });
   return (
     <>
       <p class="status-line" role="status" data-device-status>
@@ -53,9 +53,9 @@ export function DeviceNotices() {
           <strong>{device.label}.</strong> {device.hint}
         </span>
       </p>
-      {status.signalingPausedUntil !== undefined && status.signalingPausedUntil > Date.now() && (
+      {status.signalingPausedUntil !== undefined && status.signalingPausedUntil > Date.now() && !status.relayRefusal && (
         <p class="hint">
-          The connection server is limiting requests from this network, so this device is waiting until {new Date(status.signalingPausedUntil).toLocaleTimeString()} before trying again. Devices on the same home network share that limit; this site's own server (the default) limits only very heavy use.
+          The connection server is limiting requests from this network, so this device is waiting until {new Date(status.signalingPausedUntil).toLocaleTimeString()} before trying again. Devices on the same home network share that limit, and many devices or many reconnects in a short time can reach it.
         </p>
       )}
       {relay && (

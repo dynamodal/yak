@@ -13,6 +13,7 @@ import { loadIceUrls, toIceServers } from './ice-servers';
 import { ensureRealAddresses } from './real-addresses';
 import { NtfyTransport, type SignalingTransport } from './signaling';
 import { Tabs, type TabsOptions } from './tabs';
+import type { RelayRefusal } from './relay-refusal';
 import { probeRelay, type RelayDiagnosis } from './relay-status';
 import { fetchRelayStats, type RelayStats } from './relay-stats';
 import { RelayLink, type RelayLinkEvents } from './relay-link';
@@ -58,6 +59,8 @@ export interface SyncStatus {
   signalingProblem: boolean;
   /** The relay refused data lately; direct sync still works. */
   relayLimit?: 'day' | 'rate' | 'service';
+  /** The relay named a limit when this network connected (a close code, relay-refusal.ts); set while the pause lasts. */
+  relayRefusal?: RelayRefusal;
   /** While the relay misbehaves: whose limit it is (ours, Cloudflare's, the network's). See relay-status.ts. */
   relayDiagnosis?: RelayDiagnosis;
   /** Another tab of this browser runs sync; this status is that tab's. */
@@ -207,6 +210,7 @@ export class SyncService {
         ...(l?.signalingPausedUntil !== undefined ? { signalingPausedUntil: l.signalingPausedUntil } : {}),
         signalingProblem: l?.signalingProblem ?? false,
         ...(l?.relayLimit ? { relayLimit: l.relayLimit } : {}),
+        ...(l?.relayRefusal ? { relayRefusal: l.relayRefusal } : {}),
         ...(l?.relayDiagnosis ? { relayDiagnosis: l.relayDiagnosis } : {}),
         otherTab: true,
       };
@@ -220,6 +224,7 @@ export class SyncService {
       ...(this.mesh?.signalingPausedUntil !== undefined ? { signalingPausedUntil: this.mesh.signalingPausedUntil } : {}),
       signalingProblem: this.mesh?.signalingProblem ?? false,
       ...(this.mesh?.relayLimit ? { relayLimit: this.mesh.relayLimit } : {}),
+      ...(this.mesh?.relayRefusal ? { relayRefusal: this.mesh.relayRefusal } : {}),
       ...(this.diagnosis ? { relayDiagnosis: this.diagnosis } : {}),
     };
   }
@@ -595,7 +600,8 @@ export class SyncService {
    */
   private watchRelay(): void {
     if (this.following || !this.pairing) return;
-    const broken = (this.mesh?.signalingProblem ?? false) || this.mesh?.relayLimit !== undefined;
+    // A close code already said whose limit it is; the probe is for failures that carried no reason.
+    const broken = ((this.mesh?.signalingProblem ?? false) || this.mesh?.relayLimit !== undefined) && this.mesh?.relayRefusal === undefined;
     if (!broken) {
       if (this.diagnosis) {
         this.diagnosis = undefined;
@@ -610,8 +616,9 @@ export class SyncService {
       if (!d || this.pairing?.signalingUrl !== url) return;
       this.log.log('relay', `status: ${d.kind}${d.kind === 'ours-limited' ? ` (${d.scope})` : ''}`);
       this.diagnosis = d;
-      // Refused for this network's connection rate: retrying at once keeps it over the limit.
-      if (d.kind === 'ours-refused' && d.originAllowed !== false) this.mesh?.pauseConnections(REFUSED_PAUSE_MS);
+      // The status call itself was turned away (an older relay refuses with HTTP 429, no close code):
+      // retrying at once keeps this network over the limit. A plain drop gets the normal backoff.
+      if (d.kind === 'ours-refused' && d.originAllowed !== false) this.mesh?.pauseConnections(d.retryAfterMs ?? REFUSED_PAUSE_MS);
       this.emit();
     });
   }

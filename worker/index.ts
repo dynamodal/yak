@@ -22,6 +22,11 @@ import { DurableObject } from 'cloudflare:workers';
  * limit receives `{"event":"limit","reason":"day"|"rate"|"service"}` first; direct sync is never
  * affected.
  *
+ * A refused WebSocket upgrade (the per-minute limits, the daily share or topics) is accepted and
+ * closed at once with code 4429 (`rate retry=60`) or 4430 (`day scope=share|topics reset=<unix>`),
+ * because a browser shows no HTTP status or body of a failed handshake. The origin check and the
+ * budget (503) still refuse the handshake; the app tells those apart with `GET /signal/status`.
+ *
  * Cost guard: every call here is a Cloudflare request (assets are not), so the Worker and the
  * rooms count them into one RelayBudget object (RELAY_DAY_REQUESTS a day). At 80% new data links
  * are refused, at 100% everything is; `RELAY=off` refuses everything at once. Refusals are JSON
@@ -153,6 +158,25 @@ function refuse(status: number, reason: 'service' | 'origin' | 'address', extra:
     status,
     headers: { 'Content-Type': 'application/json', 'X-Relay-Limit': reason, 'Cache-Control': 'no-store', ...CORS, ...headers },
   });
+}
+
+// Close codes of a refused WebSocket (4000 to 4999 is for applications). Keep in step with src/sync/relay-refusal.ts.
+const CLOSE_RATE = 4429;
+const CLOSE_DAY = 4430;
+
+/**
+ * A browser hides the status of a failed handshake, so a limit of one address is told in a close
+ * instead: accept the upgrade here in the Worker and close at once with a code and a short reason
+ * (`rate retry=<s>`, `day scope=<share|topics> reset=<unix s>`). The room object is never reached,
+ * so it costs no more than the HTTP 429 it replaces (the call itself is counted by `gate`) and the
+ * socket is not admitted to any tally. Callers that are not WebSocket upgrades keep their 429.
+ */
+function refuseSocket(code: number, reason: string): Response {
+  const sockets = new WebSocketPair();
+  const [client, server] = [sockets[0], sockets[1]];
+  server.accept();
+  server.close(code, reason);
+  return new Response(null, { status: 101, webSocket: client });
 }
 
 // What this Worker instance knows of the budget; instances differ, so it is an estimate that errs low.
@@ -315,11 +339,11 @@ export default {
     // crowd each other out; the per-address ceiling still stops one address trying many topics.
     const address = request.headers.get('CF-Connecting-IP') ?? 'unknown';
     if (!(await within(env.CONNECT_LIMIT, `${address}|${topic}`)) || !(await within(env.ADDRESS_LIMIT, address))) {
-      return refuse(429, 'address', {}, { 'Retry-After': '60' });
+      return refuseSocket(CLOSE_RATE, 'rate retry=60');
     }
     // The room object's own request, charged to the budget with this address's daily share.
     const admitted = await admit(env, address, topic);
-    if (admitted !== 'ok') return refuse(429, 'address', { scope: admitted }, { 'Retry-After': '3600' });
+    if (admitted !== 'ok') return refuseSocket(CLOSE_DAY, `day scope=${admitted} reset=${budget.resetsAt}`);
     const headers = new Headers(request.headers);
     if (env.RELAY_STATS) headers.set('X-Room', await roomHash(topic));
     return env.SIGNAL_ROOM.get(env.SIGNAL_ROOM.idFromName(topic)).fetch(new Request(request, { headers }));

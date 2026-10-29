@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { startMockRelay, type MockRelay } from '../../scripts/mock-relay.mjs';
-import type { InboxMessage } from './signaling';
+import { RateLimitedError, type InboxMessage } from './signaling';
 import { MAX_RELAY_MESSAGE_BYTES, toWebSocketUrl, WebSocketTransport, type WebSocketTransportOptions } from './signaling-ws';
 
 let relay: MockRelay;
@@ -220,6 +220,65 @@ describe('WebSocketTransport', () => {
     await waitFor(() => details.length > 0, 1000, 'disconnected');
     expect(details[0]).toMatch(/blocked by policy/);
     await expect(broken.publish(topic(), 'x')).rejects.toThrow();
+  });
+});
+
+describe('relay refusals (close codes 4429 and 4430)', () => {
+  it('reports a per-minute refusal, fails waiting publishes with the retry time, and waits before trying again', async () => {
+    relay.refuse('rate', { retry: 1, count: 1 });
+    const transport = new WebSocketTransport({ baseUrl: relay.url, ...fast, publishTimeoutMs: 5000 });
+    const t = topic();
+    const refusals: unknown[] = [];
+    const statuses: string[] = [];
+    stops.push(transport.subscribe(t, { onMessage: () => {}, onStatus: (s) => statuses.push(s), onRefused: (r) => refusals.push(r) }));
+    await waitFor(() => refusals.length === 1, 2000, 'refusal');
+    expect(refusals[0]).toMatchObject({ kind: 'rate', retryMs: 5000 });
+    expect(statuses).toContain('disconnected');
+    // It does not retry at the short backoff (20 ms) but only after the relay's retry time.
+    const connections = relay.state.connections;
+    await new Promise((r) => setTimeout(r, 300));
+    expect(relay.state.connections).toBe(connections);
+  });
+
+  it('a publish waiting when the refusal arrives fails with RateLimitedError carrying the retry time', async () => {
+    // A socket that is refused before it ever opens (some runtimes), so the publish is still queued.
+    class Refused {
+      onclose: ((e: { code: number; reason: string }) => void) | null = null;
+      constructor() {
+        setTimeout(() => this.onclose?.({ code: 4430, reason: `day scope=topics reset=${Math.floor(Date.now() / 1000) + 600}` }), 5);
+      }
+      close(): void {}
+    }
+    const transport = new WebSocketTransport({ baseUrl: relay.url, ...fast, publishTimeoutMs: 5000, WebSocketImpl: Refused as unknown as typeof WebSocket });
+    const err = await transport.publish(topic(), 'x').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(RateLimitedError);
+    expect((err as RateLimitedError).retryAfterMs).toBeGreaterThan(60_000);
+  });
+
+  it('a plain drop is not a refusal: it reconnects at the normal backoff', async () => {
+    const transport = new WebSocketTransport({ baseUrl: relay.url, ...fast });
+    const t = topic();
+    const refusals: unknown[] = [];
+    const w: Watch = { messages: [], statuses: [], activity: [] };
+    stops.push(transport.subscribe(t, { onMessage: () => {}, onStatus: (s) => w.statuses.push(s), onRefused: (r) => refusals.push(r) }));
+    await waitFor(() => w.statuses.includes('connected'), 2000, 'connected');
+    relay.dropAll();
+    await waitFor(() => w.statuses.filter((s) => s === 'connected').length === 2, 3000, 'reconnected');
+    expect(refusals).toEqual([]);
+  });
+
+  it('a close with another application code (4000) is a plain drop too', async () => {
+    const transport = new WebSocketTransport({ baseUrl: relay.url, ...fast });
+    const t = topic();
+    const refusals: unknown[] = [];
+    const w: Watch = { messages: [], statuses: [], activity: [] };
+    stops.push(transport.subscribe(t, { onMessage: () => {}, onStatus: (s) => w.statuses.push(s), onRefused: (r) => refusals.push(r) }));
+    await waitFor(() => w.statuses.includes('connected'), 2000, 'connected');
+    // Sixteen more sockets in the room make the relay close the oldest with 4000.
+    const extra = Array.from({ length: 16 }, () => new WebSocketTransport({ baseUrl: relay.url, ...fast }));
+    extra.forEach((e) => stops.push(e.subscribe(t, { onMessage: () => {} })));
+    await waitFor(() => w.statuses.filter((s) => s === 'disconnected').length >= 1, 3000, 'replaced');
+    expect(refusals).toEqual([]);
   });
 });
 

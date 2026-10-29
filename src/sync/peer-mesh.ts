@@ -4,6 +4,7 @@ import { derivePairKey, peerTag, signSignal, verifySignal, type SyncIdentity } f
 import type { LinkEndpoint, LinkState } from './types';
 import type { PeerLinkEvents } from './peer-link';
 import type { RelayLinkEvents } from './relay-link';
+import type { RelayRefusal } from './relay-refusal';
 import { RateLimitedError, type InboxMessage, type SignalingTransport } from './signaling';
 import { scaledMs } from '../core/test-build';
 
@@ -147,6 +148,18 @@ export class PeerMesh {
     this.changed();
   }
 
+  /** The relay closed a connection naming a limit; set while the pause it asked for lasts. */
+  relayRefusal: RelayRefusal | undefined;
+
+  /** The relay said this network is over a limit (relay-refusal.ts): open no connections until it is time to try again. */
+  noteRefusal(refusal: RelayRefusal): void {
+    if (!this.started) return;
+    this.relayRefusal = refusal;
+    this.opts.log.log('signal', `relay limit for this network: ${refusal.kind}${refusal.scope ? ` (${refusal.scope})` : ''}`);
+    this.pauseConnections(refusal.retryMs);
+    this.changed();
+  }
+
   get isStarted(): boolean {
     return this.started;
   }
@@ -181,6 +194,7 @@ export class PeerMesh {
 
   stop(): void {
     this.started = false;
+    this.relayRefusal = undefined;
     clearTimeout(this.problemTimer);
     clearTimeout(this.resumeTimer);
     this.unsubscribe?.();
@@ -238,7 +252,10 @@ export class PeerMesh {
     this.unsubscribe = undefined;
     for (const s of this.sessions.values()) s.pauseRelay();
     clearTimeout(this.resumeTimer);
-    this.resumeTimer = setTimeout(() => this.reconnect('pause over', { force: true }), ms + 100);
+    this.resumeTimer = setTimeout(() => {
+      this.relayRefusal = undefined;
+      this.reconnect('pause over', { force: true });
+    }, ms + 100);
     this.changed();
   }
 
@@ -373,6 +390,7 @@ export class PeerMesh {
           }
           this.opts.log.log('signal', `${status}${detail ? ' ' + detail : ''}`);
         },
+        onRefused: (refusal) => this.noteRefusal(refusal),
         onActivity: (serverTime) => {
           this.lastSignalActivity = Date.now();
           if (serverTime && serverTime > 0) this.serverSkewMs = serverTime * 1000 - Date.now();
@@ -811,6 +829,7 @@ class Session {
       onClose: (reason) => this.relayDown(reason),
       onMessage: (data) => this.mesh.opts.onLinkData(this.peerId, data, 'relay'),
       onLimit: (reason) => this.mesh.noteRelayLimit(reason),
+      onRefused: (refusal) => this.mesh.noteRefusal(refusal),
       onPairFailed: () => this.breakPair('relay'),
     }, pair ? { key: pair, only: required } : undefined);
     this.relay.start();

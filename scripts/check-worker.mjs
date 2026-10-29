@@ -1,5 +1,5 @@
 // Checks the real Worker (worker/index.ts) under `wrangler dev`: the Origin rule, the per-address
-// and per-topic connection limits, the per-room daily byte cap, the account-wide request budget, the kill switch
+// and per-topic connection limits (refused as an accepted upgrade closed with code 4429 or 4430), the per-room daily byte cap, the account-wide request budget, the kill switch
 // and `GET /signal/status`. Small limits are set with `--var`, each phase on a fresh state.
 //
 //   npm run build && node scripts/check-worker.mjs   # starts `npx wrangler@4.151.0 dev` itself (needs the network once)
@@ -43,7 +43,11 @@ async function withWorker(vars, fn) {
 const connect = (path, origin = `http://${HOST}`) =>
   new Promise((resolve) => {
     const ws = new WebSocket(`ws://${HOST}/signal/${path}`, { headers: origin === null ? {} : { Origin: origin } });
-    ws.on('open', () => resolve({ ws }));
+    ws.on('open', () => {
+      // A refusal is an accepted upgrade closed at once with a code (4429, 4430), not an HTTP status.
+      const closed = new Promise((done) => ws.on('close', (code, reason) => done({ code, reason: reason.toString() })));
+      resolve({ ws, closed });
+    });
     ws.on('unexpected-response', (_req, res) => {
       let body = '';
       res.on('data', (d) => (body += d));
@@ -51,6 +55,13 @@ const connect = (path, origin = `http://${HOST}`) =>
     });
     ws.on('error', () => {});
   });
+/** Like `connect`, but an upgrade that is closed at once comes back as `{ code, reason }` (a refusal) with no `ws`. */
+const attempt = async (path, origin) => {
+  const r = await connect(path, origin);
+  if (!r.ws) return r;
+  const closed = await Promise.race([r.closed, sleep(150).then(() => undefined)]);
+  return closed ? closed : r;
+};
 const json = (r) => { try { return JSON.parse(r.body); } catch { return {}; } };
 const getStatus = async () => { const r = await fetch(`http://${HOST}/signal/status`, { headers: { Origin: 'https://relay.example' } }); return { status: r.status, body: await r.json(), headers: r.headers }; };
 
@@ -91,16 +102,17 @@ await withWorker({ RELAY_DAY_BYTES: 100_000, ALLOWED_ORIGINS: 'https://relay.exa
   const results = [];
   let refused;
   for (let i = 0; i < 70; i++) {
-    const r = await connect(topic(500));
-    results.push(r.status ?? 101);
-    if (r.status === 429) refused ??= r;
+    const r = await attempt(topic(500));
+    results.push(r.code ?? 101);
+    if (r.code === 4429) refused ??= r;
     r.ws?.close();
   }
-  check(results.includes(429) && json(refused).reason === 'address', `an address that opens many connections to one topic gets 429 with reason "address" (${results.filter((s) => s === 429).length} of 70)`);
+  check(results.includes(4429) && refused.reason === 'rate retry=60', `an address that opens many connections to one topic gets the upgrade closed with 4429 "rate retry=60" (${results.filter((s) => s === 4429).length} of 70)`);
+  check(!results.includes(429), 'no HTTP 429 on the handshake: a browser could not read it');
   check(results.slice(0, 10).every((s) => s === 101), 'the first connections are accepted');
   // Another account at the same address (a shared VPN or office) is not crowded out.
-  const other = await connect(topic(501));
-  check(other.status === undefined, `another topic from the same address is still accepted (${other.status ?? 101})`);
+  const other = await attempt(topic(501));
+  check(other.ws !== undefined, `another topic from the same address is still accepted (${other.code ?? other.status ?? 101})`);
   other.ws?.close();
 });
 
@@ -108,38 +120,45 @@ await withWorker({ RELAY_DAY_BYTES: 100_000, ALLOWED_ORIGINS: 'https://relay.exa
 await withWorker({ ALLOWED_ORIGINS: 'https://relay.example', ADDRESS_DAY_TOPICS: 3 }, async () => {
   const statuses = [];
   for (let i = 0; i < 5; i++) {
-    const r = await connect(topic(700 + i));
-    statuses.push(r.status ?? 101);
-    if (r.status === 429) check(json(r).reason === 'address' && json(r).scope === 'topics', 'the topic cap refuses with reason "address", scope "topics"');
+    const r = await attempt(topic(700 + i));
+    statuses.push(r.code ?? 101);
+    if (r.code === 4430) check(/^day scope=topics reset=\d{10}$/.test(r.reason) && Number(r.reason.split('reset=')[1]) * 1000 > Date.now(), 'the topic cap closes with 4430 "day scope=topics reset=<unix s>", the reset in the future');
     r.ws?.close();
   }
-  check(statuses.slice(0, 3).every((s) => s === 101) && statuses.slice(3).every((s) => s === 429), `an address gets 3 new topics a day, then 429 (${statuses.join(' ')})`);
-  const again = await connect(topic(700));
-  check(again.status === undefined, 'a topic it already used is still accepted');
+  check(statuses.slice(0, 3).every((s) => s === 101) && statuses.slice(3).every((s) => s === 4430), `an address gets 3 new topics a day, then 4430 (${statuses.join(' ')})`);
+  const again = await attempt(topic(700));
+  check(again.ws !== undefined, 'a topic it already used is still accepted');
   again.ws?.close();
 });
 await withWorker({ ALLOWED_ORIGINS: 'https://relay.example', RELAY_DAY_REQUESTS: 100, ADDRESS_DAY_SHARE: 0.1 }, async () => {
   const statuses = [];
   for (let i = 0; i < 8; i++) {
-    const r = await connect(topic(800));
-    statuses.push(r.status ?? 101);
-    if (r.status === 429) check(json(r).reason === 'address' && json(r).scope === 'share', 'the daily share refuses with reason "address", scope "share"');
+    const r = await attempt(topic(800));
+    statuses.push(r.code ?? 101);
+    if (r.code === 4430) check(r.reason.startsWith('day scope=share reset='), 'the daily share closes with 4430, scope "share"');
     r.ws?.close();
     await sleep(50);
   }
-  check(statuses.filter((s) => s === 101).length === 5 && statuses[7] === 429, `an address spends at most its share of the day's budget (${statuses.join(' ')})`);
+  check(statuses.filter((s) => s === 101).length === 5 && statuses[7] === 4430, `an address spends at most its share of the day's budget (${statuses.join(' ')})`);
 });
 
 // The default per-address share is 10% of the day's budget (an office of 10 to 20 people behind one address).
 await withWorker({ ALLOWED_ORIGINS: 'https://relay.example', RELAY_DAY_REQUESTS: 100 }, async () => {
   const statuses = [];
   for (let i = 0; i < 7; i++) {
-    const r = await connect(topic(900));
-    statuses.push(r.status ?? 101);
+    const r = await attempt(topic(900));
+    statuses.push(r.code ?? 101);
     r.ws?.close();
     await sleep(50);
   }
-  check(statuses.filter((s) => s === 101).length === 5 && statuses[6] === 429, `by default an address spends 10% of the day's budget (${statuses.join(' ')})`);
+  check(statuses.filter((s) => s === 101).length === 5 && statuses[6] === 4430, `by default an address spends 10% of the day's budget (${statuses.join(' ')})`);
+});
+
+// Non-WebSocket endpoints keep HTTP 429: the status call past the per-address ceiling.
+await withWorker({ ALLOWED_ORIGINS: 'https://relay.example' }, async () => {
+  const codes = [];
+  for (let i = 0; i < 140; i++) codes.push((await fetch(`http://${HOST}/signal/status`)).status);
+  check(codes.includes(429), `/signal/status past the address ceiling still answers HTTP 429 (${codes.filter((c) => c === 429).length} of 140)`);
 });
 
 // Phase 2: the account-wide request budget. 40 requests a day; the budget object is told every 4.

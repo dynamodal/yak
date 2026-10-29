@@ -20,7 +20,13 @@ describe('probeRelay', () => {
   });
   it('knows its own refusal of this device', async () => {
     expect(await probeRelay(relay, { fetchImpl: json({ service: 'yak-relay', state: 'ok', originAllowed: false }), online: true })).toEqual({ kind: 'ours-refused', originAllowed: false });
-    expect(await probeRelay(relay, { fetchImpl: json({ service: 'yak-relay', state: 'ok' }), online: true })).toEqual({ kind: 'ours-refused' });
+    // Fine, and nothing to say about this device: a plain drop, not a limit.
+    expect(await probeRelay(relay, { fetchImpl: json({ service: 'yak-relay', state: 'ok' }), online: true })).toEqual({ kind: 'reachable' });
+  });
+  it('knows an older relay turned the status call itself away (HTTP 429 with the marker)', async () => {
+    const limited = (async () => new Response(JSON.stringify({ service: 'yak-relay', error: 'refused', reason: 'address' }), { status: 429, headers: { 'Retry-After': '60' } })) as typeof fetch;
+    expect(await probeRelay(relay, { fetchImpl: limited, online: true })).toEqual({ kind: 'ours-refused', retryAfterMs: 60_000 });
+    expect(await probeRelay(relay, { fetchImpl: json({ service: 'yak-relay', reason: 'address' }, 429), online: true })).toEqual({ kind: 'ours-refused' });
   });
   it('calls an answer without the marker Cloudflare, whatever its status', async () => {
     expect(await probeRelay(relay, { fetchImpl: text('<html>error code: 1027</html>', 429), online: true })).toEqual({ kind: 'cloudflare' });
@@ -45,6 +51,11 @@ describe('relayNotice', () => {
     expect(relayNotice({ diagnosis: { kind: 'cloudflare' } })).toMatch(/Cloudflare, which hosts the relay, is refusing requests/);
     expect(relayNotice({ diagnosis: { kind: 'ours-refused', originAllowed: false } })).toMatch(/does not accept connections from this page/);
     expect(relayNotice({ diagnosis: { kind: 'ours-refused' } })).toMatch(/too many connections/);
+    expect(relayNotice({ diagnosis: { kind: 'reachable' } })).toMatch(/cannot be reached right now/);
+    expect(relayNotice({ diagnosis: { kind: 'reachable' } })).not.toMatch(/too many|limit/);
+    expect(relayNotice({ refusal: { kind: 'rate', retryMs: 60_000 } })).toMatch(/too many connections to the relay in a minute/);
+    expect(relayNotice({ refusal: { kind: 'day', scope: 'share', retryMs: 1, resetsAt: 1000 } }, 'en')).toMatch(/daily share.*until about/);
+    expect(relayNotice({ refusal: { kind: 'day', scope: 'topics', retryMs: 1 } })).toMatch(/too many different accounts.*until tomorrow/);
     expect(relayNotice({ diagnosis: { kind: 'unreachable' } })).toMatch(/cannot be reached/);
   });
   it('is silent when nothing is wrong or the device is offline', () => {

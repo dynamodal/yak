@@ -1,4 +1,5 @@
-import type { InboxMessage, SignalingTransport, SubscribeHandlers } from './signaling';
+import { parseRelayRefusal, type RelayRefusal } from './relay-refusal';
+import { RateLimitedError, type InboxMessage, type SignalingTransport, type SubscribeHandlers } from './signaling';
 
 /**
  * Signaling over a WebSocket relay (the Worker in `worker/`, or any server that speaks the same
@@ -260,8 +261,19 @@ class Channel {
     };
     socket.onclose = (event: CloseEvent) => {
       if (!current()) return;
-      this.dropped(socket, event.reason || `closed (${event.code})`);
+      const refusal = parseRelayRefusal(event.code, event.reason);
+      if (refusal) this.refused(socket, refusal);
+      else this.dropped(socket, event.reason || `closed (${event.code})`);
     };
+  }
+
+  /**
+   * The relay accepted the upgrade and closed at once, naming a limit. Say so to the watchers (the
+   * mesh then pauses), fail waiting publishes with the retry time, and come back only after it.
+   */
+  private refused(socket: WebSocket, refusal: RelayRefusal): void {
+    if (this.destroyed) return;
+    this.dropped(socket, `refused by the relay (${refusal.kind})`, refusal);
   }
 
   private onFrame(data: unknown): void {
@@ -304,7 +316,7 @@ class Channel {
   }
 
   /** The socket ended (or never opened). Tell watchers, then retry while anyone is interested. */
-  private dropped(socket: WebSocket | undefined, detail: string): void {
+  private dropped(socket: WebSocket | undefined, detail: string, refusal?: RelayRefusal): void {
     if (this.destroyed) return;
     const lived = this.isOpen ? Date.now() - this.openedAt : 0;
     if (!this.isOpen) this.failures++;
@@ -315,12 +327,20 @@ class Channel {
       this.socket = undefined;
     }
     this.each((h) => h.onStatus?.('disconnected', detail));
+    if (refusal) {
+      this.each((h) => h.onRefused?.(refusal));
+      if (this.destroyed) return;
+      for (const entry of this.queue.splice(0)) {
+        clearTimeout(entry.timer);
+        entry.reject(new RateLimitedError(refusal.retryMs));
+      }
+    }
     if (this.subscribers.size === 0 && this.queue.length === 0) {
       this.destroy(detail);
       return;
     }
     if (lived >= this.cfg.stableMs) this.retry = this.cfg.retryMs;
-    const delay = this.retry * (1 + Math.random() * 0.25);
+    const delay = refusal ? refusal.retryMs : this.retry * (1 + Math.random() * 0.25);
     this.retry = Math.min(this.retry * 2, this.failures >= 6 ? Math.max(this.cfg.maxRetryMs, 5 * 60_000) : this.cfg.maxRetryMs);
     this.retryTimer = setTimeout(() => this.connect(), delay);
   }

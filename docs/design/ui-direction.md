@@ -71,8 +71,8 @@ Only the pill changes width; the command and sync controls stay put to its right
 - Logo and the app name (`APP_NAME`) wide; the logo alone under about 440 px.
   The logo links to the first tab.
 - Each tab has an icon and a label.
-  Under about 560 px the labels go and the icons stay (the names stay as hidden text).
-  Below 64 rem the tabs take a second row.
+  Under 52 rem the labels go and the icons stay (the names stay as hidden text).
+  The tabs never wrap: row 1 is always logo, tabs, command, sync; a running timer takes row 2 under 60 rem (F-33o).
 - Command palette button: the command icon and a chip with the bound shortcut (default `Alt+P`, written as the Shortcuts card does; symbols on a Mac).
   Icon only under about 560 px and on touch.
   Name "Command palette", tooltip "Search, go to, run a command".

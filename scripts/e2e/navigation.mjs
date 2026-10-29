@@ -46,12 +46,12 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
     check((await route(p)) === to && (await p.locator('.rp-nav').count()) === 1, `wide: the old route ${old} redirects to ${to}`);
   }
   await views.getByRole('link', { name: 'List' }).click();
-  await p.locator('.tl-summary').waitFor();
+  await p.locator('.tl-list').waitFor();
 
   // Timer: List | Week; the last view is remembered; #/entries opens Week.
   await p.locator('.tabs a', { hasText: /^Time$/ }).click();
   await p.getByRole('navigation', { name: 'Time views' }).waitFor();
-  check((await p.locator('.tl-summary').count()) === 1 && (await p.locator('.week-nav').count()) === 0, 'wide: Timer opens in List');
+  check((await p.locator('.tl-list').count()) === 1 && (await p.locator('.week-nav').count()) === 0, 'wide: Timer opens in List');
   await p.getByRole('navigation', { name: 'Time views' }).getByRole('link', { name: 'Week' }).click();
   await p.locator('.week-nav').waitFor();
   check((await route(p)) === '#/time/week' && (await p.locator('.add-entry').isVisible()) && (await p.locator('.timer-bar').count()) === 0, 'wide: Week has the Add entry action and no timer bar');
@@ -60,7 +60,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await p.locator('.week-nav').waitFor();
   check(true, 'wide: Timer reopens in the last used view (Week)');
   await p.getByRole('navigation', { name: 'Time views' }).getByRole('link', { name: 'List' }).click();
-  await p.locator('.tl-summary').waitFor();
+  await p.locator('.tl-list').waitFor();
   await p.evaluate(() => { location.hash = '#/entries'; });
   await p.waitForFunction(() => location.hash === '#/time/week', null, { timeout: 3000 }).catch(() => {});
   check((await route(p)) === '#/time/week' && (await p.locator('.week-nav').count()) === 1, 'wide: #/entries opens the Time page in Week view');

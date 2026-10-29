@@ -7,6 +7,14 @@
 - Home is a switch in Settings › Features. The **Time tracker** choice on a new device leaves it off; on a device that already chose it, Home now shows (switch it off in Features if you prefer the old start page).
 - Nothing stored changed.
 
+## 2026-11-02: Tidier Tasks and Time pages
+
+- **Tasks** has one switch: **List**, **Board**, **Table**. The four selects above the list are now behind one **Filters** button that shows how many filters are on. Agenda and Projects are in Filters under **Group**.
+- The **Table** shows Task, Status, Due, Project and, when Time is on, **Tracked** (time from the timer on that task). Other properties, and Checklist, are columns you add under Filters.
+- Tasks in the list and on the board show their tracked time when Time is on.
+- **Time**: the Today and This week cards are gone (each day already shows its total; Week shows the week). The space choice moved behind Filters and shows only when you have more than one space. On a phone the switch, Filters, Select and Add entry share one row, so the first entry is near the top.
+- Nothing stored changed.
+
 ## 2026-11-01: Settings is one long page
 
 - **Settings** is one page with a row of section chips under the title: Backup and safety, Devices and sync, Spaces, Sharing, Display, Features, Help, Advanced. A **Needs you** section appears first while something waits: a device or account asking to join, or "No backup yet". The Settings tab shows a dot for a request.

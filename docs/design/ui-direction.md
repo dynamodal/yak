@@ -150,6 +150,6 @@ A summary of where things stand; read-only apart from checking a task off and op
 3. Shell, in parts: (a) header, all-sans, Time rename and route (built); (b) timer pill and popover, Time page without its bar, Time switch (built); (c) Tasks without Notes and independent Features switches (built).
 4. Settings (`settings-structure.md`).
 5. Home.
-6. Tasks view switch and filters.
+6. Tasks view switch and filters (built; F-33v, F-33w).
 
 Screenshots at 1280 and 375 px, light and dark, in every PR; `a11y` suite green.

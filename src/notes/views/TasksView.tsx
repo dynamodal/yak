@@ -5,11 +5,13 @@ import { effectiveHidden, useHiddenModules } from '../../app/features';
 import { taskHref } from '../task-route';
 import { TaskDetail } from './TaskDetail';
 import { useAllSpaces, useYVersion } from '../../app/hooks';
+import { collection } from '../../core/schema';
 import { SpacePicker } from '../../app/views/SpacePicker';
 import { useApp } from '../../app/context';
 import type { ViewProps } from '../../app/registry';
 import { navigate, parseHash } from '../../app/router';
-import { Button, IconArchive, IconButton, IconMore, IconPlay, IconRestore, MenuButton, Page, PageHeader, Pill } from '../../app/ui';
+import { Button, FiltersButton, IconArchive, IconButton, IconMore, IconPlay, IconRestore, MenuButton, Page, PageHeader, Pill } from '../../app/ui';
+import { formatTracked, trackedByTask } from '../../core/tracked';
 import { formatValue, parseInput } from '../frontmatter';
 import { ARCHIVE_AFTER_DAYS, readTaskRules } from '../task-rules';
 import { createNote, setNoteProperties, setNoteProperty } from '../note-store';
@@ -53,19 +55,21 @@ import { CommitInput, useNoteIndexes } from './common';
 import { BulkNotes, useNoteRow } from './NoteBulk';
 import type { NoteIndex } from '../note-store';
 
+/** The routes under `#/tasks/`. The switch offers List, Board and Table; Agenda and Projects are ways to group the list (F-33v). */
 type Mode = 'agenda' | 'list' | 'board' | 'projects' | 'table';
 const MODES: { id: Mode; label: string }[] = [
-  { id: 'agenda', label: 'Agenda' },
   { id: 'list', label: 'List' },
   { id: 'board', label: 'Board' },
-  { id: 'projects', label: 'Projects' },
   { id: 'table', label: 'Table' },
 ];
+const ROUTES: readonly string[] = ['list', 'board', 'table', 'agenda', 'projects'];
+/** The switch segment a route belongs to. */
+const viewOf = (m: Mode): Mode => (m === 'agenda' || m === 'projects' ? 'list' : m);
 
 /** `#/tasks/<id>` is one task; `#/tasks/list|board|…` is a view of them. A task id is a UUID, so it never matches a view name. */
 export function TasksView({ params }: ViewProps) {
   const hidden = effectiveHidden(useHiddenModules());
-  const detail = params[0] && !MODES.some((m) => m.id === params[0]) ? params[0] : undefined;
+  const detail = params[0] && !ROUTES.includes(params[0]) ? params[0] : undefined;
   // With Notes on a task opens in Notes, as it always did.
   useEffect(() => {
     if (detail && !hidden.has('notes') && parseHash(location.hash).join('/') === ['tasks', detail].join('/')) location.replace(`#/notes/${encodeURIComponent(detail)}`);
@@ -76,7 +80,7 @@ export function TasksView({ params }: ViewProps) {
 
 function TasksList({ params }: ViewProps) {
   const notesHidden = effectiveHidden(useHiddenModules()).has('notes');
-  const { doc, bus, spaceId, spaces, spaceDocs, account } = useApp();
+  const { doc, bus, spaceId, spaces, spaceDocs, privateDocs, account } = useApp();
   useYVersion(account.getMap('settings') as Y.AbstractType<unknown>);
   const rules = readTaskRules(account);
   const [showArchived, setShowArchived] = useState(false);
@@ -91,10 +95,13 @@ function TasksList({ params }: ViewProps) {
   }, [all, spaces, spaceDocs, spaceId, doc]);
   const indexes = useNoteIndexes(scopeDocs);
   const spaceName = (sid: string): string => spaces.find((s) => s.id === sid)?.name ?? sid;
-  const mode: Mode = MODES.some((m) => m.id === params[0]) ? (params[0] as Mode) : 'list';
+  const mode: Mode = ROUTES.includes(params[0] ?? '') ? (params[0] as Mode) : 'list';
   const [message, setMessage] = useState('');
   const [listFilter, setListFilter] = useState<TaskFilter>({ status: 'active', due: 'any', context: '' });
   const [boardProject, setBoardProject] = useState('');
+  const [tableQuery, setTableQuery] = useState('');
+  const [tableSource, setTableSource] = useState<'tasks' | 'notes'>('tasks');
+  const [tableExtra, setTableExtra] = useState<readonly string[]>([]);
   /** Where new tasks go: the last used space, until another is picked here. */
   const [addTo, setAddTo] = useState<string | null>(null);
   const addSid = addTo && scopeDocs.has(addTo) ? addTo : scopeDocs.has(spaceId) ? spaceId : ([...scopeDocs.keys()][0] as string);
@@ -117,8 +124,12 @@ function TasksList({ params }: ViewProps) {
 
   // With Time hidden (F-33l) a task has no timer button; the tasks and their time entries are kept.
   const timeOn = !effectiveHidden(useHiddenModules()).has('time');
+  const tracked = useTracked(privateDocs, timeOn, mode);
+  const tableSourceNow = notesHidden ? 'tasks' : tableSource;
+  const table = useTableData(indexes, tableSourceNow, tableQuery, mode === 'table');
   const actions: TaskActions = {
     timeOn,
+    tracked: (t) => (timeOn ? formatTracked(tracked.get(t.id)) : ''),
     open: (id) => navigate(notesHidden ? 'tasks' : 'notes', id),
     href: (id) => taskHref(id, notesHidden),
     spaceLabel: (t) => (all ? spaceName(spaceOfNote.get(t.id) ?? '') : undefined),
@@ -156,16 +167,29 @@ function TasksList({ params }: ViewProps) {
         title="Tasks"
         hideTitle
         filters={
-          mode === 'list' ? (
-            <ListFilters tasks={tasks} filter={listFilter} onChange={setListFilter} />
+          viewOf(mode) === 'list' ? (
+            <ListFilters mode={mode} tasks={tasks} filter={listFilter} onChange={setListFilter} />
           ) : mode === 'board' ? (
             <BoardFilter tasks={tasks} project={boardProject} onChange={setBoardProject} />
-          ) : undefined
+          ) : (
+            <TableFilters
+              source={tableSource}
+              onSource={setTableSource}
+              query={tableQuery}
+              onQuery={setTableQuery}
+              extra={tableExtra}
+              onExtra={setTableExtra}
+              optional={tableOptional(table.columns, tableSource)}
+              rows={table.rows.length}
+              of={table.allRows.length}
+              notesHidden={notesHidden}
+            />
+          )
         }
         views={
           <nav class="seg" aria-label="Task views">
             {MODES.map((m) => (
-              <a key={m.id} href={`#/tasks/${m.id}`} class={m.id === mode ? 'active' : ''} aria-current={m.id === mode ? 'page' : undefined}>
+              <a key={m.id} href={`#/tasks/${m.id}`} class={m.id === viewOf(mode) ? 'active' : ''} aria-current={m.id === viewOf(mode) ? 'page' : undefined}>
                 {m.label}
               </a>
             ))}
@@ -202,7 +226,20 @@ function TasksList({ params }: ViewProps) {
         {mode === 'list' && <TaskList tasks={tasks} actions={actions} filter={listFilter} />}
         {mode === 'board' && <TaskBoard tasks={tasks} actions={actions} project={boardProject} />}
         {mode === 'projects' && <TaskProjects tasks={tasks} actions={actions} onAdd={addTask} />}
-        {mode === 'table' && <TaskTable scopeDocs={scopeDocs} indexes={indexes} spaceName={all ? spaceName : undefined} notesHidden={notesHidden} />}
+        {mode === 'table' && (
+          <TaskTable
+            scopeDocs={scopeDocs}
+            indexes={indexes}
+            spaceName={all ? spaceName : undefined}
+            notesHidden={notesHidden}
+            source={tableSourceNow}
+            rows={table.rows}
+            allCount={table.allRows.length}
+            columns={table.columns}
+            extra={tableExtra}
+            tracked={timeOn ? tracked : undefined}
+          />
+        )}
       </BulkNotes>
     </Page>
   );
@@ -216,6 +253,8 @@ interface TaskActions {
   setStatus(t: Task, status: string): void;
   /** The Time feature is on, so tasks offer a timer. */
   timeOn: boolean;
+  /** Time tracked on the task as "1 h 30 m"; empty when none or Time is off. */
+  tracked(t: Task): string;
   startTimer(t: Task): void;
   archive(t: Task, archived: boolean): void;
   /** The task's space name, when several spaces are on show. */
@@ -257,7 +296,7 @@ function QuickAdd({ onAdd, spaces, addTo, onAddTo }: { onAdd(input: string): voi
   );
 }
 
-function TaskMeta({ t, space }: { t: Task; space?: string }) {
+function TaskMeta({ t, space, tracked }: { t: Task; space?: string; tracked?: string }) {
   const today = localDate(new Date());
   const d = dueDay(t);
   return (
@@ -277,41 +316,65 @@ function TaskMeta({ t, space }: { t: Task; space?: string }) {
         </span>
       )}
       {t.timeEstimate !== null && <span>{t.timeEstimate} min</span>}
+      {tracked && <span class="tracked">{tracked} tracked</span>}
     </span>
   );
 }
 
-/** The list's filters, in the page header. */
-function ListFilters({ tasks, filter, onChange }: { tasks: Task[]; filter: TaskFilter; onChange(f: TaskFilter): void }) {
+/** The list's filters and grouping, behind the header's one Filters button. Agenda and Projects are groupings of the list. */
+function ListFilters({ mode, tasks, filter, onChange }: { mode: Mode; tasks: Task[]; filter: TaskFilter; onChange(f: TaskFilter): void }) {
   const contexts = allContexts(tasks);
   const statuses = statusColumns(tasks);
+  const flat = mode === 'list';
+  const active = flat ? (filter.status !== 'active' ? 1 : 0) + (filter.due !== 'any' ? 1 : 0) + (filter.context !== '' ? 1 : 0) : 0;
   return (
-    <>
-      <select aria-label="Status" value={filter.status} onChange={(e) => onChange({ ...filter, status: (e.target as HTMLSelectElement).value })}>
-        <option value="active">Not done</option>
-        <option value="all">All statuses</option>
-        {statuses.map((s) => (
-          <option key={s} value={s}>
-            {statusLabel(s)}
-          </option>
-        ))}
-      </select>
-      <select aria-label="Due" value={filter.due} onChange={(e) => onChange({ ...filter, due: (e.target as HTMLSelectElement).value as DueFilter })}>
-        <option value="any">Any time</option>
-        <option value="overdue">Overdue</option>
-        <option value="today">Today</option>
-        <option value="week">This week</option>
-        <option value="none">No date</option>
-      </select>
-      <select aria-label="Context" value={filter.context} onChange={(e) => onChange({ ...filter, context: (e.target as HTMLSelectElement).value })}>
-        <option value="">Any context</option>
-        {contexts.map((c) => (
-          <option key={c} value={c}>
-            @{c}
-          </option>
-        ))}
-      </select>
-    </>
+    <FiltersButton count={active} onClear={() => onChange({ status: 'active', due: 'any', context: '' })}>
+      <label>
+        Group
+        <select aria-label="Group" value={mode} onChange={(e) => navigate('tasks', (e.target as HTMLSelectElement).value)}>
+          <option value="list">One list</option>
+          <option value="agenda">By day (agenda)</option>
+          <option value="projects">By project</option>
+        </select>
+      </label>
+      {flat && (
+        <>
+          <label>
+            Status
+            <select aria-label="Status" value={filter.status} onChange={(e) => onChange({ ...filter, status: (e.target as HTMLSelectElement).value })}>
+              <option value="active">Not done</option>
+              <option value="all">All statuses</option>
+              {statuses.map((s) => (
+                <option key={s} value={s}>
+                  {statusLabel(s)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Due
+            <select aria-label="Due" value={filter.due} onChange={(e) => onChange({ ...filter, due: (e.target as HTMLSelectElement).value as DueFilter })}>
+              <option value="any">Any time</option>
+              <option value="overdue">Overdue</option>
+              <option value="today">Today</option>
+              <option value="week">This week</option>
+              <option value="none">No date</option>
+            </select>
+          </label>
+          <label>
+            Context
+            <select aria-label="Context" value={filter.context} onChange={(e) => onChange({ ...filter, context: (e.target as HTMLSelectElement).value })}>
+              <option value="">Any context</option>
+              {contexts.map((c) => (
+                <option key={c} value={c}>
+                  @{c}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      )}
+    </FiltersButton>
   );
 }
 
@@ -361,7 +424,7 @@ function TaskItem({ t, actions }: { t: Task; actions: TaskActions }) {
             {statusLabel(t.status)}
           </Pill>
         )}
-        <TaskMeta t={t} space={actions.spaceLabel(t)} />
+        <TaskMeta t={t} space={actions.spaceLabel(t)} tracked={actions.tracked(t)} />
       </div>
       <span class="row-actions">
         {actions.timeOn && <IconButton icon={<IconPlay />} label={`Start timer for ${t.title}`} onClick={() => actions.startTimer(t)} />}
@@ -526,20 +589,25 @@ function TaskBoard({ tasks: all, actions, project }: { tasks: Task[]; actions: T
   );
 }
 
-/** The board's project filter, in the page header. */
+/** The board's project filter, behind the header's one Filters button. */
 function BoardFilter({ tasks, project, onChange }: { tasks: Task[]; project: string; onChange(p: string): void }) {
   const projects = groupByProject(tasks).filter((g) => g.key !== '');
   const hasNone = tasks.some((t) => t.projects.length === 0);
   return (
-    <select aria-label="Board project" value={project} onChange={(e) => onChange((e.target as HTMLSelectElement).value)}>
-      <option value="">All projects</option>
-      {projects.map((g) => (
-        <option key={g.key} value={g.key}>
-          {g.name} ({progressText(g.progress)})
-        </option>
-      ))}
-      {hasNone && <option value={NO_PROJECT}>No project</option>}
-    </select>
+    <FiltersButton count={project === '' ? 0 : 1} onClear={() => onChange('')}>
+      <label>
+        Project
+        <select aria-label="Board project" value={project} onChange={(e) => onChange((e.target as HTMLSelectElement).value)}>
+          <option value="">All projects</option>
+          {projects.map((g) => (
+            <option key={g.key} value={g.key}>
+              {g.name} ({progressText(g.progress)})
+            </option>
+          ))}
+          {hasNone && <option value={NO_PROJECT}>No project</option>}
+        </select>
+      </label>
+    </FiltersButton>
   );
 }
 
@@ -608,7 +676,7 @@ function TaskCard({ t, ci, columns, actions, onDragEnd }: { t: Task; ci: number;
       >
         {t.title}
       </a>
-      <TaskMeta t={t} space={actions.spaceLabel(t)} />
+      <TaskMeta t={t} space={actions.spaceLabel(t)} tracked={actions.tracked(t)} />
       <span class="row-actions card-actions">
         {actions.timeOn && <IconButton icon={<IconPlay />} label={`Start timer for ${t.title}`} title="Start timer" onClick={() => actions.startTimer(t)} />}
         <MenuButton
@@ -624,27 +692,146 @@ function TaskCard({ t, ci, columns, actions, onDragEnd }: { t: Task; ci: number;
   );
 }
 
-/** A table of notes and their front matter, in the spirit of Obsidian Bases. */
-function TaskTable({ scopeDocs, indexes, spaceName, notesHidden }: { scopeDocs: ReadonlyMap<string, Y.Doc>; indexes: ReadonlyMap<string, NoteIndex>; spaceName?: (sid: string) => string; notesHidden: boolean }) {
-  const [picked, setSource] = useState<'tasks' | 'notes'>('tasks');
-  // Plain notes are Notes' to show: with Notes off the table lists tasks only.
-  const source = notesHidden ? 'tasks' : picked;
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' }>({ col: 'due', dir: 'asc' });
-  const [editing, setEditing] = useState<{ id: string; col: string } | null>(null);
-  const [error, setError] = useState('');
+/** The task table's leading columns, after the title: the task fields people scan (F-33v). Other properties are optional columns. */
+const FIXED_COLUMNS = ['status', 'due', 'projects'];
+const COLUMN_LABEL: Record<string, string> = { status: 'Status', due: 'Due', projects: 'Project', checklist: 'Checklist' };
+const columnLabel = (c: string): string => COLUMN_LABEL[c] ?? c;
 
-  const spaceOfRow = useMemo(() => new Map([...indexes].flatMap(([sid, ix]) => ix.notes.map((n) => [n.id, sid] as const))), [indexes]);
+/** The columns the Filters panel can add to the task table; none for the all-notes table, which shows every property. */
+function tableOptional(columns: readonly string[], source: 'tasks' | 'notes'): string[] {
+  return source === 'tasks' ? ['checklist', ...columns.filter((c) => !FIXED_COLUMNS.includes(c))] : [];
+}
+
+/**
+ * Seconds tracked per task id, from the time entries of every space; nothing while Time is off. Recomputed when entries
+ * change, when `refresh` does (the view switched) and every 30 s, so a running entry's time moves on.
+ */
+function useTracked(docs: ReadonlyMap<string, Y.Doc>, on: boolean, refresh: string): Map<string, number> {
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    if (!on) return;
+    const maps = [...docs.values()].map((d) => collection(d, 'time_entries'));
+    const bump = (): void => setVersion((v) => v + 1);
+    for (const m of maps) m.observeDeep(bump);
+    const tick = setInterval(bump, 30_000);
+    return () => {
+      for (const m of maps) m.unobserveDeep(bump);
+      clearInterval(tick);
+    };
+  }, [docs, on]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => (on ? trackedByTask(docs.values(), Date.now()) : new Map<string, number>()), [docs, on, version, refresh]);
+}
+
+/** The rows of the table (tasks, or every note), the columns they have between them, and those the query keeps. */
+function useTableData(indexes: ReadonlyMap<string, NoteIndex>, source: 'tasks' | 'notes', query: string, on: boolean) {
   const allRows: Row[] = useMemo(() => {
+    if (!on) return [];
     return [...indexes.values()].flatMap((ix) => {
       const props = (n: { parsed: { properties: Row['properties'] } }): Row['properties'] => n.parsed.properties;
       if (source === 'notes') return ix.notes.map((n) => ({ id: n.id, path: n.path, title: n.title, properties: props(n) }));
       return tasksFrom(ix.notes.map((n) => ({ id: n.id, path: n.path, properties: props(n) }))).map((t) => ({ id: t.id, path: t.path, title: t.title, properties: t.properties }));
     });
-  }, [indexes, source]);
-  const columns = tableColumns(allRows);
+  }, [indexes, source, on]);
+  const columns = useMemo(() => tableColumns(allRows), [allRows]);
+  const rows = useMemo(() => filterRows(allRows, query), [allRows, query]);
+  return { allRows, columns, rows };
+}
+
+/** The table's controls, behind the header's one Filters button. */
+function TableFilters(p: {
+  source: 'tasks' | 'notes';
+  onSource(s: 'tasks' | 'notes'): void;
+  query: string;
+  onQuery(q: string): void;
+  extra: readonly string[];
+  onExtra(c: readonly string[]): void;
+  optional: readonly string[];
+  rows: number;
+  of: number;
+  notesHidden: boolean;
+}) {
+  const source = p.notesHidden ? 'tasks' : p.source;
+  const count = (p.query.trim() ? 1 : 0) + (source === 'notes' ? 1 : 0);
+  return (
+    <FiltersButton
+      count={count}
+      onClear={() => {
+        p.onQuery('');
+        p.onSource('tasks');
+      }}
+    >
+      {!p.notesHidden && (
+        <label>
+          Rows
+          <select aria-label="Rows" value={source} onChange={(e) => p.onSource((e.target as HTMLSelectElement).value as 'tasks' | 'notes')}>
+            <option value="tasks">Tasks</option>
+            <option value="notes">All notes</option>
+          </select>
+        </label>
+      )}
+      <label>
+        Filter rows
+        <input
+          type="search"
+          aria-label="Filter rows"
+          placeholder="words or property:value"
+          title="status:open, due:, contexts:*"
+          value={p.query}
+          onInput={(e) => p.onQuery((e.target as HTMLInputElement).value)}
+        />
+      </label>
+      {p.optional.length > 0 && (
+        <fieldset class="filters-columns">
+          <legend>More columns</legend>
+          {p.optional.map((c) => (
+            <label key={c} class="check">
+              <input type="checkbox" checked={p.extra.includes(c)} onChange={(e) => p.onExtra((e.target as HTMLInputElement).checked ? [...p.extra, c] : p.extra.filter((x) => x !== c))} /> {columnLabel(c)}
+            </label>
+          ))}
+        </fieldset>
+      )}
+      <span class="hint" aria-live="polite">
+        {p.rows} of {p.of} rows
+      </span>
+    </FiltersButton>
+  );
+}
+
+/**
+ * The tasks as a table, in the spirit of Obsidian Bases: Task, Status, Due, Project and, with Time on, Tracked. Other
+ * properties are columns the Filters panel adds; the all-notes table shows every property. Cells edit in place.
+ */
+function TaskTable(p: {
+  scopeDocs: ReadonlyMap<string, Y.Doc>;
+  indexes: ReadonlyMap<string, NoteIndex>;
+  spaceName?: (sid: string) => string;
+  notesHidden: boolean;
+  source: 'tasks' | 'notes';
+  rows: readonly Row[];
+  allCount: number;
+  columns: readonly string[];
+  extra: readonly string[];
+  tracked?: ReadonlyMap<string, number>;
+}) {
+  const { scopeDocs, indexes, spaceName, notesHidden, columns: found, tracked } = p;
+  // Plain notes are Notes' to show: with Notes off the table lists tasks only.
+  const source = notesHidden ? 'tasks' : p.source;
+  const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' }>({ col: 'due', dir: 'asc' });
+  const [editing, setEditing] = useState<{ id: string; col: string } | null>(null);
+  const [error, setError] = useState('');
+
+  const spaceOfRow = useMemo(() => new Map([...indexes].flatMap(([sid, ix]) => ix.notes.map((n) => [n.id, sid] as const))), [indexes]);
+  const optional = tableOptional(found, source);
+  const columns = source === 'tasks' ? [...FIXED_COLUMNS, ...optional.filter((c) => c !== 'checklist' && p.extra.includes(c))] : found;
+  const showChecklist = source === 'tasks' && p.extra.includes('checklist');
+  const showTracked = source === 'tasks' && tracked !== undefined;
   const progressOf = useMemo(() => new Map([...indexes.values()].flatMap((ix) => ix.notes.map((n) => [n.id, checklistProgress(n.parsed.body)] as const))), [indexes]);
-  const rows = sortRows(filterRows(allRows, query), sort.col, sort.dir);
+  const rows = useMemo(() => {
+    if (sort.col !== 'tracked' || !tracked) return sortRows(p.rows, sort.col, sort.dir);
+    const sign = sort.dir === 'asc' ? 1 : -1;
+    return [...p.rows].sort((a, b) => ((tracked.get(a.id) ?? 0) - (tracked.get(b.id) ?? 0)) * sign || a.title.localeCompare(b.title));
+  }, [p.rows, sort, tracked]);
 
   const commit = (row: Row, col: string, input: string): void => {
     setEditing(null);
@@ -670,45 +857,23 @@ function TaskTable({ scopeDocs, indexes, spaceName, notesHidden }: { scopeDocs: 
 
   return (
     <>
-      <div class="row filters">
-        {!notesHidden && (
-          <label>
-            Rows{' '}
-            <select value={source} onChange={(e) => setSource((e.target as HTMLSelectElement).value as 'tasks' | 'notes')}>
-              <option value="tasks">Tasks</option>
-              <option value="notes">All notes</option>
-            </select>
-          </label>
-        )}
-        <input
-          type="search"
-          class="table-filter"
-          aria-label="Filter rows"
-          placeholder="Filter: words or property:value (status:open, due:, contexts:*)"
-          value={query}
-          onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
-        />
-        <span class="hint">
-          {rows.length} of {allRows.length}
-        </span>
-      </div>
       {error ? <p class="error">{error}</p> : null}
       <div class="table-wrap">
         <table class="bases-table">
           <thead>
             <tr>
               <SelectHead />
-              {header('title', 'Title')}
+              {header('title', source === 'tasks' ? 'Task' : 'Title')}
               {spaceName && <th>Space</th>}
-              {source === 'tasks' && <th>Checklist</th>}
-              {columns.map((c) => header(c, c))}
+              {columns.map((c) => header(c, columnLabel(c)))}
+              {showTracked && header('tracked', 'Tracked')}
+              {showChecklist && <th>Checklist</th>}
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <SelectableRow key={r.id} id={r.id} title={r.title} href={taskHref(r.id, notesHidden)}>
                 {spaceName && <td>{spaceName(spaceOfRow.get(r.id) ?? '')}</td>}
-                {source === 'tasks' && <td class="checklist">{progressOf.get(r.id) ? progressText(progressOf.get(r.id) as Progress) : <span class="placeholder">—</span>}</td>}
                 {columns.map((c) => {
                   const v = cell(r, c);
                   const complex = v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -731,12 +896,14 @@ function TaskTable({ scopeDocs, indexes, spaceName, notesHidden }: { scopeDocs: 
                     </td>
                   );
                 })}
+                {showTracked && <td class="tracked">{formatTracked(tracked?.get(r.id)) || <span class="placeholder">—</span>}</td>}
+                {showChecklist && <td class="checklist">{progressOf.get(r.id) ? progressText(progressOf.get(r.id) as Progress) : <span class="placeholder">—</span>}</td>}
               </SelectableRow>
             ))}
           </tbody>
         </table>
       </div>
-      {rows.length === 0 && <p class="empty">No rows.</p>}
+      {rows.length === 0 && <p class="empty">{p.allCount === 0 ? 'No tasks yet.' : 'No rows.'}</p>}
     </>
   );
 }

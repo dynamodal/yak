@@ -12,7 +12,7 @@
 //   node scripts/screens.mjs compare /tmp/shots/before /tmp/shots/after
 //
 // ONLY=notes,tasks limits `shoot` to those shots.
-// Each shot is taken at 1280, 768 and 375 px, in light and dark. The clock is fixed at NOW (seed
+// Each shot is taken at 1280, 768 and 375 px (WIDTHS=1280,700,375 picks others), in light and dark. The clock is fixed at NOW (seed
 // dates are relative to it), so two runs of the same build give identical pixels. `compare` lists
 // every file whose pixels differ and how many pixels changed, and exits 1 if any do.
 //
@@ -47,13 +47,13 @@ const ONLY = process.env.ONLY?.split(','); // ONLY=notes,tasks shoots just those
 const SHOTS = [
   'home', 'timer', 'week', 'reports', 'reports/detailed', 'reports/weekly', 'notes', 'notes-open', 'tasks', 'tasks-board', 'tasks-table',
   'settings', 'settings/backup', 'settings/devices', 'note-settings', 'organize', 'help', 'help/shortcuts', 'help/report', 'import',
-  'timer-editing', 'timer-forced', 'tasks-forced',
+  'timer-editing', 'timer-forced', 'tasks-forced', 'tasks-filters', 'tasks-table-filters', 'timer-filters',
   // Notes switched off (F-33n): the Tasks tab and a task on its own page.
   'tasks-no-notes', 'tasks-board-no-notes', 'tasks-table-no-notes', 'task-detail-no-notes',
 ];
 const ROUTES = {
   timer: 'time/list', week: 'time/week', reports: 'time/reports', 'reports/detailed': 'time/reports/detailed', 'reports/weekly': 'time/reports/weekly',
-  'notes-open': 'notes', 'tasks-board': 'tasks/board', 'tasks-table': 'tasks/table', 'timer-editing': 'time/list', 'timer-forced': 'time/list', 'tasks-forced': 'tasks',
+  'notes-open': 'notes', 'tasks-board': 'tasks/board', 'tasks-table': 'tasks/table', 'timer-editing': 'time/list', 'timer-forced': 'time/list', 'tasks-forced': 'tasks', 'tasks-filters': 'tasks', 'tasks-table-filters': 'tasks/table', 'timer-filters': 'time/list',
   'tasks-no-notes': 'tasks', 'tasks-board-no-notes': 'tasks/board', 'tasks-table-no-notes': 'tasks/table', 'task-detail-no-notes': 'tasks',
 };
 
@@ -94,7 +94,7 @@ async function shoot(outDir) {
       await page.locator('input[aria-label="New task"]').press('Enter');
     }
     await page.waitForTimeout(300);
-    for (const width of [1280, 768, 375]) {
+    for (const width of (process.env.WIDTHS ?? '1280,768,375').split(',').map(Number)) {
       await page.setViewportSize({ width, height: width > 400 ? 900 : 812 });
       for (const shot of SHOTS.filter((x) => !ONLY || ONLY.includes(x))) {
         const route = ROUTES[shot] ?? shot;
@@ -120,6 +120,10 @@ async function shoot(outDir) {
           await page.getByRole('link', { name: 'Call Acme' }).click();
           await page.locator('.cm-content').waitFor();
           await page.waitForTimeout(300);
+        }
+        if (shot.endsWith('-filters')) {
+          await page.getByRole('button', { name: /^Filters/ }).click();
+          await page.waitForTimeout(200);
         }
         if (shot === 'timer-editing') {
           const row = page.locator('.te-row .te-line').first();

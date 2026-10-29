@@ -86,12 +86,16 @@ h1, h2, h3, .note-title { font-weight: var(--weight-semibold); }
 .page-header h1 { font-size: var(--text-xl); margin: 0; }
 .page-header-tools { margin-left: auto; }
 .page-header-tools:empty { display: none; }
-/* Filters: part of the toolbar on wide screens, one full-width row of equal selects on phones. */
+/* Filters: one Filters button, part of the toolbar. On phones the header's small actions (Select, Add entry, a compact Filters) keep their icon and lose the visible word, so the switch and the actions share a row. */
 .page-filters { display: contents; }
 @media (max-width: 40rem) {
-  .page-header-tools { min-width: 0; max-width: 100%; }
-  .page-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); flex: 1 1 100%; min-width: 0; max-width: 100%; }
-  .page-filters > select { flex: 1 1 7.5rem; min-width: 0; }
+  .page-header-tools { min-width: 0; max-width: 100%; margin-left: 0; width: 100%; }
+  .page-header-tools .seg { flex: 0 1 auto; }
+  .page-header .page-select { min-width: 0; padding-inline: 0.6rem; }
+  .page-header .page-select-label,
+  .page-header .add-entry-label,
+  .page-header .filters-compact > span:not(.filters-count) { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .page-header .seg a { padding-inline: 0.65rem; }
 }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 

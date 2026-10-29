@@ -6,9 +6,11 @@ import { navigate } from './router';
 import { IconChevronDown, IconSettings, Menu } from './ui';
 import { cx } from './ui/cx';
 
-/** A dot on a tab: neutral for something to look at, amber for something that needs attention. */
+/** A pill on a tab, only for what needs the person: a count (neutral) or "!" (amber warning). Never a status; sync state lives in the sync button. */
 export interface TabBadge {
   level: 'info' | 'warn';
+  /** Shown in the pill: a count or "!". */
+  text: string;
   /** For a screen reader, for example "something is new". */
   label: string;
 }
@@ -17,14 +19,14 @@ export interface TabBadge {
 const GROUP_ICONS: Readonly<Record<string, ComponentType>> = { settings: IconSettings };
 
 /**
- * One tab's inside: its icon, its label (visually hidden on a narrow screen, never removed, so the tab keeps its name) and its dot.
+ * One tab's inside: its icon, its label (visually hidden on a narrow screen, never removed, so the tab keeps its name) and its badge.
  */
 function TabInner({ icon: Icon, label, badge }: { icon?: ComponentType; label: string; badge?: TabBadge }) {
   return (
     <>
       {Icon ? <Icon /> : null}
       <span class="tab-label">{label}</span>
-      {badge ? <span class={cx('tab-dot', badge.level)} role="img" aria-label={badge.label} /> : null}
+      {badge ? <span class={cx('tab-badge', badge.level)} role="img" aria-label={badge.label}>{badge.text}</span> : null}
     </>
   );
 }

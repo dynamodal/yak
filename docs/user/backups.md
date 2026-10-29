@@ -18,7 +18,7 @@ In Firefox and Safari use **Download backup (zip, with files)** regularly; it sa
 - A few seconds after each stopped timer, and every hour while the app is open.
 - When you press **Back up now**, which also makes a restore point.
 
-A banner appears, and the **Settings** tab gets an amber dot, when the last backup is too old or failed, or when the browser needs permission again. The sync button in the header lists the reason under **Other**.
+A banner appears, and the **Settings** tab gets an amber **!** badge, when the last backup is too old or failed, or when the browser needs permission again. The sync button in the header lists the reason under **Other**.
 
 ## Restore
 

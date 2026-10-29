@@ -34,7 +34,7 @@ await page.getByRole('button', { name: 'Stop timer' }).first().click();
 await page.goto(`${BASE}?test#/time/reports/detailed`);
 (await until(() => page.locator('main').innerText().then((t) => t.includes('Write report')))) ? ok('Detailed report lists the entry') : fail('entry missing from the Detailed report');
 
-(await page.locator('.tab-dot.warn').count()) > 0 ? ok('Settings dot is amber (no backup made yet)') : fail('Settings dot is not amber');
+(await page.locator('.tab-badge.warn').count()) > 0 ? ok('Settings dot is amber (no backup made yet)') : fail('Settings dot is not amber');
 
 for (const route of ['time', 'entries', 'projects', 'reports', 'notes', 'tasks', 'backups', 'devices']) {
   await page.goto(`${BASE}?test#/${route}`);

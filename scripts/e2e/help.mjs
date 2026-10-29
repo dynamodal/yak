@@ -103,18 +103,17 @@ await page.evaluate(() => { location.hash = '#/settings/devices'; });
 await page.getByRole('link', { name: 'How this works' }).click();
 check(page.url().endsWith('#/help/devices'), 'Devices links to its section');
 
-// What's new: a device that never looked sees a dot on the Settings tab; opening What's new clears it.
+// What's new: a device that never looked sees a New chip in the header; opening What's new clears it.
 const fresh = await context.newPage();
 await fresh.goto(BASE + '?test#/time');
 await fresh.waitForFunction(() => window.__app);
-check((await fresh.locator('.tab-dot').count()) === 0, 'a new device has nothing new');
+check((await fresh.locator('.tab-badge, .new-chip').count()) === 0, 'a new device has nothing new');
 await fresh.evaluate(() => localStorage.setItem('app-changes-seen', '2000-01-01'));
 await fresh.reload();
 await fresh.waitForFunction(() => window.__app);
-check((await fresh.locator('.tab-dot:not(.warn)').count()) === 1 && (await fresh.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: /^Settings/ }).locator('.tab-dot').count()) === 1, 'something new since this device last looked: a dot on the Settings tab');
-await fresh.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: /^Settings/ }).click();
-await fresh.getByRole('link', { name: "What's new", exact: true }).click();
-check(await poll(() => fresh.locator('.tab-dot').count().then((n) => n === 0)) >= 0, 'opening What\'s new clears the dot');
+check((await fresh.locator('.new-chip').count()) === 1 && (await fresh.locator('.tab-badge').count()) === 0, 'something new since this device last looked: a "New" chip in the header, nothing on the Settings tab');
+await fresh.locator('.new-chip').click();
+check(await poll(() => fresh.locator('.new-chip').count().then((n) => n === 0)) >= 0 && (await fresh.locator('.new-chip').count()) === 0, 'opening What\'s new from the chip clears it');
 check((await fresh.evaluate(() => localStorage.getItem('app-changes-seen'))) > '2020', 'and remembers it');
 const changes = await fresh.locator('#help-whats-new .change').count();
 check(changes >= 1 && changes <= 10, `What's new lists the latest entries (${changes})`);
@@ -139,7 +138,7 @@ check((await nudge.getByRole('button', { name: 'Remind me tomorrow' }).count()) 
 await nudge.evaluate(() => { location.hash = '#/settings'; });
 await nudge.locator('[data-need="backup-never"]').waitFor();
 check((await nudge.locator('section.st-section > h2').first().innerText()).trim() === 'Needs you' && /No backup yet/.test(await nudge.locator('[data-need="backup-never"]').innerText()), 'Settings lists "No backup yet" first, under Needs you');
-check((await nudge.locator('[data-toc="needs-you"] [data-dot="warn"]').count()) === 1 && (await nudge.locator('.main-tabs a', { hasText: /^Settings/ }).locator('.tab-dot.warn').count()) === 1, 'its chip and the Settings tab carry an amber dot');
+check((await nudge.locator('[data-toc="needs-you"] [data-dot="warn"]').count()) === 1 && (await nudge.locator('.main-tabs a', { hasText: /^Settings/ }).locator('.tab-badge.warn').count()) === 1, 'its chip and the Settings tab carry an amber dot');
 await nudge.locator('[data-need="backup-never"] a').click();
 check(await poll(async () => nudge.url().endsWith('#/settings/backup')), 'its Set up link opens Backup & restore');
 await nudge.goBack();

@@ -1,5 +1,6 @@
 import type * as Y from 'yjs';
 import { copyIndexEntry } from '../core/blobs/copy';
+import { markdownTargets } from '../core/blobs/unused';
 import { looksLikeFile } from '../core/blobs/attachments';
 import { applyLinkEdits, spellingFor, type LinkEdit, type LinkMode, type LinkNote, type PathMove } from './link-update';
 import { extractLinks, makeResolver, type WikiLink } from './links';
@@ -153,8 +154,8 @@ function folderEntriesUnder(doc: Y.Doc, from: string): string[] {
 }
 
 /**
- * Files the notes `ids` of `dst` name (`![[photo.png]]`) are copied into `dst`'s index from `src`; a link
- * whose file got another name there (the name was taken by other bytes) is rewritten. `src` keeps its files.
+ * Files the notes `ids` of `dst` name (`![[photo.png]]`, `![](photo.png)`, `[t](a.pdf)`) are copied into `dst`'s index from `src`; a link
+ * (wiki or Markdown) whose file got another name there (the name was taken by other bytes) is rewritten. `src` keeps its files.
  */
 function copyFiles(src: Y.Doc, dst: Y.Doc, ids: readonly string[]): string[] {
   const hashes = new Set<string>();
@@ -162,16 +163,20 @@ function copyFiles(src: Y.Doc, dst: Y.Doc, ids: readonly string[]): string[] {
     for (const id of ids) {
       const ytext = noteText(dst, id);
       if (!ytext) continue;
-      for (const l of extractLinks(ytext.toString()).reverse()) {
-        const name = l.target.split(/[\\/]/).pop() ?? '';
-        if (!looksLikeFile(name)) continue;
-        const copy = copyIndexEntry(src, dst, name);
+      const text = ytext.toString();
+      // Wiki links and Markdown links or images, last first so an edit leaves the earlier positions alone.
+      const refs = [
+        ...extractLinks(text).map((l) => ({ from: l.from, to: l.to, name: l.target.split(/[\\/]/).pop() ?? '', rewrite: (n: string) => `${l.embed ? '!' : ''}[[${n}${l.heading ? `#${l.heading}` : ''}${l.alias ? `|${l.alias}` : ''}]]` })),
+        ...markdownTargets(text).map((t) => ({ ...t, rewrite: (n: string) => encodeURIComponent(n) })),
+      ].sort((a, b) => b.from - a.from);
+      for (const r of refs) {
+        if (!looksLikeFile(r.name)) continue;
+        const copy = copyIndexEntry(src, dst, r.name);
         if (!copy) continue;
         hashes.add(copy.hash);
-        if (copy.name.toLowerCase() === name.toLowerCase()) continue;
-        const text = `${l.embed ? '!' : ''}[[${copy.name}${l.heading ? `#${l.heading}` : ''}${l.alias ? `|${l.alias}` : ''}]]`;
-        ytext.delete(l.from, l.to - l.from);
-        ytext.insert(l.from, text);
+        if (copy.name.toLowerCase() === r.name.toLowerCase()) continue;
+        ytext.delete(r.from, r.to - r.from);
+        ytext.insert(r.from, r.rewrite(copy.name));
       }
     }
   });

@@ -30,12 +30,12 @@ registerHiddenRedirect('notes', notesRouteRedirect);
 // Other modules open a note through the bus; the notes view switches space if the note lives in another one.
 bus.on('notes:open', ({ noteId }) => navigate('notes', noteId));
 
-// Commands. Ctrl/Cmd+O (as in Obsidian) or Ctrl/Cmd+P (as in VS Code and Notion) anywhere: the quick
-// switcher, opening the notes view first. Ctrl+K stays free for "insert link" in the editor.
+// Commands. Ctrl/Cmd+O (as in Obsidian) anywhere: the quick switcher, opening the notes view first.
+// Ctrl+P is left to the browser (print). Ctrl+K stays free for "insert link" in the editor.
 registerCommand({
   id: 'notes.find',
   title: 'Find a note',
-  shortcuts: ['Ctrl+O', 'Ctrl+P'],
+  shortcuts: ['Ctrl+O'],
   run: () => {
     if (parseHash(location.hash)[0] !== 'notes') navigate('notes');
     requestSwitcher();

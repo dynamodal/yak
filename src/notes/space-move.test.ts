@@ -146,6 +146,26 @@ describe('moveToSpace with files (#272)', () => {
     expect(listAttachments(h.doc).map((x) => x.name).sort()).toEqual(['cat 2.png', 'cat.png']);
   });
 
+  it('copies files named by Markdown links and images (#11)', () => {
+    const w = space({ 'Acme.md': '![pic](attachments/cat%20photo.png) and [the doc](<docs/doc.pdf> "t") and [web](https://x.test/a)' });
+    file(w.doc, 'a', 'cat photo.png');
+    file(w.doc, 'b', 'doc.pdf');
+    const h = space({});
+    const r = run(w, h, ['Acme.md']);
+    expect(r.files.sort()).toEqual(['a', 'b']);
+    expect(listAttachments(h.doc).map((x) => x.name).sort()).toEqual(['cat photo.png', 'doc.pdf']);
+    expect(h.text('Acme.md')).toBe('![pic](attachments/cat%20photo.png) and [the doc](<docs/doc.pdf> "t") and [web](https://x.test/a)');
+  });
+
+  it('rewrites a Markdown target when the file is renamed in the target space', () => {
+    const w = space({ 'Acme.md': '![[cat.png]] ![x](a/cat.png) [y](cat.png#top)' });
+    file(w.doc, 'a', 'cat.png');
+    const h = space({});
+    file(h.doc, 'b', 'cat.png');
+    run(w, h, ['Acme.md']);
+    expect(h.text('Acme.md')).toBe('![[cat 2.png]] ![x](cat%202.png) [y](cat%202.png)');
+  });
+
   it('ignores names the source has no file for', () => {
     const w = space({ 'Acme.md': '![[ghost.png]]' });
     const h = space({});

@@ -546,7 +546,7 @@ export function NotesView({ params }: ViewProps) {
           <p class="empty">{all ? 'This note does not exist, or it was deleted.' : 'This note does not exist in this space, or it was deleted.'}</p>
         ) : (
           <div class="empty-state">
-            <p class="empty">Pick a note, or create one. Press Ctrl+O (⌘O on a Mac) to find a note by name.</p>
+            <p class="empty">{scopedNotes.length === 0 ? 'Create your first note to get started.' : 'Pick a note, or create one. Press Ctrl+O (⌘O on a Mac) to find a note by name.'}</p>
             <div class="row">
               <Button variant="primary" onClick={() => active.newNote()}>
                 New note

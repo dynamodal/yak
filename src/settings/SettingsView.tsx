@@ -66,23 +66,27 @@ export function SettingsView() {
 
   useEffect(() => {
     // A row of the Notes section (Mirror, …) is a part inside it; the other sections open their rows in place.
-    const part = slug === 'notes' && target ? document.getElementById(`section-${target}`) : null;
-    if (!part) return scrollTo(slug);
-    part.scrollIntoView?.({ block: 'start' });
-    // Parts above it (unused files) load after the first scroll and push it down: keep it in place until the layout settles or the person scrolls.
-    const card = part.closest('.st-section');
-    if (!card || typeof ResizeObserver === 'undefined') return;
-    const again = (): void => part.scrollIntoView?.({ block: 'start' });
-    const ro = new ResizeObserver(again);
-    ro.observe(card);
-    const stop = (): void => ro.disconnect();
+    if (slug !== 'notes' || !target) return scrollTo(slug);
+    const place = (): boolean => {
+      const part = document.getElementById(`section-${target}`);
+      part?.scrollIntoView?.({ block: 'start' });
+      return !!part;
+    };
+    place();
+    // The part may mount late, and sections above it (unused files) grow after the first scroll: keep it in place until the layout settles or the person scrolls.
+    const root = document.querySelector('.st-home') ?? document.body;
+    const ro = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(place);
+    ro?.observe(root);
+    const stop = (): void => ro?.disconnect();
     const timer = window.setTimeout(stop, 3000);
+    // Not at once: the key that opened this row (Enter in the palette) is still being handled.
+    const arm = window.setTimeout(() => window.addEventListener('keydown', stop, { once: true }), 0);
     window.addEventListener('wheel', stop, { once: true, passive: true });
     window.addEventListener('touchmove', stop, { once: true, passive: true });
-    window.addEventListener('keydown', stop, { once: true });
     return () => {
       stop();
       clearTimeout(timer);
+      clearTimeout(arm);
       window.removeEventListener('wheel', stop);
       window.removeEventListener('touchmove', stop);
       window.removeEventListener('keydown', stop);

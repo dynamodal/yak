@@ -195,6 +195,13 @@ export const IconSettings = () => (
   </Svg>
 );
 
+/** Filters: three bars shrinking. */
+export const IconFilter = () => (
+  <Svg>
+    <path d="M2.5 4h11M4.5 8h7M6.5 12h3" />
+  </Svg>
+);
+
 export const IconCheckbox = () => (
   <Svg>
     <rect x="2.5" y="2.5" width="11" height="11" rx="2.5" />

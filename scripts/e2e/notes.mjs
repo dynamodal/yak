@@ -3,7 +3,7 @@
 //
 //   npm run e2e notes
 //
-import { BASE, launch, startMock, fail, check, watchPage, until, finish, keepAllSpaces, startSelecting, newNote, notesMenu, openJoin, startSyncing, joinByInvite } from './lib.mjs';
+import { BASE, launch, startMock, fail, check, watchPage, until, finish, keepAllSpaces, startSelecting, openFilters, newNote, notesMenu, openJoin, startSyncing, joinByInvite } from './lib.mjs';
 
 const SPACE = 'space/personal';
 
@@ -395,6 +395,23 @@ try {
   await a.getByRole('button', { name: 'Start timer for Write report' }).click();
   check((await a.locator('.sr-status').innerText()).includes('timer'), 'start timer emits a request');
 
+  // One Filters control with a count of the active filters; Agenda and Projects are groupings of the list.
+  await a.goto(BASE + '?test#/tasks');
+  check((await a.getByRole('navigation', { name: 'Task views' }).getByRole('link').allInnerTexts()).join() === 'List,Board,Table', 'the view switch is List, Board, Table');
+  check((await a.getByRole('combobox', { name: 'Status' }).count()) === 0, 'no filter selects sit above the list');
+  await openFilters(a);
+  await a.getByRole('combobox', { name: 'Due' }).selectOption('today');
+  await a.keyboard.press('Escape');
+  check((await a.getByRole('button', { name: 'Filters, 1 active' }).count()) === 1, 'the Filters button counts one active filter');
+  await openFilters(a);
+  await a.getByRole('button', { name: 'Clear filters' }).click();
+  await a.keyboard.press('Escape');
+  check((await a.getByRole('button', { name: 'Filters', exact: true }).count()) === 1, 'Clear filters empties the count');
+  await openFilters(a);
+  await a.getByRole('combobox', { name: 'Group' }).selectOption('agenda');
+  await a.waitForFunction(() => location.hash === '#/tasks/agenda');
+  check((await a.getByRole('navigation', { name: 'Task views' }).getByRole('link', { name: 'List' }).getAttribute('aria-current')) === 'page', 'the agenda is a grouping of the list: List stays the active view');
+  await a.keyboard.press('Escape');
   await a.goto(BASE + '?test#/tasks/board');
   const card = a.locator('.task-card', { hasText: 'Write report' });
   await card.waitFor();
@@ -406,6 +423,14 @@ try {
   check((await until(async () => /\nstatus: done\n[\s\S]*completedDate: /.test(await textOf(a, 'Tasks/Write report.md')))) >= 0, 'the card menu moving to done sets status and completedDate');
 
   await a.goto(BASE + '?test#/tasks/table');
+  const headers = await a.locator('.bases-table th').allInnerTexts();
+  check(['Task', 'Status', 'Due', 'Project'].every((h, i) => (headers[i] ?? '').trim().startsWith(h)), `the table opens with Task, Status, Due, Project (${headers.map((h) => h.trim()).join(' | ')})`);
+  check(headers.some((h) => h.trim().startsWith('Tracked')), 'with Time on the table has a Tracked column');
+  check((await until(async () => /[<\d]/.test(await a.locator('tr', { has: a.getByRole('link', { name: 'Write report', exact: true }) }).locator('td.tracked').innerText()))) >= 0, 'a task whose timer was started shows its tracked time');
+  check((await a.getByRole('button', { name: 'Edit priority of Write report' }).count()) === 0, 'other properties are not columns until asked for');
+  await openFilters(a);
+  await a.getByRole('dialog', { name: 'Filters' }).getByLabel('priority').check();
+  await a.keyboard.press('Escape');
   await a.getByRole('button', { name: 'Edit priority of Write report' }).click();
   const cellInput = a.locator('input[aria-label="priority of Write report"]');
   await cellInput.fill('high');
@@ -428,6 +453,9 @@ try {
   await a.goto(BASE + '?test#/tasks');
   check((await until(async () => (await a.locator('.task-list li', { hasText: 'Pack bag' }).locator('.checklist').innerText().catch(() => '')) === '1 of 3')) >= 0, 'the task card shows checklist progress');
   await a.goto(BASE + '?test#/tasks/table');
+  await openFilters(a);
+  await a.getByRole('dialog', { name: 'Filters' }).getByLabel('Checklist').check();
+  await a.keyboard.press('Escape');
   check((await until(async () => (await a.locator('tr', { has: a.getByRole('link', { name: 'Pack bag', exact: true }) }).locator('td.checklist').innerText().catch(() => '')) === '1 of 3')) >= 0, 'the table shows checklist progress');
   await a.goto(BASE + '?test#/tasks/projects');
   const group = a.locator('.project-group[data-project="Pack bag"]');
@@ -466,12 +494,16 @@ try {
   check((await until(async () => !/archived/.test((await textOf(a, 'Tasks/Zip bag.md')) ?? ''))) >= 0, 'Restore removes the tag');
   await a.getByLabel(/Show archived/).click();
   await a.goto(BASE + '?test#/tasks/board');
+  await openFilters(a);
   await a.getByLabel('Board project').selectOption({ label: 'Pack bag (0 of 2)' });
+  await a.keyboard.press('Escape');
   check((await a.locator('.task-card', { hasText: 'Zip bag' }).count()) === 1 && (await a.locator('.task-card', { hasText: 'Write report' }).count()) === 0, 'the board can show one project');
   await a.goto(BASE + '?test#/organize');
   await a.getByLabel(/Set the completed date/).click();
   await a.goto(BASE + '?test#/tasks/board');
+  await openFilters(a);
   await a.getByLabel('Board project').selectOption({ label: 'Pack bag (0 of 2)' });
+  await a.keyboard.press('Escape');
   await a.getByRole('button', { name: 'More actions for Zip bag' }).click();
   await a.getByRole('menuitem', { name: 'Move to In progress' }).click();
   await a.getByRole('button', { name: 'More actions for Zip bag' }).click();
@@ -584,7 +616,9 @@ try {
   await a.getByRole('button', { name: 'Add task' }).click();
   await a.locator('.task-list li', { hasText: 'Water the plants' }).waitFor();
   check((await inSpace(a, 'space/work')).includes('Tasks/Water the plants.md'), 'a task added with Work chosen is stored in Work');
+  await openFilters(a);
   await a.getByLabel('Status').selectOption('all');
+  await a.keyboard.press('Escape');
   const labels = await a.locator('.task-list .task-space').allInnerTexts();
   check(labels.includes('Work') && labels.includes('Personal'), `tasks of every space are listed with their space (${labels})`);
   await a.getByLabel('Space', { exact: true }).selectOption({ label: 'Personal' });

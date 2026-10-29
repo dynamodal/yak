@@ -4,6 +4,7 @@ export { Button, FileButton, IconButton, type ButtonProps, type ButtonVariant } 
 export { DataLine, type DataLineTone } from './DataLine';
 export { Dialog, type DialogProps } from './Dialog';
 export { Field } from './Field';
+export { FiltersButton, type FiltersButtonProps } from './Filters';
 export * from './icons';
 export { Page, PageHeader, PageSelectButton, usePageMenu, usePageSelect, type PageHeaderProps, type PageProps, type PageWidth } from './Page';
 export { PassphraseInput, type PassphraseInputProps } from './PassphraseInput';

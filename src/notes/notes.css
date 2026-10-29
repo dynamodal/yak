@@ -154,6 +154,7 @@ button.link.unresolved { color: var(--muted); text-decoration-style: dashed; }
 .bases-table th, .bases-table td { white-space: nowrap; }
 .bases-table td { padding: 0.15rem 0.3rem; }
 .bases-table td a { color: var(--accent); }
+.bases-table td.tracked { padding: 0.3rem 0.6rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .th-sort { background: none; border: none; padding: 0.2rem 0.2rem; color: inherit; font-weight: var(--weight-semibold); }
 .cell { width: 100%; text-align: left; background: none; border: 1px solid transparent; padding: 0.2rem 0.35rem; min-height: 1.9rem; }
 .cell:hover { border-color: var(--border); }

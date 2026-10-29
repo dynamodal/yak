@@ -185,6 +185,28 @@ export async function keepAllSpaces(page) {
   throw new Error('The joined device neither kept the spaces nor opened the Timer');
 }
 
+/** Open a page header's Filters panel unless it is open. The panel closes with Escape, a click elsewhere or Tab away. */
+export async function openFilters(page) {
+  const panel = page.getByRole('dialog', { name: 'Filters' });
+  if (!(await panel.isVisible())) await page.getByRole('button', { name: /^Filters/ }).click();
+  return panel;
+}
+
+/** The Time page's space filter (only with two or more spaces) sits behind Filters: open it, pick a space (`'all'` or a name), close it. */
+export async function pickSpace(page, value) {
+  await openFilters(page);
+  await page.getByLabel('Show space').selectOption(value === 'all' ? 'all' : { label: value });
+  await page.keyboard.press('Escape');
+}
+
+/** The value of the Time page's space filter. */
+export async function spaceValue(page) {
+  await openFilters(page);
+  const v = await page.getByLabel('Show space').inputValue();
+  await page.keyboard.press('Escape');
+  return v;
+}
+
 /** Start selecting on a list page: the Select button in the page header (it reads Done while selecting). */
 export async function startSelecting(page) {
   await page.getByRole('button', { name: 'Select', exact: true }).click();

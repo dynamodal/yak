@@ -9,9 +9,8 @@ import { savedTimerView } from '../app/timer-views';
 import type { ViewProps } from '../app/registry';
 import { useAllTime } from './hooks';
 import { ManualEntryDialog } from './ManualEntryDialog';
-import { entriesInRange, groupByDay, todayRange, weekRange } from './stats';
+import { entriesInRange, groupByDay } from './stats';
 import { TimerPageHeader } from '../app/views/TimerPageHeader';
-import { Total } from './widgets';
 
 const PAGE_DAYS = 7;
 
@@ -33,8 +32,6 @@ export function TimerView({ params }: ViewProps) {
   const todayStart = startOfDay(now);
   const range = { from: addDays(todayStart, -(days - 1)), to: addDays(todayStart, 1) };
   const shown = entriesInRange(all.entries, range);
-  const today = entriesInRange(all.entries, todayRange(now));
-  const week = entriesInRange(all.entries, weekRange(now, data.weekStart));
   const older = all.entries.some((e) => startMs(e) < range.from);
   const onlyRunning = shown.length > 0 && shown.every(isRunning);
   const deleted = [...all.slices.values()]
@@ -48,7 +45,7 @@ export function TimerView({ params }: ViewProps) {
           active={mode}
           primary={
             <Button variant="primary" class="add-entry" onClick={() => setAdding(true)}>
-              <IconPlus /> Add entry
+              <IconPlus /> <span class="add-entry-label">Add entry</span>
             </Button>
           }
         />
@@ -56,31 +53,21 @@ export function TimerView({ params }: ViewProps) {
         {mode === 'week' ? (
           <WeekEntries all={all} />
         ) : (
-          <>
-        <div class="tl-summary" aria-label="Totals">
-          <div class="tl-stat">
-            <span class="tl-stat-label">Today</span>
-            <Total entries={today} format={data.hoursFormat} />
+          <div class="tl-list">
+            {shown.length === 0 || onlyRunning ? (
+              <p class="empty">{days === PAGE_DAYS ? 'Nothing tracked in the last 7 days.' : `Nothing tracked in the last ${days} days.`}</p>
+            ) : (
+              <BulkEntries entries={shown} slices={all.slices}>
+                <DayList groups={groupByDay(shown, now)} data={data} group hideRunning level={2} />
+              </BulkEntries>
+            )}
+            {older && (
+              <div class="row tl-more">
+                <Button onClick={() => setDays(days + PAGE_DAYS)}>Show earlier days</Button>
+              </div>
+            )}
+            <RecentlyDeleted entries={deleted} data={data} />
           </div>
-          <div class="tl-stat">
-            <span class="tl-stat-label">This week</span>
-            <Total entries={week} format={data.hoursFormat} />
-          </div>
-        </div>
-        {shown.length === 0 || onlyRunning ? (
-          <p class="empty">{days === PAGE_DAYS ? 'Nothing tracked in the last 7 days.' : `Nothing tracked in the last ${days} days.`}</p>
-        ) : (
-          <BulkEntries entries={shown} slices={all.slices}>
-            <DayList groups={groupByDay(shown, now)} data={data} group hideRunning level={2} />
-          </BulkEntries>
-        )}
-        {older && (
-          <div class="row tl-more">
-            <Button onClick={() => setDays(days + PAGE_DAYS)}>Show earlier days</Button>
-          </div>
-        )}
-        <RecentlyDeleted entries={deleted} data={data} />
-          </>
         )}
       </Page>
     </RowSpaces.Provider>

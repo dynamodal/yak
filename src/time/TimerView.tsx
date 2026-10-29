@@ -4,7 +4,7 @@ import { addDays, startOfDay } from './dates';
 import { BulkEntries } from './EntrySelection';
 import { DayList, RecentlyDeleted, RowSpaces } from './entry-ui';
 import { WeekEntries } from './EntriesView';
-import { isRunning, recentlyDeleted, startMs } from './entries';
+import { recentlyDeleted, startMs } from './entries';
 import { savedTimerView } from '../app/timer-views';
 import type { ViewProps } from '../app/registry';
 import { useAllTime } from './hooks';
@@ -33,7 +33,6 @@ export function TimerView({ params }: ViewProps) {
   const range = { from: addDays(todayStart, -(days - 1)), to: addDays(todayStart, 1) };
   const shown = entriesInRange(all.entries, range);
   const older = all.entries.some((e) => startMs(e) < range.from);
-  const onlyRunning = shown.length > 0 && shown.every(isRunning);
   const deleted = [...all.slices.values()]
     .filter((s) => all.filter === 'all' || s.spaceId === all.filter)
     .flatMap((s) => recentlyDeleted(s.privateDoc, now).map((e) => ({ ...e, spaceId: s.spaceId })));
@@ -54,11 +53,11 @@ export function TimerView({ params }: ViewProps) {
           <WeekEntries all={all} />
         ) : (
           <div class="tl-list">
-            {shown.length === 0 || onlyRunning ? (
+            {shown.length === 0 ? (
               <p class="empty">{days === PAGE_DAYS ? 'Nothing tracked in the last 7 days.' : `Nothing tracked in the last ${days} days.`}</p>
             ) : (
               <BulkEntries entries={shown} slices={all.slices}>
-                <DayList groups={groupByDay(shown, now)} data={data} group hideRunning level={2} />
+                <DayList groups={groupByDay(shown, now)} data={data} group level={2} />
               </BulkEntries>
             )}
             {older && (

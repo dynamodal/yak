@@ -242,7 +242,7 @@ export class BackupService {
     // An encrypted device writes every file encrypted and no readable exports; without the key it writes nothing.
     const ring = this.stored.encrypted ? await this.opts.keyring?.() : undefined;
     if (this.stored.encrypted && !ring) {
-      const error = 'Encrypted backups are on, but this device does not have the passphrase. Enter it in Settings › Security.';
+      const error = 'Encrypted backups are on, but this device does not have the passphrase. Enter it on Backup & restore, under Encrypted backups.';
       this.save({ lastErrorAt: this.now().toISOString(), lastError: error });
       return { status: 'failed', error };
     }

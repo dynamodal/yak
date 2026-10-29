@@ -28,6 +28,13 @@ describe('deviceStatus', () => {
     expect(deviceStatus({ ...base, peers: [{ state: 'waiting-for-peer' }, { state: 'connecting' }] }).label).toBe('Connecting…');
   });
 
+  it('names the relay when every link goes through it', () => {
+    const relay = deviceStatus({ ...base, peers: [{ state: 'connected', via: 'relay' }, { state: 'waiting-for-peer' }] });
+    expect(relay.label).toBe('Syncing through the relay · 1 of 2');
+    expect(relay.hint).toContain('through the relay');
+    expect(deviceStatus({ ...base, peers: [{ state: 'connected', via: 'relay' }, { state: 'connected', via: 'direct' }] }).label).toBe('Syncing · 2 of 2');
+  });
+
   it('says when another tab does the syncing', () => {
     const s = deviceStatus({ ...base, otherTab: true, peers: [{ state: 'connected' }] });
     expect(s.label).toBe('Syncing in another tab · 1 of 1');
@@ -38,7 +45,7 @@ describe('deviceStatus', () => {
 
 describe('peerStatus', () => {
   it('names the three states of another device', () => {
-    expect(peerStatus('connected').label).toBe('Syncing');
+    expect(peerStatus('connected').label).toBe('Syncing directly');
     expect(peerStatus('connected', 'relay').label).toBe('Syncing through the relay');
     expect(peerStatus('waiting-for-peer').label).toBe('Waiting');
     expect(peerStatus('connecting').label).toBe('Connecting…');

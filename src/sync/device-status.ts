@@ -21,7 +21,7 @@ export interface DeviceStatusInput {
   /** The connection server (signaling) has been unreachable for several seconds. */
   signalingProblem: boolean;
   /** The other devices of the account, with their link states. */
-  peers: readonly { state: LinkState }[];
+  peers: readonly { state: LinkState; via?: 'direct' | 'relay' }[];
   /** Another tab of this browser runs sync; the states are that tab's. */
   otherTab?: boolean;
 }
@@ -47,7 +47,11 @@ function ownStatus(s: DeviceStatusInput): DeviceStatus {
   const total = s.peers.length;
   const linked = s.peers.filter((p) => p.state === 'connected').length;
   if (linked > 0) {
-    return { label: `Syncing · ${linked} of ${total}`, dot: 'connected', hint: 'Changes reach the linked devices at once.' };
+    // Names the path when every link goes through the relay (S-75); a mix of paths reads as plain syncing.
+    const relayOnly = s.peers.filter((p) => p.state === 'connected').every((p) => p.via === 'relay');
+    return relayOnly
+      ? { label: `Syncing through the relay · ${linked} of ${total}`, dot: 'connected', hint: 'Changes reach the linked devices at once, through the relay: slower, and without attachments.' }
+      : { label: `Syncing · ${linked} of ${total}`, dot: 'connected', hint: 'Changes reach the linked devices at once.' };
   }
   if (total === 0) return { label: 'No other devices', dot: 'waiting-for-peer', hint: 'No other devices yet. Add one below.' };
   // The same words as the device rows: a device is Connecting… while a link is being made, Waiting while it is not open.
@@ -57,17 +61,17 @@ function ownStatus(s: DeviceStatusInput): DeviceStatus {
   return { label: 'Waiting', dot: 'waiting-for-peer', hint: 'Waiting for your other devices to open Yak. Each links by itself as soon as it does.' };
 }
 
-/** One other device: what its row says. */
-export function peerStatus(state: LinkState, via?: 'direct' | 'relay'): { label: string; dot: LinkState } {
+/** One other device: what its row says. The shape beside it comes from `linkKind` (app/sync-state.ts). */
+export function peerStatus(state: LinkState, via?: 'direct' | 'relay'): { label: string } {
   switch (state) {
     case 'connected':
-      return { label: via === 'relay' ? 'Syncing through the relay' : 'Syncing', dot: 'connected' };
+      return { label: via === 'relay' ? 'Syncing through the relay' : 'Syncing directly' };
     case 'connecting':
     case 'reconnecting':
-      return { label: 'Connecting…', dot: state };
+      return { label: 'Connecting…' };
     case 'waiting-for-peer':
-      return { label: 'Waiting', dot: 'waiting-for-peer' };
+      return { label: 'Waiting' };
     default:
-      return { label: 'Stopped', dot: 'stopped' };
+      return { label: 'Stopped' };
   }
 }

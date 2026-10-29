@@ -38,6 +38,7 @@ Update Yak on it first if it is old.
   - Filled green circle: linked to at least one device directly.
   - Green ring: linked only through the relay, which only carries sealed data and is slower.
   - Amber triangle: paired, but no device is linked now.
+- The **Sync** line on Settings, the status line on the Devices pages and each device's row use the same shapes: a filled circle for a device linked directly, a ring for one linked only through the relay, a triangle for one that is connecting or not linked, a square when sync is off. The row's words say the same ("Syncing directly", "Syncing through the relay", "Connecting…", "Waiting").
 - The **Sync** line on Settings (always shown, even when sync is off) and the device rows explain it further.
 - Phones pause pages in the background, so sync happens while the page is open.
 - If two devices edit the same thing, both edits are merged; nothing is lost silently.

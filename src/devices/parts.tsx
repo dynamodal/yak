@@ -13,7 +13,8 @@ import { keeps } from '../core/keeps';
 import { relayNotice } from '../sync/relay-status';
 import { DEFAULT_STUN_URLS, loadIceUrls, parseIceUrls, saveIceUrls } from '../sync/ice-servers';
 import { deviceStatus } from '../sync/device-status';
-import { StatusDot } from '../app/views/StatusDot';
+import { SyncDot } from '../app/views/SyncDot';
+import { overallShape } from '../app/sync-state';
 import { DeviceKeysPanel } from './DeviceKeysPanel';
 import { KeyState } from './KeyState';
 import { LogSharingSwitch } from './LogSharingSwitch';
@@ -49,7 +50,7 @@ export function DeviceNotices() {
   return (
     <>
       <p class="status-line" role="status" data-device-status>
-        <StatusDot state={device.dot} />
+        <SyncDot shape={overallShape({ paired: status.paired, online, peers: status.peers })} />
         <span>
           <strong>{device.label}.</strong> {device.hint}
         </span>

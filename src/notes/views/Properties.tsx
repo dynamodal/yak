@@ -248,9 +248,11 @@ function MomentValue({ name, value, onChange }: { name: string; value: string; o
       />
     );
   }
+  const shown = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
   return (
-    <button type="button" class="prop-input prop-moment" aria-label={`Property ${name}`} title={`${value} (click to edit)`} onClick={() => setEditing(true)}>
-      <time dateTime={value}>{new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date)}</time>
+    // The name contains the visible text (WCAG 2.5.3).
+    <button type="button" class="prop-input prop-moment" aria-label={`Property ${name}: ${shown}`} title={`${value} (click to edit)`} onClick={() => setEditing(true)}>
+      <time dateTime={value}>{shown}</time>
     </button>
   );
 }

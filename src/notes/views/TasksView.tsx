@@ -2,11 +2,13 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type * as Y from 'yjs';
 import { effectiveHidden, useHiddenModules } from '../../app/features';
+import { taskHref } from '../task-route';
+import { TaskDetail } from './TaskDetail';
 import { useAllSpaces, useYVersion } from '../../app/hooks';
 import { SpacePicker } from '../../app/views/SpacePicker';
 import { useApp } from '../../app/context';
 import type { ViewProps } from '../../app/registry';
-import { navigate } from '../../app/router';
+import { navigate, parseHash } from '../../app/router';
 import { Button, IconArchive, IconButton, IconMore, IconPlay, IconRestore, MenuButton, Page, PageHeader, Pill } from '../../app/ui';
 import { formatValue, parseInput } from '../frontmatter';
 import { ARCHIVE_AFTER_DAYS, readTaskRules } from '../task-rules';
@@ -60,7 +62,20 @@ const MODES: { id: Mode; label: string }[] = [
   { id: 'table', label: 'Table' },
 ];
 
+/** `#/tasks/<id>` is one task; `#/tasks/list|board|…` is a view of them. A task id is a UUID, so it never matches a view name. */
 export function TasksView({ params }: ViewProps) {
+  const hidden = effectiveHidden(useHiddenModules());
+  const detail = params[0] && !MODES.some((m) => m.id === params[0]) ? params[0] : undefined;
+  // With Notes on a task opens in Notes, as it always did.
+  useEffect(() => {
+    if (detail && !hidden.has('notes') && parseHash(location.hash).join('/') === ['tasks', detail].join('/')) location.replace(`#/notes/${encodeURIComponent(detail)}`);
+  }, [detail, hidden.has('notes')]);
+  if (detail) return hidden.has('notes') ? <TaskDetail id={detail} /> : null;
+  return <TasksList params={params} />;
+}
+
+function TasksList({ params }: ViewProps) {
+  const notesHidden = effectiveHidden(useHiddenModules()).has('notes');
   const { doc, bus, spaceId, spaces, spaceDocs, account } = useApp();
   useYVersion(account.getMap('settings') as Y.AbstractType<unknown>);
   const rules = readTaskRules(account);
@@ -104,7 +119,8 @@ export function TasksView({ params }: ViewProps) {
   const timeOn = !effectiveHidden(useHiddenModules()).has('time');
   const actions: TaskActions = {
     timeOn,
-    open: (id) => navigate('notes', id),
+    open: (id) => navigate(notesHidden ? 'tasks' : 'notes', id),
+    href: (id) => taskHref(id, notesHidden),
     spaceLabel: (t) => (all ? spaceName(spaceOfNote.get(t.id) ?? '') : undefined),
     setDone: (t, done) => {
       setNoteProperties(docOf(t.id), t.id, done && isRecurring(t) ? recurringCompletion(t) : completionChanges(done, new Date(), rules.completed_date));
@@ -186,7 +202,7 @@ export function TasksView({ params }: ViewProps) {
         {mode === 'list' && <TaskList tasks={tasks} actions={actions} filter={listFilter} />}
         {mode === 'board' && <TaskBoard tasks={tasks} actions={actions} project={boardProject} />}
         {mode === 'projects' && <TaskProjects tasks={tasks} actions={actions} onAdd={addTask} />}
-        {mode === 'table' && <TaskTable scopeDocs={scopeDocs} indexes={indexes} spaceName={all ? spaceName : undefined} />}
+        {mode === 'table' && <TaskTable scopeDocs={scopeDocs} indexes={indexes} spaceName={all ? spaceName : undefined} notesHidden={notesHidden} />}
       </BulkNotes>
     </Page>
   );
@@ -194,6 +210,8 @@ export function TasksView({ params }: ViewProps) {
 
 interface TaskActions {
   open(id: string): void;
+  /** The address a task's title links to. */
+  href(id: string): string;
   setDone(t: Task, done: boolean): void;
   setStatus(t: Task, status: string): void;
   /** The Time feature is on, so tasks offer a timer. */
@@ -330,7 +348,7 @@ function TaskItem({ t, actions }: { t: Task; actions: TaskActions }) {
       <input type="checkbox" aria-label={`Done: ${t.title}`} checked={isCompleted(t.status)} onChange={(e) => actions.setDone(t, (e.target as HTMLInputElement).checked)} />
       <div class="task-body">
         <a
-          href={`#/notes/${encodeURIComponent(t.id)}`}
+          href={actions.href(t.id)}
           class="task-title"
           onClick={(e) => {
             if (row.consume(e)) e.preventDefault();
@@ -373,7 +391,7 @@ function TaskAgenda({ tasks, actions }: { tasks: Task[]; actions: TaskActions })
   const row = (i: AgendaItem) => (
     <li key={`${i.task.id}-${i.kind}-${i.day}`} class={i.future ? 'future' : undefined} data-note-id={i.task.id}>
       {!i.future && <input type="checkbox" aria-label={`Done: ${i.task.title}`} checked={false} onChange={() => actions.setDone(i.task, true)} />}
-      <a href={`#/notes/${encodeURIComponent(i.task.id)}`} class="task-title">
+      <a href={actions.href(i.task.id)} class="task-title">
         {i.task.title}
       </a>
       <span class="task-meta">
@@ -526,7 +544,7 @@ function BoardFilter({ tasks, project, onChange }: { tasks: Task[]; project: str
 }
 
 /** A table row that joins the selection; its first cell holds the checkbox while selecting, then the title link. */
-function SelectableRow({ id, title, children }: { id: string; title: string; children: ComponentChildren }) {
+function SelectableRow({ id, title, href, children }: { id: string; title: string; href: string; children: ComponentChildren }) {
   const row = useNoteRow(id);
   return (
     <tr
@@ -541,7 +559,7 @@ function SelectableRow({ id, title, children }: { id: string; title: string; chi
       {row.sel?.active && <td class="sel">{row.checkbox}</td>}
       <td>
         <a
-          href={`#/notes/${encodeURIComponent(id)}`}
+          href={href}
           onClick={(e) => {
             if (row.consume(e)) e.preventDefault();
           }}
@@ -581,7 +599,7 @@ function TaskCard({ t, ci, columns, actions, onDragEnd }: { t: Task; ci: number;
     >
       {row.checkbox}
       <a
-        href={`#/notes/${encodeURIComponent(t.id)}`}
+        href={actions.href(t.id)}
         class="task-title"
         draggable={false}
         onClick={(e) => {
@@ -607,8 +625,10 @@ function TaskCard({ t, ci, columns, actions, onDragEnd }: { t: Task; ci: number;
 }
 
 /** A table of notes and their front matter, in the spirit of Obsidian Bases. */
-function TaskTable({ scopeDocs, indexes, spaceName }: { scopeDocs: ReadonlyMap<string, Y.Doc>; indexes: ReadonlyMap<string, NoteIndex>; spaceName?: (sid: string) => string }) {
-  const [source, setSource] = useState<'tasks' | 'notes'>('tasks');
+function TaskTable({ scopeDocs, indexes, spaceName, notesHidden }: { scopeDocs: ReadonlyMap<string, Y.Doc>; indexes: ReadonlyMap<string, NoteIndex>; spaceName?: (sid: string) => string; notesHidden: boolean }) {
+  const [picked, setSource] = useState<'tasks' | 'notes'>('tasks');
+  // Plain notes are Notes' to show: with Notes off the table lists tasks only.
+  const source = notesHidden ? 'tasks' : picked;
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' }>({ col: 'due', dir: 'asc' });
   const [editing, setEditing] = useState<{ id: string; col: string } | null>(null);
@@ -651,13 +671,15 @@ function TaskTable({ scopeDocs, indexes, spaceName }: { scopeDocs: ReadonlyMap<s
   return (
     <>
       <div class="row filters">
-        <label>
-          Rows{' '}
-          <select value={source} onChange={(e) => setSource((e.target as HTMLSelectElement).value as 'tasks' | 'notes')}>
-            <option value="tasks">Tasks</option>
-            <option value="notes">All notes</option>
-          </select>
-        </label>
+        {!notesHidden && (
+          <label>
+            Rows{' '}
+            <select value={source} onChange={(e) => setSource((e.target as HTMLSelectElement).value as 'tasks' | 'notes')}>
+              <option value="tasks">Tasks</option>
+              <option value="notes">All notes</option>
+            </select>
+          </label>
+        )}
         <input
           type="search"
           class="table-filter"
@@ -684,7 +706,7 @@ function TaskTable({ scopeDocs, indexes, spaceName }: { scopeDocs: ReadonlyMap<s
           </thead>
           <tbody>
             {rows.map((r) => (
-              <SelectableRow key={r.id} id={r.id} title={r.title}>
+              <SelectableRow key={r.id} id={r.id} title={r.title} href={taskHref(r.id, notesHidden)}>
                 {spaceName && <td>{spaceName(spaceOfRow.get(r.id) ?? '')}</td>}
                 {source === 'tasks' && <td class="checklist">{progressOf.get(r.id) ? progressText(progressOf.get(r.id) as Progress) : <span class="placeholder">—</span>}</td>}
                 {columns.map((c) => {

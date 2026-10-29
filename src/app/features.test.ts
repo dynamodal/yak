@@ -23,9 +23,15 @@ describe('hidden modules', () => {
   it('keeps only known ids', () => {
     expect(readHiddenModules(store('["mirror","bogus",3]'))).toEqual(['mirror']);
   });
-  it('hiding Notes also hides Tasks', () => {
-    expect([...effectiveHidden(['notes'])].sort()).toEqual(['notes', 'tasks']);
+  it('Notes and Tasks are independent switches (F-33n)', () => {
+    expect([...effectiveHidden(['notes'])]).toEqual(['notes']);
     expect([...effectiveHidden(['tasks'])]).toEqual(['tasks']);
+    expect([...effectiveHidden(['notes', 'tasks'])].sort()).toEqual(['notes', 'tasks']);
+  });
+  it('an old list with `notes` but not `tasks` (which used to hide both) now shows Tasks', () => {
+    const old = effectiveHidden(readHiddenModules(store('["notes"]')));
+    expect(['notes', 'notes-settings', 'tasks'].map((id) => viewHidden(id, old))).toEqual([true, true, false]);
+    expect(searchKindHidden('task', old)).toBe(false);
   });
   it('Reports has no switch of its own: an old stored `reports` entry is dropped and hides nothing', () => {
     expect(readHiddenModules(store('["reports"]'))).toEqual([]);
@@ -43,7 +49,7 @@ describe('hidden modules', () => {
 describe('registry filter', () => {
   const hidden = effectiveHidden(['notes', 'time']);
   it('hides the views of hidden features, never Settings or backups', () => {
-    expect(['notes', 'tasks', 'reports', 'notes-settings', 'timer'].map((id) => viewHidden(id, hidden))).toEqual([true, true, true, true, true]);
+    expect(['notes', 'tasks', 'reports', 'notes-settings', 'timer'].map((id) => viewHidden(id, hidden))).toEqual([true, false, true, true, true]);
     expect(['backup', 'devices', 'mirror', 'import', 'settings'].map((id) => viewHidden(id, hidden))).toEqual([false, false, false, false, false]);
   });
   it('Time off hides the Time page, its old Entries route, Reports and the timer commands', () => {
@@ -62,14 +68,18 @@ describe('registry filter', () => {
   });
   it('hides commands: notes commands and "Go to" of hidden views', () => {
     expect(commandHidden('notes.find', hidden)).toBe(true);
-    expect(commandHidden('go.tasks', hidden)).toBe(true);
+    expect(['notes.today', 'notes.insert-date', 'go.notes'].map((id) => commandHidden(id, hidden))).toEqual([true, true, true]);
+    expect(commandHidden('go.tasks', hidden)).toBe(false);
+    expect(commandHidden('go.tasks', effectiveHidden(['tasks']))).toBe(true);
+    expect(commandHidden('notes.find', effectiveHidden(['tasks']))).toBe(false);
     expect(commandHidden('go.reports', hidden)).toBe(true);
     expect(commandHidden('go.timer', hidden)).toBe(true);
     expect(commandHidden('timer.toggle', hidden)).toBe(true);
   });
   it('filters search results by kind', () => {
     expect(searchKindHidden('note', hidden)).toBe(true);
-    expect(searchKindHidden('task', hidden)).toBe(true);
+    expect(searchKindHidden('task', hidden)).toBe(false);
+    expect(searchKindHidden('task', effectiveHidden(['notes', 'tasks']))).toBe(true);
     expect(searchKindHidden('entry', hidden)).toBe(false);
     expect(searchKindHidden('task', effectiveHidden(['tasks']))).toBe(true);
     expect(searchKindHidden('note', effectiveHidden(['tasks']))).toBe(false);
@@ -96,8 +106,10 @@ describe('landing route', () => {
   it('is the first tab this device shows', () => {
     expect(landingRoute(effectiveHidden([]), views)).toBe('#/time');
     expect(landingRoute(effectiveHidden(['time']), views)).toBe('#/notes');
-    expect(landingRoute(effectiveHidden(['time', 'notes']), views)).toBe('#/settings');
+    expect(landingRoute(effectiveHidden(['time', 'notes']), views)).toBe('#/tasks');
     expect(landingRoute(effectiveHidden(['time', 'tasks']), views)).toBe('#/notes');
+    expect(landingRoute(effectiveHidden(['time', 'notes', 'tasks']), views)).toBe('#/settings');
+    expect(landingRoute(effectiveHidden(['notes']), views)).toBe('#/time');
   });
   it('is Settings when every other feature is off, and skips hidden, joined and grouped views', () => {
     expect(landingRoute(effectiveHidden(['time', 'notes', 'tasks']), views)).toBe('#/settings');

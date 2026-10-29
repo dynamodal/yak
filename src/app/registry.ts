@@ -1,5 +1,6 @@
 import type { ComponentType } from 'preact';
-import { viewHidden } from './features';
+import type * as Y from 'yjs';
+import { effectiveHidden, hiddenRoute, readHiddenModules, viewHidden, type FeatureId } from './features';
 
 export interface ViewProps {
   /** Route segments after the view's own path, for example `#/notes/<id>` gives `['<id>']`. */
@@ -131,4 +132,23 @@ export function registerTabBadge(def: TabBadgeDef): void {
 
 export function allTabBadges(): readonly TabBadgeDef[] {
   return tabBadges;
+}
+
+/**
+ * Where a hidden page's address can go instead of the landing tab: `#/notes/<id>` opens a task on the Tasks tab when Notes is off.
+ * `params` are the route segments after the page's path; return the new route, or undefined for the landing tab.
+ */
+export type HiddenRedirect = (params: readonly string[], spaceDocs: ReadonlyMap<string, Y.Doc>) => string[] | undefined;
+
+const redirects = new Map<string, HiddenRedirect>();
+
+export function registerHiddenRedirect(path: string, redirect: HiddenRedirect): void {
+  if (!redirects.has(path)) redirects.set(path, redirect);
+}
+
+/** The route a hidden page's address is sent to, when its module offers one that is not itself hidden. */
+export function hiddenRedirect(route: readonly string[], spaceDocs: ReadonlyMap<string, Y.Doc>, hidden: ReadonlySet<FeatureId> = effectiveHidden(readHiddenModules())): string[] | undefined {
+  const [first, ...rest] = route;
+  const target = first === undefined ? undefined : redirects.get(first)?.(rest, spaceDocs);
+  return target && !hiddenRoute(target, views, hidden) ? target : undefined;
 }

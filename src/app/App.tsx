@@ -10,7 +10,7 @@ import { useNotices } from './hooks';
 import { TopNav } from './Nav';
 import { NAV_GROUPS, legacyRoute, navModel } from './nav';
 import { effectiveHidden, hiddenRoute, landingRoute, useHiddenModules } from './features';
-import { allBanners, allGlobals, allHeaderItems, allViews, joinedViews, registeredViews } from './registry';
+import { allBanners, allGlobals, allHeaderItems, allViews, hiddenRedirect, joinedViews, registeredViews } from './registry';
 import { savedJoinedView } from './timer-views';
 import { navigate, parseHash, useRoute } from './router';
 import { Button, IconArrowLeft, ToastHost } from './ui';
@@ -83,7 +83,10 @@ export function App(props: AppProps) {
   // A page this device hides sends you to the first tab it shows (Settings when every other feature is off), or to Settings for a Settings page (F-309, F-33l).
   const onHiddenPage = !welcome && hiddenRoute(route, registeredViews());
   useEffect(() => {
-    if (onHiddenPage && parseHash(location.hash).join('/') === route.join('/')) location.replace(route[0] === 'settings' ? '#/settings' : landingRoute(effectiveHidden(hiddenList), registeredViews()));
+    if (!onHiddenPage || parseHash(location.hash).join('/') !== route.join('/')) return;
+    // A module may send its hidden page's address somewhere that still works: `#/notes/<task>` opens the task under Tasks (F-33n).
+    const moved = route[0] === 'settings' ? undefined : hiddenRedirect(route, snapshot.spaceDocs, effectiveHidden(hiddenList));
+    location.replace(moved ? `#/${moved.map(encodeURIComponent).join('/')}` : route[0] === 'settings' ? '#/settings' : landingRoute(effectiveHidden(hiddenList), registeredViews()));
   }, [onHiddenPage, route.join('/')]);
 
   // `#/time` alone opens the view used last; when that is a joined one (Reports), say so in the address.

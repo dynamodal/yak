@@ -11,6 +11,8 @@ export interface NoteEditorProps {
   /** Live mode: hide the YAML front matter (the Properties table shows it). */
   hideFrontMatter: boolean;
   onOpenLink(target: string): void;
+  /** Why a `[[link]]` does not open, if it does not (the task page with Notes off). */
+  linkTitle?(target: string): string | undefined;
   onTag(tag: string): void;
   onMakeTask(title: string, done: boolean): string | null;
   /** Attached files of the note's space. */
@@ -71,6 +73,7 @@ export function NoteEditor(p: NoteEditorProps) {
         mode: props.current.mode,
         hideFrontMatter: props.current.hideFrontMatter,
         onOpenLink: (t) => props.current.onOpenLink(t),
+        linkTitle: props.current.linkTitle ? (t) => props.current.linkTitle?.(t) : undefined,
         onTag: (t) => props.current.onTag(t),
         onMakeTask: (t, d) => props.current.onMakeTask(t, d),
         files: props.current.files,

@@ -48,10 +48,13 @@ const SHOTS = [
   'timer', 'week', 'reports', 'reports/detailed', 'reports/weekly', 'notes', 'notes-open', 'tasks', 'tasks-board', 'tasks-table',
   'settings', 'settings/backup', 'settings/devices', 'note-settings', 'organize', 'help', 'help/shortcuts', 'help/report', 'import',
   'timer-editing', 'timer-forced', 'tasks-forced',
+  // Notes switched off (F-33n): the Tasks tab and a task on its own page.
+  'tasks-no-notes', 'tasks-board-no-notes', 'tasks-table-no-notes', 'task-detail-no-notes',
 ];
 const ROUTES = {
   timer: 'time/list', week: 'time/week', reports: 'time/reports', 'reports/detailed': 'time/reports/detailed', 'reports/weekly': 'time/reports/weekly',
   'notes-open': 'notes', 'tasks-board': 'tasks/board', 'tasks-table': 'tasks/table', 'timer-editing': 'time/list', 'timer-forced': 'time/list', 'tasks-forced': 'tasks',
+  'tasks-no-notes': 'tasks', 'tasks-board-no-notes': 'tasks/board', 'tasks-table-no-notes': 'tasks/table', 'task-detail-no-notes': 'tasks',
 };
 
 /** A fresh profile starts on Welcome: name the first space and start with everything on. Skipped when Welcome is absent. */
@@ -95,6 +98,13 @@ async function shoot(outDir) {
       await page.setViewportSize({ width, height: width > 400 ? 900 : 812 });
       for (const shot of SHOTS.filter((x) => !ONLY || ONLY.includes(x))) {
         const route = ROUTES[shot] ?? shot;
+        // `-no-notes` shots run with the Notes feature hidden on this device; reload when that changes.
+        const notesOff = shot.endsWith('-no-notes');
+        const wasOff = await page.evaluate(() => localStorage.getItem('hidden_modules') === '["notes"]');
+        if (notesOff !== wasOff) {
+          await page.evaluate((off) => (off ? localStorage.setItem('hidden_modules', '["notes"]') : localStorage.removeItem('hidden_modules')), notesOff);
+          await page.reload();
+        }
         await page.goto(`${BASE}?test#/${route}`);
         // `-forced` shots set the opposite theme on <html>, as the Settings page does.
         // Route changes keep the document, so every other shot clears it again.
@@ -103,6 +113,11 @@ async function shoot(outDir) {
         if (shot === 'notes-open') {
           // The note route is #/notes/<uuid>: open the note by clicking it in the tree.
           await page.locator('a.tree-note', { hasText: /^Acme$/ }).click();
+          await page.locator('.cm-content').waitFor();
+          await page.waitForTimeout(300);
+        }
+        if (shot === 'task-detail-no-notes') {
+          await page.getByRole('link', { name: 'Call Acme' }).click();
           await page.locator('.cm-content').waitFor();
           await page.waitForTimeout(300);
         }

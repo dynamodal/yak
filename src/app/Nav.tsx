@@ -26,7 +26,7 @@ function TabInner({ icon: Icon, label, badge }: { icon?: ComponentType; label: s
     <>
       {Icon ? <Icon /> : null}
       <span class="tab-label">{label}</span>
-      {badge ? <span class={cx('tab-badge', badge.level)} role="img" aria-label={badge.label}>{badge.text}</span> : null}
+      {badge ? <span class={cx('tab-badge', badge.level)} role="img" aria-label={badge.label} data-text={badge.text} /> : null}
     </>
   );
 }

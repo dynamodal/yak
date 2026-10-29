@@ -25,6 +25,9 @@ export function parseChanges(source: string): Change[] {
     .sort((a, b) => (a.id === b.id ? 0 : a.id < b.id ? 1 : -1));
 }
 
+/** What a device stores as seen: the date and title of the newest entry, so a new entry on an already-seen date still counts as new. */
+export const changeToken = (c: Change | undefined): string | undefined => (c ? `${c.id} ${c.title}` : undefined);
+
 function read(key: string): string | null {
   try {
     return localStorage.getItem(key);

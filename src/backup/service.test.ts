@@ -176,6 +176,50 @@ describe('BackupService', () => {
   });
 });
 
+describe('BackupService cover records (#83)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] });
+    vi.setSystemTime(new Date('2026-10-15T12:00:00Z'));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  async function withSink() {
+    const store = memoryStore();
+    seedSpace(await store.open('space/personal'), 'S');
+    const events: { kind: string; at: string; ids: string[] }[] = [];
+    let saved: StoredStatus = {};
+    const dir = new MemoryDir();
+    const service = new BackupService({
+      docs: () => store.opened(),
+      deviceId: 'cccc0000-1111',
+      accountId: 'acct1',
+      folder: { current: async () => ({ state: 'granted' as const, id: 'f', name: 'B', dir }) },
+      status: { load: () => saved, save: (x) => (saved = x) },
+      onBackup: (e) => events.push({ kind: e.kind, at: e.at, ids: e.documents.map((d) => d.id) }),
+    });
+    return { service, events, saved: () => saved };
+  }
+
+  it('tells after a folder backup and after a download', async () => {
+    const { service, events } = await withSink();
+    await service.run('manual', { force: true });
+    expect(events).toEqual([{ kind: 'folder', at: '2026-10-15T12:00:00.000Z', ids: ['space/personal'] }]);
+    await service.downloadable();
+    expect(events.map((e) => e.kind)).toEqual(['folder', 'download']);
+  });
+
+  it('tells again from an unchanged check only once the last telling is 3 hours old', async () => {
+    const { service, events } = await withSink();
+    await service.run('hourly');
+    vi.setSystemTime(new Date('2026-10-15T13:00:00Z'));
+    expect((await service.run('hourly')).status).toBe('unchanged');
+    expect(events).toHaveLength(1);
+    vi.setSystemTime(new Date('2026-10-15T15:30:00Z'));
+    expect((await service.run('hourly')).status).toBe('unchanged');
+    expect(events).toHaveLength(2);
+  });
+});
+
 describe('backupHealth', () => {
   const now = Date.parse('2026-10-15T12:00:00Z');
   const s = (patch: Partial<BackupState>): BackupState => ({ folder: { state: 'granted', name: 'B' }, running: false, ...patch });

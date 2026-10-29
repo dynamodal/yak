@@ -86,6 +86,7 @@ A module never imports another feature module.
 - The **private part** holds `time_entries` and `project_rates` (`<projectId>:rate`, `<projectId>:currency`; `src/core/rates.ts`). It syncs only to the account's devices.
 - Old first-layout databases (`app-doc-space/personal`, `…/work`, `…/time`) may remain on a device; nothing reads them.
 - Browser tests keep the readable first-layout names: in `?test` mode the hooks translate `space/personal` and `space/work/time` to the real documents (`src/core/test-ids.ts`).
+- A space's log document (`space/<id>/log`; synced only between devices that keep the space, never backed up) also holds the `cover` map (B-83, `src/backup/cover.ts`): per device, what its latest backup held of the space, as state vectors. `useBackupHealth` (`runtime.ts`) reads it so another device's recent backup can stand in for this device's own.
 - More documents per space later use ids under the space, for example `space/work/notes/<uuid>`; the store, the sync multiplexer and backups already handle any id.
 - `DocumentStore.open(id)` returns the `Y.Doc`, loaded from IndexedDB (`app-doc-<id>`); every opened document is synced with every paired device.
 

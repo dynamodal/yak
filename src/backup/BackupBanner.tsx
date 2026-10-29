@@ -4,8 +4,7 @@ import { navigate } from '../app/router';
 import { Button } from '../app/ui';
 import { reportHealth } from '../core/health';
 import { testMode } from '../core/test-build';
-import { hasData, remindTomorrow, remindUntil, useBackup } from './runtime';
-import { backupHealth } from './service';
+import { remindTomorrow, remindUntil, useBackup, useBackupHealth } from './runtime';
 
 /**
  * Shown on every screen while backups are stale, failing, never made, or folder access was lost.
@@ -13,10 +12,10 @@ import { backupHealth } from './service';
  * reporting the problem (this component reports it, so the shell needs no backup code).
  */
 export function BackupBanner() {
-  const { state, store, folder, service } = useBackup();
+  const { state, folder, service } = useBackup();
   const now = useNow(60_000);
   const [until, setUntil] = useState(remindUntil);
-  const health = backupHealth(state, now, hasData(store.opened()));
+  const health = useBackupHealth();
   const text = health.ok ? undefined : health.text;
   useEffect(() => {
     reportHealth('backup', text ? [{ level: 'warn', text }] : []);

@@ -50,6 +50,7 @@ export function installTestHook(rt: BackupRuntime): void {
     addEntry: (spaceId: string, description: string) => addEntry(time(spaceId), '2026-10-15T13:00:00Z', '2026-10-15T13:30:00Z', description),
     stopped: () => rt.bus.emit('timer:stopped', { spaceId: 'personal', entryId: 'test' }),
     idle: () => rt.service.whenIdle(),
+    run: () => rt.service.run('manual', { force: true }).then((r) => r.status),
     state: () => rt.service.state,
     dump: () => dump(rt),
     /** Forget the sealed account key, as an account that set its passphrase before the update (#255). */

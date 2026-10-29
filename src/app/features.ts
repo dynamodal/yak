@@ -12,8 +12,8 @@ export type FeatureId = 'time' | 'notes' | 'tasks' | 'mirror' | 'import';
 
 export const FEATURES: readonly { id: FeatureId; title: string; hint: string }[] = [
   { id: 'time', title: 'Time', hint: 'The timer, the log, the week and reports' },
-  { id: 'notes', title: 'Notes', hint: 'Markdown notes. Hiding Notes also hides Tasks.' },
-  { id: 'tasks', title: 'Tasks', hint: 'Tasks are notes with a due date or status.' },
+  { id: 'notes', title: 'Notes', hint: 'Markdown notes, folders and daily notes.' },
+  { id: 'tasks', title: 'Tasks', hint: 'Tasks are notes with a due date or status. They work with Notes off.' },
   { id: 'mirror', title: 'Mirror', hint: 'Keep a folder of Markdown files in step with your notes. Needs folder access in the browser.' },
   { id: 'import', title: 'Import', hint: 'Bring in a Toggl or CSV export.' },
 ];
@@ -62,11 +62,12 @@ function safeStorage(): Storage | undefined {
   }
 }
 
-/** What is hidden in effect: the stored list, plus Tasks whenever Notes is hidden. */
+/**
+ * What is hidden in effect: the stored list. The switches are independent (F-33n): Tasks work without Notes.
+ * (Before that, hiding Notes also hid Tasks; an old list with `notes` but not `tasks` now shows Tasks.)
+ */
 export function effectiveHidden(stored: readonly FeatureId[]): Set<FeatureId> {
-  const out = new Set(stored);
-  if (out.has('notes')) out.add('tasks');
-  return out;
+  return new Set(stored);
 }
 
 // ---- A feature that cannot be hidden right now (a running timer)

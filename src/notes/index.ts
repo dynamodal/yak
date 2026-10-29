@@ -1,9 +1,10 @@
 import './search-source';
 import './tag-source';
 import { registerCommand } from '../app/commands';
-import { registerGlobal, registerView } from '../app/registry';
+import { registerGlobal, registerHiddenRedirect, registerView } from '../app/registry';
 import { IconCheckbox, IconNote } from '../app/ui';
 import { registerSection } from '../app/sections';
+import { notesRouteRedirect } from './task-route';
 import { TaskValues } from './TaskRulesCard';
 import { navigate, parseHash } from '../app/router';
 import { bus } from '../core/bus';
@@ -20,6 +21,9 @@ registerView({ id: 'notes', title: 'Notes', path: 'notes', order: 50, icon: Icon
 registerGlobal({ id: 'notes-notices', component: NoticeWatch });
 registerSection({ id: 'task-values', page: 'organize', title: 'Task values', order: 30, feature: 'tasks', component: TaskValues });
 registerView({ id: 'tasks', title: 'Tasks', path: 'tasks', order: 60, icon: IconCheckbox, component: TasksView });
+
+// With Notes off, an old `#/notes/<task>` opens the task under Tasks (F-33n).
+registerHiddenRedirect('notes', notesRouteRedirect);
 
 // Other modules open a note through the bus; the notes view switches space if the note lives in another one.
 bus.on('notes:open', ({ noteId }) => navigate('notes', noteId));

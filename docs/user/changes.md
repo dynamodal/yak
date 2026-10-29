@@ -1,5 +1,12 @@
 # What's new
 
+## 2026-10-31: Tasks work without Notes
+
+- **Notes** and **Tasks** are separate switches in Settings › Preferences › Tabs shown. Hide Notes and keep Tasks if you only want a task list.
+- With Notes off, a task opens on its own page (**Tasks** › the task) with the same editor and properties. A link to another task opens it; a link to a plain note does nothing and says "Turn on Notes to open this note". The Notes tab, the notes tree, note search results, daily notes and the note commands are hidden.
+- **If you had hidden only Notes before, Tasks now show.** Before, hiding Notes hid Tasks too. Turn Tasks off if you want it hidden.
+- Nothing is deleted or changed: tasks are still note files, in sync and in backups.
+
 ## 2026-10-30: One timer in the header
 
 - The timer is a **pill** in the header on every page. The round button starts or stops at once. The words beside it open the details: description, **Recent** work (the first row is **Continue**), project, tags and billable, with **Start** or **Update**.

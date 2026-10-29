@@ -1,7 +1,7 @@
 # UI direction: identity, one responsive shell, header timer, Home
 
 Issue #33.
-Status: agreed with the owner in a design review (2026-10-28, mockups reviewed in chat). Built so far: the tokens restyle, all-sans type, the Time rename and the header (slice 3a), and the timer pill with its popover, the Time switch and the Time page without a bar (slice 3b). The Home tab, Tasks without Notes and the Settings rework are not built.
+Status: agreed with the owner in a design review (2026-10-28, mockups reviewed in chat). Built so far: the tokens restyle, all-sans type, the Time rename and the header (slice 3a), the timer pill with its popover, the Time switch and the Time page without a bar (slice 3b), and Tasks without Notes with independent Features switches (slice 3c). The Home tab and the Settings rework are not built.
 Settings has its own note: `settings-structure.md` (supersedes the proposal in #22).
 
 ## Problem
@@ -64,7 +64,7 @@ Ink (monochrome, sharp) was rejected as too harsh; Soft's indigo as too generic.
 Header, left to right on a wide screen: `[logo + app name]  [tabs]  ····  [timer pill]  [command button]  [sync status]`.
 Only the pill changes width; the command and sync controls stay put to its right.
 
-- Tabs at the top on every width: Home, Time, Notes, Tasks, Settings (Features hides Time, Notes, Tasks; Home and Settings stay).
+- Tabs at the top on every width: Home, Time, Notes, Tasks, Settings (Features hides Time, Notes, Tasks, each on its own; Home and Settings stay).
   Home is not built yet.
 - The Timer tab is **Time**, at `#/time` (`#/time/list`, `#/time/week`, `#/time/reports[/<section>]`).
   Only the tab, route and wording changed; stored names stay (F39).
@@ -133,6 +133,9 @@ A summary of where things stand; read-only apart from checking a task off and op
 
 ## Tasks views
 
+- Tasks work without Notes (F-33n): with Notes off a task opens at `#/tasks/<id>` in the same editor; `[[links]]` to other tasks open them, links to plain notes are inert ("Turn on Notes to open this note"); the Table lists tasks only.
+  Notes off also hides the Notes tab, the tree, plain-note search results, daily notes and the notes commands.
+
 - One view switch: List, Board, Table now.
   More views later, in the spirit of TaskNotes and Obsidian Bases; a trailing "+" is the place for them (not built now).
 - Board: columns by status.
@@ -144,7 +147,7 @@ A summary of where things stand; read-only apart from checking a task off and op
 
 1. Fix `scripts/screens.mjs` (test build, Welcome step, current routes) so restyle PRs can show before and after.
 2. Tokens restyle (`tokens.css`, `ui.css`).
-3. Shell, in parts: (a) header, all-sans, Time rename and route (built); (b) timer pill and popover, Time page without its bar, Time switch (built); (c) Tasks without Notes and independent Features switches.
+3. Shell, in parts: (a) header, all-sans, Time rename and route (built); (b) timer pill and popover, Time page without its bar, Time switch (built); (c) Tasks without Notes and independent Features switches (built).
 4. Settings (`settings-structure.md`).
 5. Home.
 6. Tasks view switch and filters.

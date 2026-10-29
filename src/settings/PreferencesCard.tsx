@@ -20,21 +20,20 @@ function TabsShown() {
         </span>
       </summary>
       <p class="hint">
-        Per device. Hiding a feature only hides its pages and controls: your time entries, notes, tasks and other data are kept, keep syncing, and are still in backups. Hiding Time also hides the timer in the header, its shortcut and Reports, and the app opens on the first tab still shown. Settings, Backup &amp; restore and the sync status are always shown.
+        Per device. Hiding a feature only hides its pages and controls: your time entries, notes, tasks and other data are kept, keep syncing, and are still in backups. Each tab is its own switch. Hiding Time also hides the timer in the header, its shortcut and Reports. Hiding Notes keeps Tasks, which then open on their own page; hiding Tasks keeps Notes. The app opens on the first tab still shown. Settings, Backup &amp; restore and the sync status are always shown.
       </p>
       <ul class="features-list">
         {FEATURES.map((f) => {
           const off = hidden.has(f.id);
-          const byNotes = f.id === 'tasks' && stored.includes('notes');
           // A running timer must be stopped before Time is hidden, so it is never left running out of sight.
           const block = !off ? featureBlock(f.id) : undefined;
           return (
             <li key={f.id} data-feature={f.id}>
               <label class="row">
-                <input type="checkbox" aria-label={f.title} checked={!off} disabled={byNotes || !!block} onChange={(e) => toggle(f.id, (e.target as HTMLInputElement).checked)} />
+                <input type="checkbox" aria-label={f.title} checked={!off} disabled={!!block} onChange={(e) => toggle(f.id, (e.target as HTMLInputElement).checked)} />
                 <strong>{f.title}</strong>
               </label>
-              <span class="hint">{byNotes ? 'Hidden because Notes is hidden.' : (block ?? f.hint)}</span>
+              <span class="hint">{block ?? f.hint}</span>
             </li>
           );
         })}

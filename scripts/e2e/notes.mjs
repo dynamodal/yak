@@ -34,7 +34,7 @@ try {
   await a.keyboard.press('Enter');
   check((await until(async () => (await byPath(a, 'Acme.md')) !== undefined)) >= 0, 'new note titled Acme');
   check(CREATED.test(await textOf(a, 'Acme.md')), 'a new note starts with a dateCreated property');
-  check((await a.locator('button[aria-label="Property dateCreated"]').count()) === 1 && !/T\d\d:\d\d:\d\d/.test(await a.locator('button[aria-label="Property dateCreated"]').innerText()), 'Properties shows the created date formatted, not as raw ISO');
+  check((await a.locator('button[aria-label^="Property dateCreated"]').count()) === 1 && !/T\d\d:\d\d:\d\d/.test(await a.locator('button[aria-label^="Property dateCreated"]').innerText()), 'Properties shows the created date formatted, not as raw ISO');
   // "Move to…" from the note's menu, into a new folder.
   await a.getByRole('button', { name: 'More actions for this note' }).click();
   await a.getByRole('menuitem', { name: 'Move to…' }).click();

@@ -53,6 +53,7 @@ const baseTheme = EditorView.theme({
   },
   '.cm-wikilink': { color: 'var(--accent)', cursor: 'pointer' },
   '.cm-wikilink:hover': { textDecoration: 'underline' },
+  '.cm-wikilink-inert, .cm-wikilink-inert:hover': { color: 'var(--muted)', cursor: 'text', textDecoration: 'underline dotted' },
   '.cm-hashtag': { color: 'var(--accent)', backgroundColor: 'color-mix(in srgb, var(--accent) 12%, transparent)', borderRadius: '4px', padding: '0 2px' },
   '.cm-h1': { fontSize: '1.75em', fontWeight: '700', lineHeight: '1.3', paddingTop: '0.4em' },
   '.cm-h2': { fontSize: '1.4em', fontWeight: '700', lineHeight: '1.3', paddingTop: '0.35em' },
@@ -95,7 +96,17 @@ const wikiMark = Decoration.mark({ class: 'cm-wikilink' });
 const tagMark = Decoration.mark({ class: 'cm-hashtag' });
 const WIKI = /!?\[\[([^[\]\n|]+?)(\|[^[\]\n]+?)?\]\]/g;
 
-const wikiDecorator = new MatchDecorator({ regexp: WIKI, decoration: () => wikiMark });
+/** A link that does not open (Notes is off and it reaches no task): plain text with the reason as its title. */
+const inertMark = (title: string): Decoration => Decoration.mark({ class: 'cm-wikilink cm-wikilink-inert', attributes: { title } });
+const wikiDecorator = (linkTitle?: (target: string) => string | undefined): MatchDecorator =>
+  new MatchDecorator({
+    regexp: WIKI,
+    decoration: (m) => {
+      // An embed (`![[file.png]]`) is an attachment, not a link to open.
+      const title = linkTitle && !m[0].startsWith('!') ? linkTitle((m[1] ?? '').split('#')[0]?.trim() ?? '') : undefined;
+      return title ? inertMark(title) : wikiMark;
+    },
+  });
 const tagDecorator = new MatchDecorator({
   regexp: /(^|[\s(,;])(#[\p{L}\p{N}_\-/]*[\p{L}_\-/][\p{L}\p{N}_\-/]*)/gu,
   decorate: (add, from, to, match) => add(from + (match[1]?.length ?? 0), to, tagMark),
@@ -445,6 +456,8 @@ export interface EditorOptions {
   hideFrontMatter?: boolean;
   /** Open (or create) the note a `[[link]]` points to. */
   onOpenLink(target: string): void;
+  /** A reason a `[[link]]` does not open (shown as its title, and a click leaves it alone); undefined when it opens. */
+  linkTitle?(target: string): string | undefined;
   /** Tag clicked: search for it. */
   onTag?(tag: string): void;
   /** Create a task note for a checkbox line; returns the name to link, or null. */
@@ -491,7 +504,7 @@ export function editorExtensions(o: EditorOptions): Extension[] {
     syntaxHighlighting(highlight),
     baseTheme,
     modeCompartment.of(modeExtensions(o.mode ?? 'live', o.hideFrontMatter ?? true)),
-    decoratorPlugin(wikiDecorator),
+    decoratorPlugin(wikiDecorator(o.linkTitle)),
     decoratorPlugin(tagDecorator),
     EditorView.contentAttributes.of({ 'aria-label': 'Note text', 'aria-multiline': 'true', spellcheck: 'true' }),
     ...(o.files ? [fileConfig.of({ host: o.files, onMessages: o.onFileMessages })] : []),
@@ -520,7 +533,7 @@ export function editorExtensions(o: EditorOptions): Extension[] {
           return true;
         }
         const el = target.closest('.cm-wikilink');
-        if (!el) return false;
+        if (!el || el.classList.contains('cm-wikilink-inert')) return false;
         const pos = view.posAtDOM(el);
         // Like Obsidian: a click opens the link, unless the cursor is already on that line
         // (then the click places the cursor to edit it). Ctrl/Cmd-click always opens.

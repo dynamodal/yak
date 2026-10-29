@@ -57,10 +57,10 @@ const hash = (p) => p.evaluate(() => location.hash);
   await p.evaluate(() => localStorage.setItem('hidden_modules', '[]'));
   await p.evaluate(() => (location.hash = '#/settings'));
   await p.locator('details.st-tabs-shown > summary').click();
-  // Hiding Notes hides Tasks too, and the Tasks switch is off and locked.
+  // Notes and Tasks are separate switches (F-33n): Notes off keeps Tasks, and the Tasks switch stays usable.
   await p.getByLabel('Notes', { exact: true }).uncheck();
-  check((await tabs(p)).join() === 'Time,Settings', 'Notes off hides Tasks too');
-  check(await p.getByLabel('Tasks', { exact: true }).isDisabled(), 'the Tasks switch is locked while Notes is hidden');
+  check((await tabs(p)).join() === 'Time,Tasks,Settings', `Notes off keeps Tasks (${(await tabs(p)).join()})`);
+  check(!(await p.getByLabel('Tasks', { exact: true }).isDisabled()), 'the Tasks switch is not locked while Notes is hidden');
   // A hidden Settings page goes to Settings (a visible page), not the timer.
   await p.getByLabel('Import', { exact: true }).uncheck();
   await p.evaluate(() => (location.hash = '#/settings/import'));
@@ -142,6 +142,7 @@ const hash = (p) => p.evaluate(() => location.hash);
   await p.evaluate(() => (location.hash = '#/settings'));
   await p.locator('details.st-tabs-shown > summary').click();
   await p.getByLabel('Notes', { exact: true }).uncheck();
+  await p.getByLabel('Tasks', { exact: true }).uncheck();
   check((await tabs(p)).join() === 'Settings', `all features off: only Settings (${(await tabs(p)).join()})`);
   await p.evaluate(() => (location.hash = '#/time'));
   await p.waitForFunction(() => location.hash === '#/settings', null, { timeout: 5000 }).catch(() => {});

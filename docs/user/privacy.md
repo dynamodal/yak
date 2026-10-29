@@ -2,6 +2,13 @@
 
 Yak is alpha software with no warranty. Keep backups.
 
+**In short:** your data stays in this browser unless you pair a device or share a space; then it travels encrypted, and nobody running Yak can read it.
+
+## Two words used below
+
+- **Relay**: a small server that passes sealed messages between your devices when they cannot reach each other directly. It is Yak's own, or ntfy.sh if you chose it.
+- **STUN**: a public lookup service. A device asks it "what is my address on the internet?" so another device can find it. It sees that address and nothing else.
+
 ## On your device
 
 - All notes, tasks, time entries and settings are stored in this browser. Nothing is uploaded unless you pair a device.
@@ -11,7 +18,7 @@ Yak is alpha software with no warranty. Keep backups.
 ## Between your own devices
 
 - Changes travel directly between your devices, encrypted with a key only they hold.
-- Pairing needs the **relay** (Yak's own server, or ntfy.sh if you chose it) and **STUN** servers, which help devices find each other.
+- Pairing needs the relay and STUN servers, which help devices find each other.
 - The relay sees encrypted messages, their sizes and times, and the network addresses connecting to it. It cannot read the contents.
 - STUN servers see the network address of a device asking for its public address. No content.
 - If a direct link is impossible, encrypted data passes through the relay. It is still unreadable there.

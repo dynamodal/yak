@@ -6,7 +6,7 @@ import { useUnsealedKey } from '../app/key-hooks';
 import { readAccountEncryption } from '../core/account-encryption';
 
 /**
- * The lock state of a device (docs/sync.md, "Key model", compatible mode): whether it has published
+ * The lock state of a device (docs/sync.md, Key model, compatible mode): whether it has published
  * its keys, and a short fingerprint to compare on two screens. Nothing is enforced yet.
  */
 export function KeyState(props: { account: Y.Doc; deviceId: string; version: number }) {

@@ -135,13 +135,33 @@ How sync works today. Decisions and reasons: `decisions/sync.md`.
 
 ## Trust limit
 
-- Every device with the code is equally trusted and can claim to be any device, so a hostile device can ask for any space. The Devices page says so.
+- History: before device keys, every device with the code was equally trusted and could claim to be any device. The key model above replaces that; what remains is per-space grants (#1).
 - Compatible mode (#255, S-76a–c): each device and the account have key pairs and publish their public keys in the account document; the Devices page shows which devices have keys. The account document moves to the account key's fingerprint id (S-76r).
 - Slice 2 (#256): the device holding the account key certifies the others; certified devices sign offers and answers and seal relay frames with pair keys (S-256, S-76f). In compatible mode nothing is refused and the code still admits everyone; a pair whose key fails falls back to the shared key (S-256c). A device pins the account key it follows and ignores unsigned changes (S-256d). Once the account requires keys (slice 3), a device without a certificate gets no document.
 - Keys required (#257, S-257–S-257h): the owner reviews the devices and flips a one-way switch; only approved devices sync, new ones join by one-time invite with a code compared on both screens, and the sync code alone gets no link or document. Until an account switches, the first bullet still holds.
 - Removal (#258, S-295): signed with the passphrase; no device links to a removed one any more.
 - Always on (#311, S-311): a new account is key-required from its first device (the passphrase is asked at "Start syncing") and a joining device always makes keys; an older keyless account switches from a banner on Devices, and a device left out joins again (S-311b).
-- Still to come: sharing with other accounts (slice 5).
+- Sharing with other accounts is built (#259, S-259 to S-259f).
+
+## Key model
+
+- Goal: a device that is not approved cannot get an account's data, even holding an old code. Sharing a space with another account.
+- Not goals: taking back data a device already synced; hiding data from the relay (sealed already) or from the person's own browser; read-only members; rejecting junk edits (Yjs cannot).
+- Researched and rejected as a base: Keyhive, Willow/Meadowcap, secsync, DXOS. None fits Yjs, peer-to-peer and cross-account sharing without a rewrite.
+
+| Thing | What | Where it lives |
+| --- | --- | --- |
+| Passphrase | The person's; also the backup key's source (PBKDF2). Needed to approve or remove a device and to start or end a share; not for everyday use, sync or backups | Never stored; cached in memory a few minutes |
+| Account key pair | P-256 ECDSA; signs device certificates, removals and share changes. Account id = fingerprint of its public half | Public half and the passphrase-encrypted private half in `account/<id>`; the encrypted half is also in backups |
+| Device key pair | P-256 ECDSA (sign) and ECDH (pair keys). Private halves are non-extractable, in IndexedDB, never exported or backed up | Public halves and certificate in the account document under `keys.<deviceId>` |
+| One-time code | Opens the join mailbox only; expires after 15 minutes; both screens show a short code to compare | Typed, scanned or pasted |
+
+- Pairing: the new device sends its public keys sealed with the code; the approving device (passphrase) signs a certificate. Someone with only the code can ask, not get in.
+- Offers and answers are signed over the session description; relay and signaling frames are sealed with a pair key from ECDH of the two device keys. The relay sees ciphertext, sizes and timing.
+- Within an account every approved device is trusted with all of it; `keeps` is a filter on what a device asks for, not a guard against a hostile approved device. Per-space keys are issue #1.
+- Forgotten passphrase: no data lost and devices keep syncing; approving, removing and sharing are lost.
+- Obsidian plugin: a device like any other, with its own keys (O-257).
+- Existing accounts moved without a reset (F39): the account document was copied to `account/<fingerprint>`, and keys are now always on for new accounts (S-311).
 
 ## Security review (alpha, #203)
 

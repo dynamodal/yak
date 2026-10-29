@@ -4,7 +4,7 @@
 
 - Replace Toggl for time tracking, and Obsidian plus Obsidian Sync for notes and tasks, without installing anything or running a server.
 - Two kinds of users: local-only (no pairing; safe local data plus folder backups) and sync users (two or three of their own devices).
-- Notes and tasks should also be editable in Obsidian and other Markdown editors (`docs/design/external-editors.md`).
+- Notes and tasks should also be editable in Obsidian and other Markdown editors (built: `docs/architecture.md`; routes not built: `docs/design/external-editors.md`).
 
 ## Principles
 

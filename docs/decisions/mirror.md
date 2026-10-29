@@ -1,6 +1,6 @@
 # Decisions: mirror
 
-Reference: `../architecture.md` (Mirror), `../design/external-editors.md`.
+Reference: `../architecture.md` (Mirror), `../design/external-editors.md` (routes not built).
 
 | # | Decision | Why |
 | --- | --- | --- |

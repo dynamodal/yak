@@ -6,7 +6,7 @@ import { keeps } from './keeps';
 import { sign, unwrap, verifyText, wrapFor, type PublicKeyJwk } from './keys';
 
 /**
- * Space keys for own devices (docs/sync.md, "Key model", slice 2, S-76e): a random 256-bit key per
+ * Space keys for own devices (docs/sync.md, Key model, slice 2, S-76e): a random 256-bit key per
  * space, wrapped to each certified device that keeps the space. A grant is the wrapped copy, signed by
  * the account key or by a certified device; `allowsDoc` in keys-required mode asks whether the peer
  * holds it. Epoch 1 only: nothing is encrypted with space keys yet, so a removal rotates nothing

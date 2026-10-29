@@ -5,7 +5,7 @@ Backups copy everything to a folder you choose, ideally one that is itself backe
 
 ## Set up
 
-1. Open **Settings › Backup & restore** and press **Choose folder…**. Pick or create an empty folder.
+1. Open **Settings › Backup and safety**, choose **Backup** to open **Backup & restore**, and press **Choose folder…**. Pick or create an empty folder.
 2. The first backup is written straight away.
 3. If the browser asks whether the app may keep access, choose **Allow on every visit**.
 

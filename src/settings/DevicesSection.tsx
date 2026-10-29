@@ -3,15 +3,16 @@ import type * as Y from 'yjs';
 import { ownerKeys } from '../app/account-keys-runtime';
 import { useApp } from '../app/context';
 import { lastSeen, useDeviceColumns } from '../app/device-columns';
-import { useSyncStatus, useYVersion } from '../app/hooks';
+import { useOnline, useSyncStatus, useYVersion } from '../app/hooks';
 import { safeStorage } from '../app/join';
 import { useKeyTrust } from '../app/key-hooks';
 import { withKey } from '../app/key-prompt';
 import { leaveAccount, rejoinAccount } from '../app/leave';
 import { navigate } from '../app/router';
 import { settingsParts } from '../app/settings-parts';
+import { linkKind, linkShape, overallShape } from '../app/sync-state';
 import { Button, DataLine } from '../app/ui';
-import { StatusDot } from '../app/views/StatusDot';
+import { SyncDot } from '../app/views/SyncDot';
 import { UndecidedNotice } from '../app/views/UndecidedNotice';
 import { deviceName, devicesMap, readDevices, setDeviceName, setRemoved, suggestedName } from '../core/devices';
 import { keeps } from '../core/keeps';
@@ -27,18 +28,19 @@ type Confirming = { kind: 'remove'; id: string } | { kind: 'rejoin' } | { kind: 
 export function SyncLine() {
   const { sync, account } = useApp();
   const status = useSyncStatus(sync);
+  const online = useOnline();
   useYVersion(devicesMap(account) as unknown as Y.AbstractType<unknown>);
   if (!status.paired) {
     return (
-      <DataLine id="sync" tone="off" label="Sync" text="Off">
+      <DataLine id="sync" tone="off" label="Sync" text="Off" dot={<SyncDot shape="off" />}>
         <a href="#/settings/devices/add">Set up</a>
       </DataLine>
     );
   }
-  const names = status.peers.filter((p) => p.state === 'connected').map((p) => deviceName(account, p.id) ?? 'an unnamed device');
+  const names = status.peers.filter((p) => p.state === 'connected').map((p) => `${deviceName(account, p.id) ?? 'an unnamed device'}${p.via === 'relay' ? ' (through the relay)' : ''}`);
   const text = names.length > 0 ? `Syncing with ${names.join(', ')}` : status.peers.length === 0 ? 'On · waiting for your first device' : 'On · waiting for your other devices';
   return (
-    <DataLine id="sync" tone={names.length > 0 ? 'ok' : 'off'} label="Sync" text={text}>
+    <DataLine id="sync" tone={names.length > 0 ? 'ok' : 'off'} label="Sync" text={text} dot={<SyncDot shape={overallShape({ paired: true, online, peers: status.peers })} />}>
       <a href="#/settings/devices/add">Add a device</a>
     </DataLine>
   );
@@ -121,7 +123,7 @@ export function DevicesSection(props: { target?: string }) {
                 </>
               }
               sub={sub}
-              aside={st ? <StatusDot state={st.dot} /> : undefined}
+              aside={st && peer ? <SyncDot shape={linkShape(linkKind(peer))} label={st.label} /> : undefined}
             >
               <fieldset class="st-keeps-set">
                 <legend>Keeps</legend>
@@ -166,7 +168,7 @@ export function DevicesSection(props: { target?: string }) {
                   </label>
                   {st ? (
                     <p class="device-state">
-                      <StatusDot state={st.dot} /> {st.label}
+                      <SyncDot shape={linkShape(linkKind(peer!))} /> {st.label}
                     </p>
                   ) : null}
                   {peer?.sharedKey ? <p class="hint">Syncs with the shared key: the key for just these two devices failed (until reload)</p> : null}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LINK_KIND_LABEL, linkKind, SYNC_SHAPE_TEXT, syncShape } from './sync-state';
+import { LINK_KIND_LABEL, linkKind, linkShape, overallShape, SYNC_SHAPE_TEXT, syncShape } from './sync-state';
 
 describe('syncShape', () => {
   it('is off when sync was never set up', () => {
@@ -43,5 +43,33 @@ describe('linkKind', () => {
     expect(linkKind({ state: 'waiting-for-peer' })).toBe('none');
     expect(linkKind({ state: 'stopped' })).toBe('none');
     expect(LINK_KIND_LABEL.none).toBe('Not connected');
+  });
+});
+
+describe('linkShape', () => {
+  it('draws a direct link as the disc and a relay link as the ring, like the header', () => {
+    expect(linkShape(linkKind({ state: 'connected', via: 'direct' }))).toBe('direct');
+    expect(linkShape(linkKind({ state: 'connected' }))).toBe('direct');
+    expect(linkShape(linkKind({ state: 'connected', via: 'relay' }))).toBe('relay');
+  });
+  it('draws connecting and not linked as the triangle', () => {
+    expect(linkShape(linkKind({ state: 'connecting' }))).toBe('offline');
+    expect(linkShape(linkKind({ state: 'reconnecting' }))).toBe('offline');
+    expect(linkShape(linkKind({ state: 'waiting-for-peer' }))).toBe('offline');
+    expect(linkShape(linkKind({ state: 'stopped' }))).toBe('offline');
+  });
+});
+
+describe('overallShape', () => {
+  const linked = [{ state: 'connected' as const, via: 'relay' as const }];
+  it('is the header shape while online', () => {
+    expect(overallShape({ paired: true, online: true, peers: linked })).toBe('relay');
+  });
+  it('is the triangle without a network, even if peers last said connected', () => {
+    expect(overallShape({ paired: true, online: false, peers: linked })).toBe('offline');
+  });
+  it('stays the square when there is nothing to sync with', () => {
+    expect(overallShape({ paired: false, online: false, peers: [] })).toBe('off');
+    expect(overallShape({ paired: true, online: false, peers: [] })).toBe('off');
   });
 });

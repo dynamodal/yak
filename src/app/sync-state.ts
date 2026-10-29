@@ -42,6 +42,15 @@ export const SYNC_SHAPE_TEXT: Readonly<Record<SyncShape, SyncShapeText>> = {
   offline: { label: 'Not connected', detail: 'paired, but no other device is linked now' },
 };
 
+/**
+ * The shape for the overall status lines (Settings and Add a device): the header's rule, except that no network is
+ * never drawn as linked, whatever the peers last said.
+ */
+export function overallShape(s: SyncShapeInput & { online: boolean }): SyncShape {
+  const shape = syncShape(s);
+  return !s.online && shape !== 'off' ? 'offline' : shape;
+}
+
 /** How one other device is linked, in the sync popover. */
 export type LinkKind = 'direct' | 'relay' | 'connecting' | 'none';
 
@@ -56,3 +65,11 @@ export const LINK_KIND_LABEL: Readonly<Record<LinkKind, string>> = {
   connecting: 'Connecting…',
   none: 'Not connected',
 };
+
+/**
+ * The shape for one other device's row. Connecting and not linked both use the triangle (the header's "paired, nothing
+ * linked"); the row's words say which. A device that is not syncing at all uses the square.
+ */
+export function linkShape(kind: LinkKind): SyncShape {
+  return kind === 'direct' ? 'direct' : kind === 'relay' ? 'relay' : 'offline';
+}

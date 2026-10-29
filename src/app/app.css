@@ -22,10 +22,11 @@ body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 .palette-chip { font: inherit; font-size: var(--text-xs); line-height: 1.5; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 0.35rem; white-space: nowrap; }
 .btn.sync-btn { flex: none; gap: 0.4rem; padding: 0 0.55rem; }
 .sync-shape { display: inline-flex; font-size: 1.15em; color: var(--sync, var(--muted)); }
+.sync-dot { flex: none; font-size: 1em; }
 .sync-chevron { display: inline-flex; font-size: 0.8em; color: var(--muted); }
-.sync-btn.off, .sync-head.off { --sync: var(--muted); }
-.sync-btn.direct, .sync-head.direct, .sync-btn.relay, .sync-head.relay { --sync: var(--accent); }
-.sync-btn.offline, .sync-head.offline { --sync: var(--warn); }
+.sync-btn.off, .sync-head.off, .sync-dot.off { --sync: var(--muted); }
+.sync-btn.direct, .sync-head.direct, .sync-btn.relay, .sync-head.relay, .sync-dot.direct, .sync-dot.relay { --sync: var(--accent); }
+.sync-btn.offline, .sync-head.offline, .sync-dot.offline { --sync: var(--warn); }
 .status-panel { width: min(22rem, calc(100vw - 1rem)); padding: var(--space-3); }
 .sync-head { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
 .sync-hint { margin: var(--space-1) 0 0; }

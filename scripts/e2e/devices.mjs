@@ -75,6 +75,22 @@ await open(a, await idOf(b));
 check((await until(async () => (await nameInput(a, await idOf(b)).inputValue()) === 'Phone', 5000)) >= 0, 'a device name shows on the other device');
 check((await row(a, await idOf(b)).innerText()).includes('Syncing'), "the other device's row says Syncing");
 
+// The dots use the header's shapes (S-75): a disc for a direct link, a ring for the relay, a triangle when not linked.
+const bId = await idOf(b);
+const shapeOf = (sel) => row(a, bId).locator(sel).getAttribute('data-shape');
+check((await until(async () => (await shapeOf('.st-row-head .sync-dot')) === 'direct', 10000)) >= 0 && (await shapeOf('.device-state .sync-dot')) === 'direct', 'a direct link shows the filled circle in the row, with "Syncing directly"');
+check((await row(a, bId).locator('.st-row-head .sync-dot').getAttribute('aria-label')) === 'Syncing directly', 'the row dot has an accessible name');
+check((await a.locator('[data-line="sync"] .sync-dot').getAttribute('data-shape')) === 'direct', 'the Sync line shows the same shape as the header');
+await a.evaluate(async () => {
+  const peers = window.__app.peers().map((p) => ({ ...p, via: 'relay' }));
+  window.__app.fakeStatus({ paired: true, state: 'connected', peers });
+});
+check((await until(async () => (await shapeOf('.st-row-head .sync-dot')) === 'relay', 10000)) >= 0 && (await shapeOf('.device-state .sync-dot')) === 'relay', 'a relay-only link shows the ring in the row');
+check((await row(a, bId).locator('.device-state').innerText()).includes('through the relay') && (await a.locator('[data-line="sync"]').innerText()).includes('through the relay'), 'and the text says through the relay');
+check((await a.locator('[data-line="sync"] .sync-dot').getAttribute('data-shape')) === 'relay', 'the Sync line shows the ring too');
+await a.evaluate(() => window.__app.fakeStatus(null));
+check((await until(async () => (await shapeOf('.st-row-head .sync-dot')) === 'direct', 10000)) >= 0, 'the real link shows again once the fake status is cleared');
+
 // Shared logs: B's lines show on A (filtered by B), and A's on B.
 const logText = (p) => p.locator('pre[aria-label="Shared log"]').textContent();
 for (const p of [a, b]) {

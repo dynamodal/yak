@@ -1,4 +1,3 @@
-import type { ComponentType } from 'preact';
 import type * as Y from 'yjs';
 import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import { deviceName, devicesMap, readDevices } from '../core/devices';
@@ -7,16 +6,10 @@ import type { PeerInfo } from '../sync/peer-mesh';
 import { useApp } from './context';
 import { useHealth, useOnline, useSyncStatus, useYVersion } from './hooks';
 import { useKeyTrust } from './key-hooks';
-import { LINK_KIND_LABEL, linkKind, SYNC_SHAPE_TEXT, type SyncShape, syncShape } from './sync-state';
-import { IconChevronDown, Pill, IconSyncDirect, IconSyncOff, IconSyncOffline, IconSyncRelay, Popover } from './ui';
+import { LINK_KIND_LABEL, linkKind, SYNC_SHAPE_TEXT, syncShape } from './sync-state';
+import { SHAPE_ICON } from './views/SyncDot';
+import { IconChevronDown, Pill, Popover } from './ui';
 import { cx } from './ui/cx';
-
-const SHAPE_ICON: Record<SyncShape, ComponentType> = {
-  off: IconSyncOff,
-  direct: IconSyncDirect,
-  relay: IconSyncRelay,
-  offline: IconSyncOffline,
-};
 
 const isError = (e: { kind: string }): boolean => e.kind === 'error' || e.kind.startsWith('error:');
 const shortId = (id: string): string => id.slice(0, 8);

@@ -8,7 +8,8 @@ import { useKeyTrust } from '../app/key-hooks';
 import { withKey } from '../app/key-prompt';
 import type { ViewProps } from '../app/registry';
 import { Button, Page, PageHeader } from '../app/ui';
-import { StatusDot } from '../app/views/StatusDot';
+import { SyncDot } from '../app/views/SyncDot';
+import { overallShape } from '../app/sync-state';
 import { UndecidedNotice } from '../app/views/UndecidedNotice';
 import { groupSecret } from '../qr';
 import { deviceStatus } from '../sync/device-status';
@@ -67,7 +68,7 @@ export function AddDeviceView({ params }: ViewProps) {
         <a href="#/settings/devices-sync">← Settings</a> · <a href="#/help/devices">How this works</a>
       </p>
       <p class="status-line" role="status">
-        <StatusDot state={device.dot} />
+        <SyncDot shape={overallShape({ paired: status.paired, online, peers: status.peers })} />
         <span>
           <strong>{device.label}.</strong> {device.hint}
         </span>

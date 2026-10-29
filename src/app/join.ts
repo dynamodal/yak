@@ -130,6 +130,7 @@ export function keepsPendingApproval(storage: StorageLike): boolean {
 
 /** After a join, add the spaces this device brought, once the joined account's spaces have arrived. */
 export async function addPendingLocalSpaces(state: AccountState, storage: StorageLike, me: string): Promise<void> {
+  const openedAt = typeof location === 'undefined' ? '' : location.hash;
   let parsed: { spaces?: { id: string; name: string }[]; name?: string; keepAccountSpaces?: boolean } = {};
   try {
     parsed = JSON.parse(storage.getItem(PENDING_KEY) ?? '{}') as typeof parsed;
@@ -154,12 +155,16 @@ export async function addPendingLocalSpaces(state: AccountState, storage: Storag
   storage.setItem(PENDING_KEY, '{}');
   await state.refresh();
   // The join began on Settings (no spaces yet); now that there are some, start on the first tab this device shows. A deeper link is left alone.
-  if (parsed.keepAccountSpaces && readSpaces(state.doc).length > 0) goToTimerFromBareSettings();
+  if (parsed.keepAccountSpaces && readSpaces(state.doc).length > 0) goToTimerFromBareSettings(openedAt);
 }
 
-/** After a join: leave Settings (where joining happens) for the first tab this device shows (Time, unless hidden), unless the person already went to Notes, Tasks or the like. */
-function goToTimerFromBareSettings(): void {
-  if (typeof location === 'undefined') return;
+/**
+ * After a join: leave Settings (where joining happens) for the first tab this device shows (Time, unless hidden), unless the person already went
+ * to Notes, Tasks or the like. The spaces can arrive many seconds after the page loads, so a person who has since opened another Settings row
+ * (Advanced, say) stays where they are (#88).
+ */
+function goToTimerFromBareSettings(openedAt: string): void {
+  if (typeof location === 'undefined' || location.hash !== openedAt) return;
   const path = location.hash.replace(/^#\/?/, '').replace(/\/+$/, '');
   if (path === '' || path === 'settings' || path.startsWith('settings/') || path === 'welcome') location.hash = landingRoute(effectiveHidden(readHiddenModules()), registeredViews());
 }

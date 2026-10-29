@@ -3,6 +3,7 @@ import * as Y from 'yjs';
 import { addSpace, readSpaces } from '../core/account';
 import { decided, keeps } from '../core/keeps';
 import { addPendingLocalSpaces, keepsPendingApproval } from './join';
+import { registerView } from './registry';
 import type { AccountState } from './account-state';
 import type { StorageLike } from '../core/account-setup';
 
@@ -33,6 +34,35 @@ describe('addPendingLocalSpaces after an approved join', () => {
     st.setItem(`app-${PENDING}`, JSON.stringify({ spaces: [], name: 'Phone' }));
     await addPendingLocalSpaces(stateOf(doc), st, 'phone');
     expect(decided(doc, 'phone', 'work')).toBe(false);
+  });
+});
+
+describe('after an approved join, once the spaces arrive', () => {
+  const approved = () => {
+    const doc = new Y.Doc();
+    addSpace(doc, 'work', 'Work', undefined, 'laptop');
+    const st = memory();
+    st.setItem(`app-${PENDING}`, JSON.stringify({ spaces: [], keepAccountSpaces: true }));
+    return { doc, st };
+  };
+  it('leaves bare Settings for the first tab', async () => {
+    registerView({ id: 'time', title: 'Time', path: 'time', order: 10, component: () => null });
+    const loc = { hash: '#/settings' };
+    vi.stubGlobal('location', loc);
+    const { doc, st } = approved();
+    await addPendingLocalSpaces(stateOf(doc), st, 'phone');
+    vi.unstubAllGlobals();
+    expect(loc.hash).toBe('#/time');
+  });
+  it('stays on a Settings row the person opened meanwhile (#88)', async () => {
+    const loc = { hash: '#/settings' };
+    vi.stubGlobal('location', loc);
+    const { doc, st } = approved();
+    const done = addPendingLocalSpaces(stateOf(doc), st, 'phone');
+    loc.hash = '#/settings/advanced';
+    await done;
+    vi.unstubAllGlobals();
+    expect(loc.hash).toBe('#/settings/advanced');
   });
 });
 

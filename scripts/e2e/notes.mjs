@@ -676,8 +676,13 @@ try {
   await a.keyboard.type('Bar');
   await a.keyboard.press('Enter');
   await a.setViewportSize({ width: 375, height: 800 });
+  // Enter sends the cursor to the body as soon as the editor has loaded (focusBody), which on a busy machine can come first: wait for it, then take focus away.
+  await a.locator('.note-pane .note-editor .cm-content').waitFor();
+  await until(() => a.evaluate(() => !!document.querySelector('.note-pane .note-editor')?.contains(document.activeElement)), 3000);
+  await a.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined));
+  await a.locator('.note-format-bar').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
   check((await a.locator('.note-format-bar').count()) === 0, 'no formatting bar without editor focus');
-  await a.locator('.note-editor').click();
+  await a.locator('.note-editor .cm-content').click();
   await a.locator('.note-format-bar').waitFor();
   const bar = await a.locator('.note-format-bar').boundingBox();
   check(bar.x >= 0 && bar.x + bar.width <= 375, 'the formatting bar fits at 375 px');

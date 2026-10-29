@@ -8,8 +8,8 @@ body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 #app { min-height: 100vh; display: flex; flex-direction: column; }
 
 /* Header, row 1 at every width from 22.5rem (360 px): logo and name | tabs | commands | sync, with the timer pill beside
-   them. The tabs never wrap. From 52rem the tabs have labels (the labelled row needs about 49.3rem, 52rem leaves slack for wider fonts with the widest sync
-   label); under 52rem they are icons only (labels stay as hidden text for screen readers), the sync label and command
+   them. The tabs never wrap. From 58rem the tabs have labels (the labelled row needs about 54.5rem with Home, 58rem leaves slack for wider fonts with the widest sync
+   label); under 58rem they are icons only (labels stay as hidden text for screen readers), the sync label and command
    chip go under 35rem and the app name under 27.5rem. The timer pill is the only thing that moves: idle it is a round
    button under 60rem and the full pill from 60rem; running, under 60rem, it takes a row of its own. Under 22.5rem the
    tabs and the timer each get a row (three rows). */
@@ -47,7 +47,7 @@ body { font: var(--font-size)/var(--line-height) var(--font-sans); }
 .offline-chip { white-space: nowrap; }
 
 .tabs { display: flex; gap: 0.25rem; order: 3; flex: 1 1 100%; min-width: 0; overflow-x: auto; }
-@media (min-width: 52rem) {
+@media (min-width: 58rem) {
   .topbar { flex-wrap: nowrap; }
   .tabs { order: 0; flex: none; align-self: center; }
   /* The tabs keep their width; the timer (the one control with flexible text) gives way. */
@@ -148,7 +148,7 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
   .view { padding: 0.75rem; }
 }
 /* Icons only: the tab labels, the sync label and the shortcut chip give way, and keep their names for screen readers. */
-@media (max-width: 51.99rem) {
+@media (max-width: 57.99rem) {
   .tabs a, .tabs .tab { min-width: var(--control-h); justify-content: center; padding-inline: 0.6rem; }
   .tab-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .tab-dot { top: 0.35rem; right: 0.45rem; }
@@ -210,9 +210,9 @@ th { color: var(--muted); font-weight: var(--weight-semibold); font-size: var(--
   .topbar-end > .timer-pill.running { order: 4; flex: 1 1 100%; margin: 0 0 0.4rem; }
   .topbar:has(.timer-pill.running) .palette-btn { margin-left: auto; }
 }
-/* From 22.5rem (360 px) to 52rem the tab labels are gone, so the tab icons fit beside the logo, command and sync: row one is
+/* From 22.5rem (360 px) to 58rem the tab labels are gone, so the tab icons fit beside the logo, command and sync: row one is
    logo, tabs, (idle round button), command, sync; row two exists only while a timer runs. Below 22.5rem the tabs keep their own row. */
-@media (min-width: 22.5rem) and (max-width: 51.99rem) {
+@media (min-width: 22.5rem) and (max-width: 57.99rem) {
   .topbar { column-gap: var(--space-1); }
   .tabs { order: 0; flex: 1 1 auto; align-self: center; }
 }

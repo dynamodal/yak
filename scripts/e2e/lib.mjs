@@ -167,7 +167,8 @@ export async function finish(...closables) {
  */
 export async function keepAllSpaces(page) {
   const button = page.getByRole('button', { name: 'Keep all spaces' });
-  const onTimer = () => page.evaluate(() => location.hash.startsWith('#/time')).catch(() => false);
+  // A joined device lands on the first tab: Home (F-33p), or Time when Home is off.
+  const onTimer = () => page.evaluate(() => location.hash.startsWith('#/time') || location.hash.startsWith('#/home')).catch(() => false);
   const deadline = Date.now() + 30000;
   let pressedAt = 0;
   while (Date.now() < deadline) {
@@ -182,7 +183,7 @@ export async function keepAllSpaces(page) {
     if (pressedAt && Date.now() - pressedAt > 4000) return;
     await new Promise((r) => setTimeout(r, 200));
   }
-  throw new Error('The joined device neither kept the spaces nor opened the Timer');
+  throw new Error('The joined device neither kept the spaces nor opened its first page');
 }
 
 /** Open a page header's Filters panel unless it is open. The panel closes with Escape, a click elsewhere or Tab away. */

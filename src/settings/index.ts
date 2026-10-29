@@ -1,6 +1,8 @@
 import './settings.css';
+import { registerHomeCard } from '../app/home-cards';
 import { registerView } from '../app/registry';
 import { lazyView } from '../app/lazy';
+import { NeedsCard } from './NeedsCard';
 import { NotesSettings } from './SectionViews';
 import { applyTheme, readTheme } from './theme';
 
@@ -11,3 +13,5 @@ if (typeof document !== 'undefined') applyTheme(readTheme());
 registerView({ id: 'settings', title: 'Settings', path: 'settings', order: 95, group: 'settings', component: lazyView(() => import('./SettingsView').then((m) => ({ default: m.SettingsView }))) });
 // Note settings (links, files, daily notes, Mirror) belong to Notes: a ⚙ there opens this page, which is no Settings page.
 registerView({ id: 'notes-settings', title: 'Note settings', path: 'note-settings', order: 97, hidden: true, component: NotesSettings });
+
+registerHomeCard({ id: 'needs', order: 10, wide: true, component: NeedsCard });

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { commandHidden, effectiveHidden, featureBlock, hiddenRoute, landingRoute, readHiddenModules, searchKindFor, searchKindHidden, setFeatureBlock, viewHidden } from './features';
+import { PRESETS, commandHidden, effectiveHidden, featureBlock, hiddenRoute, landingRoute, readHiddenModules, searchKindFor, searchKindHidden, setFeatureBlock, viewHidden } from './features';
 
 const store = (v: string | null) => ({ getItem: () => v });
 const views = [
+  { id: 'home', path: 'home', order: 5 },
   { id: 'timer', path: 'time', order: 10 },
   { id: 'entries', path: 'entries', order: 20, hidden: true },
   { id: 'notes', path: 'notes', order: 50 },
@@ -108,18 +109,26 @@ describe('registry filter', () => {
 });
 
 describe('landing route', () => {
+  it('is Home while it is on, else the first other tab this device shows', () => {
+    expect(landingRoute(effectiveHidden([]), views)).toBe('#/home');
+    expect(landingRoute(effectiveHidden(PRESETS.timeTracker), views)).toBe('#/time');
+    expect(landingRoute(effectiveHidden(['home', 'time']), views)).toBe('#/notes');
+    expect(viewHidden('home', effectiveHidden(['home']))).toBe(true);
+    expect(commandHidden('go.home', effectiveHidden(['home']))).toBe(true);
+    expect(hiddenRoute(['home'], views, effectiveHidden(['home']))).toBe(true);
+  });
   it('is the first tab this device shows', () => {
-    expect(landingRoute(effectiveHidden([]), views)).toBe('#/time');
-    expect(landingRoute(effectiveHidden(['time']), views)).toBe('#/notes');
-    expect(landingRoute(effectiveHidden(['time', 'notes']), views)).toBe('#/tasks');
-    expect(landingRoute(effectiveHidden(['time', 'tasks']), views)).toBe('#/notes');
-    expect(landingRoute(effectiveHidden(['time', 'notes', 'tasks']), views)).toBe('#/settings');
-    expect(landingRoute(effectiveHidden(['notes']), views)).toBe('#/time');
+    expect(landingRoute(effectiveHidden(['home']), views)).toBe('#/time');
+    expect(landingRoute(effectiveHidden(['home', 'time']), views)).toBe('#/notes');
+    expect(landingRoute(effectiveHidden(['home', 'time', 'notes']), views)).toBe('#/tasks');
+    expect(landingRoute(effectiveHidden(['home', 'time', 'tasks']), views)).toBe('#/notes');
+    expect(landingRoute(effectiveHidden(['home', 'time', 'notes', 'tasks']), views)).toBe('#/settings');
+    expect(landingRoute(effectiveHidden(['home', 'notes']), views)).toBe('#/time');
   });
   it('is Settings when every other feature is off, and skips hidden, joined and grouped views', () => {
-    expect(landingRoute(effectiveHidden(['time', 'notes', 'tasks']), views)).toBe('#/settings');
+    expect(landingRoute(effectiveHidden(['home', 'time', 'notes', 'tasks']), views)).toBe('#/settings');
     expect(landingRoute(new Set(), [])).toBe('#/settings');
-    expect(landingRoute(effectiveHidden(['time']), views.filter((v) => v.id !== 'notes' && v.id !== 'tasks'))).toBe('#/settings');
+    expect(landingRoute(effectiveHidden(['home', 'time']), views.filter((v) => v.id !== 'notes' && v.id !== 'tasks'))).toBe('#/settings');
   });
 });
 

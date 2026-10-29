@@ -1,7 +1,7 @@
 # UI direction: identity, one responsive shell, header timer, Home
 
 Issue #33.
-Status: agreed with the owner in a design review (2026-10-28, mockups reviewed in chat). Built so far: the tokens restyle, all-sans type, the Time rename and the header (slice 3a), the timer pill with its popover, the Time switch and the Time page without a bar (slice 3b), and Tasks without Notes with independent Features switches (slice 3c). The Home tab and the Settings rework are not built.
+Status: agreed with the owner in a design review (2026-10-28, mockups reviewed in chat). Built so far: the tokens restyle, all-sans type, the Time rename and the header (slice 3a), the timer pill with its popover, the Time switch and the Time page without a bar (slice 3b), and Tasks without Notes with independent Features switches (slice 3c). Home is built (F-33p).
 Settings has its own note: `settings-structure.md` (supersedes the proposal in #22).
 
 ## Problem
@@ -129,7 +129,7 @@ A summary of where things stand; read-only apart from checking a task off and op
   - Recent notes.
   - Where the week went: a bar by project.
 - Cards reflow by width: three across, then two, then one.
-- Open: whether Home hides for a Time-tracker-only preset (then Time is the landing page).
+- Decided (owner 2026-10-28): Home is a Features switch, default on; the Time tracker preset turns it off and the landing page is the first visible tab. Built: F-33p.
 
 ## Tasks views
 

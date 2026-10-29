@@ -6,7 +6,7 @@
 import { BASE, launch, check, watchPage, finish, openDetails } from './lib.mjs';
 
 const browser = await launch();
-const TABS = ['Time', 'Notes', 'Tasks', 'Settings'];
+const TABS = ['Home', 'Time', 'Notes', 'Tasks', 'Settings'];
 const CARDS = ['Backup and safety', 'Devices and sync', 'Spaces', 'Sharing', 'Display', 'Features', 'Help', 'Advanced'];
 
 async function open(name, viewport, hash = '#/time') {

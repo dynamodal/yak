@@ -1,6 +1,8 @@
 import './search-source';
 import './tag-source';
 import { registerCommand } from '../app/commands';
+import { lazyComponent } from '../app/lazy';
+import { registerHomeCard } from '../app/home-cards';
 import { registerGlobal, registerHiddenRedirect, registerView } from '../app/registry';
 import { IconCheckbox, IconNote } from '../app/ui';
 import { registerSection } from '../app/sections';
@@ -51,3 +53,7 @@ registerCommand({
     editor?.dispatchEvent(new CustomEvent(INSERT_EVENT, { detail: formatDate(new Date(), readDaily(app.account).format) }));
   },
 });
+
+// Home's cards for tasks and notes load with the Home page (F-33p).
+registerHomeCard({ id: 'due', order: 30, feature: 'tasks', component: lazyComponent(() => import('./HomeCards').then((m) => ({ default: m.DueSoonCard }))) });
+registerHomeCard({ id: 'notes', order: 40, feature: 'notes', component: lazyComponent(() => import('./HomeCards').then((m) => ({ default: m.RecentNotesCard }))) });

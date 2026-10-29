@@ -1,5 +1,12 @@
 # What's new
 
+## 2026-11-02: Home
+
+- A new **Home** tab comes first and is where Yak opens: a summary with cards for what needs you (the same rows as Settings), this week's hours with a bar per day, tasks due soon (late ones marked, tick one off right there), recent notes, and where the week went by project.
+- A card hides when its feature is off or it has nothing to show. The cards sit three across, two, or one by width. Each chart has the same numbers as a table.
+- Home is a switch in Settings › Features. The **Time tracker** choice on a new device leaves it off; on a device that already chose it, Home now shows (switch it off in Features if you prefer the old start page).
+- Nothing stored changed.
+
 ## 2026-11-02: Tidier Tasks and Time pages
 
 - **Tasks** has one switch: **List**, **Board**, **Table**. The four selects above the list are now behind one **Filters** button that shows how many filters are on. Agenda and Projects are in Filters under **Group**.

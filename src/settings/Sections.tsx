@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { FEATURES, effectiveHidden, featureBlock, setHiddenModules, useHiddenModules, type FeatureId } from '../app/features';
-import { useNow, useSettings } from '../app/hooks';
+import { useSettings } from '../app/hooks';
 import { settingsParts } from '../app/settings-parts';
-import { minutesLeft, useNeeds, type NeedItem } from '../app/needs';
+import { useNeeds } from '../app/needs';
 import { Field } from '../app/ui';
 import { APP_NAME } from '../constants';
 import { type HoursFormat, parseHoursFormat, parseWeekStart } from '../core/settings';
@@ -12,26 +12,7 @@ import { applyTheme, parseTheme, readTheme, saveTheme, type Theme } from './them
 
 declare const __APP_VERSION__: string | undefined;
 
-/** Needs you: what waits for an answer, each with the place it is answered (F-33). The section is left out while nothing waits. */
-export function NeedsSection(props: { needs: readonly NeedItem[] }) {
-  const now = useNow(30_000);
-  return (
-    <ul class="st-needs" aria-label="Needs you">
-      {props.needs.map((n) => (
-        <li key={n.id} data-need={n.id} data-tone={n.tone}>
-          <span class="st-need-text">
-            {n.text}
-            {n.expiresAt ? <span class="hint"> · {minutesLeft(n.expiresAt, now)} min left</span> : null}
-          </span>
-          <a class="btn" href={n.href}>
-            {n.action}
-          </a>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
+export { NeedsSection } from './NeedsList';
 export { useNeeds };
 
 /** Backup and safety: the Backup, Passphrase and Import lines, always shown, each ending in the place to change it. */
@@ -103,7 +84,7 @@ export function FeaturesSection() {
   return (
     <div class="st-tabs-shown">
       <p class="hint">
-        Per device. Hiding a feature only hides its pages and controls: your time entries, notes, tasks and other data are kept, keep syncing, and are still in backups. Each tab is its own switch. Hiding Time also hides the timer in the header, its shortcut and Reports. Hiding Notes keeps Tasks, which then open on their own page; hiding Tasks keeps Notes. The app opens on the first tab still shown. Settings, Backup &amp; restore and the sync status are always shown.
+        Per device. Hiding a feature only hides its pages and controls: your time entries, notes, tasks and other data are kept, keep syncing, and are still in backups. Each tab is its own switch; Home is the summary page that opens first. Hiding Time also hides the timer in the header, its shortcut and Reports. Hiding Notes keeps Tasks, which then open on their own page; hiding Tasks keeps Notes. The app opens on the first tab still shown. Settings, Backup &amp; restore and the sync status are always shown.
       </p>
       <ul class="features-list">
         {FEATURES.map((f) => {

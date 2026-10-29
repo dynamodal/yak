@@ -41,6 +41,7 @@ import { applyPendingReset } from './reset';
 import { historyStore } from '../core/history/store';
 import { adoptAccount, addPendingLocalSpaces, safeStorage, takeRestoredAccount } from './join';
 import { App } from './App';
+import { setPendingJoins } from './needs';
 import { captureErrors } from './error-capture';
 import { toast } from './ui/Toast';
 import { REPORT_HASH } from '../constants';
@@ -247,6 +248,8 @@ async function boot(): Promise<void> {
       deviceId: () => me,
       dropLink: (peerId?: string) => sync.dropForTest(peerId),
       /** Show this sync status instead of the real one (`null` restores it): the header's sync shapes without real devices. */
+      /** Pretend devices wait for approval (`[]` clears): the Needs you rows without a second device. */
+      fakePendingJoins: (list: { deviceId: string; name?: string; expiresAt: number }[]) => setPendingJoins(list),
       fakeStatus: (s: Partial<SyncStatus> | null) => sync.setStatusForTest(s ? { paired: false, state: 'stopped', peers: [], signalingUrl: '', signalingProblem: false, ...s } : undefined),
       /** Device keys (#256): sign "keys required" with the account key this device holds; what this device knows. */
       requireKeys: () => accountKeys.requireKeysForTest?.() ?? Promise.resolve(false),

@@ -19,13 +19,13 @@ const tabs = async (p) => (await p.locator('.tabs > *').allInnerTexts()).map((t)
 const hidden = (p) => p.evaluate(() => localStorage.getItem('hidden_modules'));
 const hash = (p) => p.evaluate(() => location.hash);
 
-// ---- Welcome: Time tracker hides Notes and Tasks on this device
+// ---- Welcome: Time tracker hides Home, Notes and Tasks on this device
 {
   const p = await open('tracker', '?test&welcome');
   await p.getByRole('button', { name: 'Time tracker' }).click();
   await p.locator('.tabs').waitFor();
   check((await tabs(p)).join() === 'Time,Settings', `Time tracker: only Timer, Settings (${(await tabs(p)).join()})`);
-  check((await hidden(p)) === '["notes","tasks"]', `the preset is stored on this device (${await hidden(p)})`);
+  check((await hidden(p)) === '["home","notes","tasks"]', `the preset is stored on this device (${await hidden(p)})`);
 
   // A hidden page's route goes to the timer.
   for (const route of ['#/notes', '#/tasks']) {
@@ -57,7 +57,7 @@ const hash = (p) => p.evaluate(() => location.hash);
   await p.evaluate(() => (location.hash = '#/settings'));
   // Notes and Tasks are separate switches (F-33n): Notes off keeps Tasks, and the Tasks switch stays usable.
   await p.getByLabel('Notes', { exact: true }).uncheck();
-  check((await tabs(p)).join() === 'Time,Tasks,Settings', `Notes off keeps Tasks (${(await tabs(p)).join()})`);
+  check((await tabs(p)).join() === 'Home,Time,Tasks,Settings', `Notes off keeps Tasks (${(await tabs(p)).join()})`);
   check(!(await p.getByLabel('Tasks', { exact: true }).isDisabled()), 'the Tasks switch is not locked while Notes is hidden');
   // A hidden Settings page goes to Settings (a visible page), not the timer.
   await p.getByLabel('Import', { exact: true }).uncheck();
@@ -76,7 +76,7 @@ const hash = (p) => p.evaluate(() => location.hash);
   const p = await open('everything', '?test&welcome');
   await p.getByRole('button', { name: 'Time, notes and tasks' }).click();
   await p.locator('.tabs').waitFor();
-  check((await tabs(p)).join() === 'Time,Notes,Tasks,Settings', 'Time, notes and tasks: all tabs');
+  check((await tabs(p)).join() === 'Home,Time,Notes,Tasks,Settings', 'Time, notes and tasks: all tabs');
   check((await hidden(p)) === '[]', 'the preset stores an empty list');
 
   // ---- Security: Show switch and live hint
@@ -121,13 +121,13 @@ const hash = (p) => p.evaluate(() => location.hash);
   await poll(async () => (await running()) === 0);
   check(await poll(async () => !(await p.getByLabel('Time', { exact: true }).isDisabled())), 'the Time switch unlocks once the timer is stopped');
   await p.getByLabel('Time', { exact: true }).uncheck();
-  check((await tabs(p)).join() === 'Notes,Tasks,Settings', `Time off: no Time tab (${(await tabs(p)).join()})`);
+  check((await tabs(p)).join() === 'Home,Notes,Tasks,Settings', `Time off: no Time tab (${(await tabs(p)).join()})`);
   check((await pill(p).count()) === 0, 'Time off: no timer pill in the header');
   check((await hidden(p)) === '["time"]', `the choice is stored on this device (${await hidden(p)})`);
   for (const route of ['#/time', '#/time/week', '#/time/reports', '#/reports', '#/entries']) {
     await p.evaluate((r) => (location.hash = r), route);
-    await p.waitForFunction(() => location.hash === '#/notes', null, { timeout: 5000 }).catch(() => {});
-    check((await hash(p)) === '#/notes', `${route} lands on the first visible tab, Notes (${await hash(p)})`);
+    await p.waitForFunction(() => location.hash === '#/home', null, { timeout: 5000 }).catch(() => {});
+    check((await hash(p)) === '#/home', `${route} lands on the first visible tab, Home (${await hash(p)})`);
   }
   const before = await count();
   await p.keyboard.press('Alt+s');
@@ -137,6 +137,7 @@ const hash = (p) => p.evaluate(() => location.hash);
   check((await p.title()) === 'Yak' || !(await p.title()).includes('Not tracking'), `the title cue is off (${await p.title()})`);
   // Every other feature off too: Settings, which is never hidden.
   await p.evaluate(() => (location.hash = '#/settings'));
+  await p.getByLabel('Home', { exact: true }).uncheck();
   await p.getByLabel('Notes', { exact: true }).uncheck();
   await p.getByLabel('Tasks', { exact: true }).uncheck();
   check((await tabs(p)).join() === 'Settings', `all features off: only Settings (${(await tabs(p)).join()})`);

@@ -15,7 +15,7 @@ import type { SyncService } from '../../src/sync/sync-service';
 import { createTransport } from '../../src/sync/transport-factory';
 
 /**
- * Device keys for the vault (docs/design/device-keys.md, "Obsidian", S-76p, #257): the vault is a
+ * Device keys for the vault (docs/sync.md, Key model, S-76p, #257): the vault is a
  * device like any other, with its own key pair, approved by an owner's device. Keys live in
  * protected browser key storage (non-extractable keys in IndexedDB) when there is one, else in the
  * plugin's settings file, which vault sync can copy; the settings tab says which.

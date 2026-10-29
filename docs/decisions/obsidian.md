@@ -1,6 +1,6 @@
 # Decisions: Obsidian
 
-Reference: `../design/external-editors.md`, `../../obsidian/README.md`. O3 and the spike's read-only scope are superseded by O8.
+Reference: `../design/external-editors.md` (routes not built), `../../obsidian/README.md`. O3 and the spike's read-only scope are superseded by O8.
 
 | # | Decision | Why |
 | --- | --- | --- |

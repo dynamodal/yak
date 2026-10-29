@@ -8,7 +8,7 @@ import { removalTag } from './key-removals';
 import { KEYS_REQUIRED_DOC_VERSION } from './migrations';
 
 /**
- * Signed records in the account document's `keys` map (docs/design/device-keys.md, slice 2, #256).
+ * Signed records in the account document's `keys` map (docs/sync.md, Key model, slice 2, #256).
  * The account key signs them; every device checks them before acting, because the document is
  * synced input and in compatible mode anyone with the sync code can write to it.
  *

@@ -2,7 +2,7 @@ import { registerView } from '../app/registry';
 import { registerSettingsPart } from '../app/settings-parts';
 import './devices.css';
 import { lazyView } from '../app/lazy';
-import { ConnectionPart, DeviceNotices, IdsAndKeys, ResetPart } from './parts';
+import { ConnectionPart, DeviceNotices, IdsAndKeys, ResetPart, EraseDevicePart } from './parts';
 
 // Add a device is the one devices page that stays (F-33); the devices themselves are rows on the Settings page.
 registerView({ id: 'devices', title: 'Add a device', commandTitle: 'Devices', path: 'devices', order: 90, group: 'settings', component: lazyView(() => import('./AddDeviceView').then((m) => ({ default: m.AddDeviceView }))) });
@@ -12,3 +12,4 @@ registerSettingsPart({ id: 'device-notices', section: 'devices-sync', order: 10,
 registerSettingsPart({ id: 'device-keys', section: 'advanced', order: 10, component: IdsAndKeys });
 registerSettingsPart({ id: 'connection', section: 'advanced', order: 20, component: ConnectionPart });
 registerSettingsPart({ id: 'reset-device', section: 'advanced', order: 30, component: ResetPart });
+registerSettingsPart({ id: 'erase-device', section: 'advanced', order: 40, component: EraseDevicePart });

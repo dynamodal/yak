@@ -60,7 +60,7 @@ export const SETTINGS_ENTRIES: readonly SettingsEntry[] = [
   { id: 'hours-format', title: 'Display › Hours shown as', section: 'display', keywords: ['decimal', 'duration', 'time format'] },
   section('features', ['hide', 'show', 'tabs', 'modules', 'turn off', 'mirror', 'tasks', 'import']),
   section('help', ['guide', 'about', 'version', 'licenses', 'report a problem', 'whats new']),
-  section('advanced', ['connection', 'relay', 'server', 'logs', 'debug', 'reset', 'device keys', 'ids']),
+  section('advanced', ['connection', 'relay', 'server', 'logs', 'debug', 'reset', 're-sync', 'erase', 'wipe', 'start over', 'clear data', 'device keys', 'ids']),
 ];
 
 /** Where an entry opens. */

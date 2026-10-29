@@ -7,7 +7,7 @@ import { BASE, launch, check, watchPage, finish, openDetails } from './lib.mjs';
 
 const browser = await launch();
 const TABS = ['Home', 'Time', 'Notes', 'Tasks', 'Settings'];
-const CARDS = ['Backup and safety', 'Devices and sync', 'Spaces', 'Sharing', 'Organize', 'Display', 'Features', 'Help', 'Advanced'];
+const CARDS = ['Backup and safety', 'Devices and sync', 'Spaces', 'Sharing', 'Organize', 'Notes', 'Display', 'Features', 'Help', 'Advanced'];
 
 async function open(name, viewport, hash = '#/time') {
   const context = await browser.newContext({ viewport });
@@ -79,7 +79,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
     await p.waitForFunction((h) => location.hash === h, to, { timeout: 3000 }).catch(() => {});
     check((await route(p)) === to, `wide: the old route ${old} redirects to ${to}`);
   }
-  for (const [old, to] of [['#/projects', '#/settings/organize'], ['#/organize', '#/settings/organize'], ['#/settings/projects', '#/settings/organize'], ['#/manage/projects', '#/settings/organize'], ['#/manage/organize', '#/settings/organize'], ['#/settings/note-settings', '#/note-settings'], ['#/settings/mirror', '#/note-settings'], ['#/mirror', '#/note-settings'], ['#/settings/shortcuts', '#/help/shortcuts'], ['#/shortcuts', '#/help/shortcuts']]) {
+  for (const [old, to] of [['#/projects', '#/settings/organize'], ['#/organize', '#/settings/organize'], ['#/settings/projects', '#/settings/organize'], ['#/manage/projects', '#/settings/organize'], ['#/manage/organize', '#/settings/organize'], ['#/settings/note-settings', '#/settings/notes'], ['#/note-settings', '#/settings/notes'], ['#/settings/mirror', '#/settings/notes/mirror'], ['#/mirror', '#/settings/notes/mirror'], ['#/settings/shortcuts', '#/help/shortcuts'], ['#/shortcuts', '#/help/shortcuts']]) {
     await p.evaluate((h) => { location.hash = h; }, old);
     await p.waitForFunction((h) => location.hash === h, to, { timeout: 3000 }).catch(() => {});
     check((await route(p)) === to, `wide: the old route ${old} redirects to ${to}`);
@@ -174,8 +174,30 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   check((await route(p)) === '#/settings/organize' && (await p.locator('.st-card[data-section="organize"] .st-anchor').count()) === 1, 'the Organize chip opens the section, which has a link icon');
   await p.evaluate(() => { location.hash = '#/notes'; });
   await p.getByRole('link', { name: 'Note settings' }).dispatchEvent('click');
-  await p.getByRole('heading', { name: 'Note settings', level: 1 }).waitFor();
-  check((await route(p)) === '#/note-settings' && (await p.getByRole('heading', { name: 'Mirror to a folder', level: 2 }).count()) === 1, 'the gear on Notes opens note settings, with Mirror');
+  await p.locator('.st-card[data-section="notes"]').waitFor();
+  check((await route(p)) === '#/settings/notes' && (await p.getByRole('heading', { name: 'Mirror to a folder', level: 3 }).count()) === 1, 'the gear on Notes opens Settings > Notes, with Mirror');
+  check((await p.locator('[data-toc="notes"]').count()) === 1, 'the contents row has a Notes chip');
+  // The palette finds Mirror by its keywords (F-55) and opens the Notes section at that row.
+  await p.evaluate(() => { location.hash = '#/settings'; });
+  await p.locator('.st-home').waitFor();
+  await p.keyboard.press('Alt+P');
+  await p.getByLabel('Find a command').fill('obsidian');
+  check((await p.getByRole('option', { name: /Settings › Notes › Mirror to a folder/ }).count()) === 1, 'the palette lists Settings > Notes > Mirror for "obsidian"');
+  await p.getByLabel('Find a command').fill('mirror');
+  await p.keyboard.press('Enter');
+  await p.waitForFunction(() => location.hash === '#/settings/notes/mirror', null, { timeout: 3000 }).catch(() => {});
+  check((await route(p)) === '#/settings/notes/mirror', 'palette "mirror" opens Settings > Notes at Mirror');
+  await p.waitForTimeout(400);
+  check(await p.locator('#section-mirror').evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight; }), 'the Mirror row is scrolled into view');
+  // With Notes off the section, its chip and its palette entries are gone.
+  await p.evaluate(() => { localStorage.setItem('hidden_modules', JSON.stringify(['notes'])); window.dispatchEvent(new Event('app:features')); location.hash = '#/settings'; });
+  await p.locator('.st-home').waitFor();
+  check((await p.locator('[data-section="notes"], [data-toc="notes"]').count()) === 0, 'Notes off: no Notes section or chip');
+  await p.keyboard.press('Alt+P');
+  await p.getByLabel('Find a command').fill('obsidian');
+  check((await p.getByRole('option', { name: /Notes › Mirror/ }).count()) === 0, 'Notes off: no Notes entries in the palette');
+  await p.keyboard.press('Escape');
+  await p.evaluate(() => { localStorage.removeItem('hidden_modules'); window.dispatchEvent(new Event('app:features')); });
   await p.keyboard.press('Alt+P');
   await p.getByLabel('Find a command').fill('organize');
   await p.keyboard.press('Enter');

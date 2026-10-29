@@ -89,7 +89,7 @@ check((await until(async () => (await notes()).some((n) => n.path === 'Templates
 await p.locator('.cm-content').click();
 await p.keyboard.insertText('# {{title}} on {{date:DD}}');
 await until(async () => (await notes()).find((n) => n.path === 'Templates/Plan.md').text.includes('{{title}}'));
-await p.evaluate(() => { location.hash = '#/note-settings'; });
+await p.evaluate(() => { location.hash = '#/settings/notes'; });
 await p.getByLabel('Daily notes folder', { exact: true }).fill('Journal');
 await p.getByLabel('Daily notes folder', { exact: true }).blur();
 await p.getByLabel('Daily template note', { exact: true }).fill('Templates/Plan');

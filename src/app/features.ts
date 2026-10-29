@@ -15,7 +15,7 @@ export const FEATURES: readonly { id: FeatureId; title: string; hint: string }[]
   { id: 'time', title: 'Time', hint: 'The timer (also in the header), the log, the week and Reports. Hiding Time hides all of them; stop a running timer first.' },
   { id: 'notes', title: 'Notes', hint: 'Markdown notes, folders and daily notes. Tasks stay when Notes is off.' },
   { id: 'tasks', title: 'Tasks', hint: 'Tasks are notes with a due date or status. They work with Notes off.' },
-  { id: 'mirror', title: 'Mirror', hint: 'Keep a folder of Markdown files in step with your notes. Needs folder access in the browser.' },
+  { id: 'mirror', title: 'Mirror', hint: 'Keep a folder of Markdown files in step with your notes. Needs folder access in the browser. Set it up in Settings › Notes.' },
   { id: 'import', title: 'Import', hint: 'Bring in a Toggl or CSV export.' },
 ];
 
@@ -28,7 +28,6 @@ const VIEW_FEATURE: Readonly<Record<string, FeatureId>> = {
   timer: 'time',
   entries: 'time',
   notes: 'notes',
-  'notes-settings': 'notes',
   tasks: 'tasks',
   // Reports is a segment of the Time page, so it follows Time (F-33m); an old stored `reports` id is not a known feature and is ignored.
   reports: 'time',

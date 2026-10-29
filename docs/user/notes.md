@@ -14,7 +14,7 @@
 - Tasks work without Notes: switch **Notes** off in Settings › Features and keep **Tasks**. A task then opens on its own page; a link to another task opens it, a link to a plain note stays plain text until Notes is on.
 - A checkbox line (`- [ ] Send invoice`) in a normal note does **not** appear in Tasks. In a task note, checkbox lines show as its progress (2 of 3). On a checkbox line, **Ctrl+Shift+Enter** turns the text into a task note and a link to it.
 - Task rules are under **Task values** on **Organize**.
-- The gear on Notes opens note settings: links, files, daily, weekly and monthly notes, and Mirror.
+- **Settings › Notes** (also the gear on Notes) holds links, files, daily, weekly and monthly notes, and Mirror.
 
 ## Daily note
 

@@ -87,7 +87,7 @@ function SpaceBody(props: { space: AccountSpace }) {
 
       {isFeatureHidden('notes') ? null : (
         <p class="hint">
-          Attached files and the ones no note refers to are listed in <a href="#/note-settings">Note settings</a>.
+          Attached files and the ones no note refers to are listed in <a href="#/settings/notes">Settings › Notes</a>.
         </p>
       )}
 

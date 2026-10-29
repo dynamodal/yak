@@ -4,11 +4,19 @@ import { useSettings } from '../app/hooks';
 import { settingsParts } from '../app/settings-parts';
 import { useNeeds } from '../app/needs';
 import { Field } from '../app/ui';
+import { lazyView } from '../app/lazy';
+import { Sections } from '../app/views/Sections';
+import { FilesCard } from './FilesCard';
+import { LinksCard } from './LinksCard';
+import { PeriodicNotesTable } from './DailyCard';
 import { APP_NAME } from '../constants';
 import { type HoursFormat, parseHoursFormat, parseWeekStart } from '../core/settings';
 import { HistoryCard } from './HistoryCard';
 import { DataLines } from './DataLines';
 import { applyTheme, parseTheme, readTheme, saveTheme, type Theme } from './theme';
+
+// Loaded when the section is shown: the list of unused files is not needed to start the app.
+const UnusedFiles = lazyView(() => import('./UnusedFiles').then((m) => ({ default: m.UnusedFiles })));
 
 declare const __APP_VERSION__: string | undefined;
 
@@ -24,6 +32,33 @@ export function BackupSection() {
       <p class="hint">
         <a href="#/settings/backup">Backup and restore</a> also holds the history: go back in time to an earlier version.
       </p>
+    </>
+  );
+}
+
+/**
+ * Notes (F-55): links, files and unused files, daily, weekly and monthly notes, and the sections other modules add (Mirror).
+ * They were a page of their own behind the gear on Notes; each part has an id (`section-<row>`) that `#/settings/notes/<row>` scrolls to.
+ */
+export function NotesSection() {
+  return (
+    <>
+      <section id="section-links" aria-labelledby="section-links-h">
+        <h3 id="section-links-h">Links</h3>
+        <LinksCard />
+      </section>
+      <section id="section-files" aria-labelledby="section-files-h">
+        <h3 id="section-files-h">Files</h3>
+        <FilesCard />
+        <h4>Unused files</h4>
+        <p class="hint">Files that no note refers to. Yak never deletes a file by itself: removing a link from a note keeps the file, and you delete it here.</p>
+        <UnusedFiles params={[]} />
+      </section>
+      <section id="section-periodic" aria-labelledby="section-periodic-h">
+        <h3 id="section-periodic-h">Daily, weekly and monthly notes</h3>
+        <PeriodicNotesTable />
+      </section>
+      <Sections page="note-settings" level={3} />
     </>
   );
 }

@@ -1,5 +1,11 @@
 # What's new
 
+## 2026-10-29: Note settings and Mirror are in Settings
+
+- **Settings › Notes** holds links, files and unused files, daily, weekly and monthly notes, and **Mirror to a folder**. The gear on Notes and old links open it.
+- The command palette (**Alt P**) now finds places in Settings: type "mirror", "backup", "passphrase", "theme" or "devices" and press Enter.
+- **Settings › Features › Mirror** says where to set Mirror up.
+
 ## 2026-10-29: Clearer start-up problems, calmer first screen
 
 - If your browser will not let Yak store data (a private window, a browser set to keep no history, a managed browser), Yak now says so and what to try, instead of showing a blank page.

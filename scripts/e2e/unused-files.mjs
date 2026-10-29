@@ -28,7 +28,7 @@ try {
   check((await bytes()) === total, 'both files are stored; nothing deletes the unlinked one by itself');
   await page.waitForTimeout(500);
 
-  await page.goto(BASE + '?test#/note-settings');
+  await page.goto(BASE + '?test#/settings/notes');
   const unused = page.locator('.unused-files li');
   check((await until(async () => (await unused.count()) === 1)) >= 0, 'Manage lists one unused file');
   check(/drop\.txt/.test(await unused.first().innerText()) && /22 B/.test(await unused.first().innerText()), 'it shows the name and size');

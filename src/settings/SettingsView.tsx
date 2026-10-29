@@ -1,28 +1,17 @@
 import { useEffect } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
+import { isFeatureHidden, useHiddenModules } from '../app/features';
 import { SETTINGS_SECTIONS, type SettingsSection } from '../app/nav';
+import { SETTINGS_TITLES as TITLES } from '../app/settings-index';
 import { useHealth } from '../app/hooks';
 import { useNeeds } from '../app/needs';
 import { useRoute } from '../app/router';
 import { Page, PageHeader } from '../app/ui';
 import { cx } from '../app/ui/cx';
 import { DevicesSection, useSyncDot } from './DevicesSection';
-import { AdvancedSection, BackupSection, DisplaySection, FeaturesSection, HelpSection, NeedsSection, OrganizeSection } from './Sections';
+import { AdvancedSection, BackupSection, DisplaySection, FeaturesSection, HelpSection, NeedsSection, NotesSection, OrganizeSection } from './Sections';
 import { SharingSection } from './SharingSection';
 import { SpacesSection } from './SpacesSection';
-
-const TITLES: Readonly<Record<SettingsSection, string>> = {
-  'needs-you': 'Needs you',
-  'backup-safety': 'Backup and safety',
-  'devices-sync': 'Devices and sync',
-  spaces: 'Spaces',
-  sharing: 'Sharing',
-  organize: 'Organize',
-  display: 'Display',
-  features: 'Features',
-  help: 'Help',
-  advanced: 'Advanced',
-};
 
 type Dot = 'ok' | 'warn' | 'off';
 
@@ -60,7 +49,7 @@ function scrollTo(slug: string | undefined): void {
 /**
  * Settings (F-33): one long single-column page, `#/settings`. A contents row under the title links to each section
  * (`#/settings/<section>` opens the page scrolled to it; `#/settings/<section>/<id>` also opens that row). Sections, in order: Needs you (only
- * while something waits), Backup and safety, Devices and sync, Spaces, Sharing, Organize, Display, Features, Help, Advanced.
+ * while something waits), Backup and safety, Devices and sync, Spaces, Sharing, Organize, Notes (only while Notes is on), Display, Features, Help, Advanced.
  * Devices, spaces and accounts are rows that open in place; only adding a device, Backup and restore and Import have pages of their own.
  */
 export function SettingsView() {
@@ -70,11 +59,16 @@ export function SettingsView() {
   const syncDot = useSyncDot();
   const slug = SETTINGS_SECTIONS.find((s) => s === route[1]);
   const target = slug && route[2] ? route[2] : undefined;
-  const sections = SETTINGS_SECTIONS.filter((s) => s !== 'needs-you' || needs.length > 0);
+  useHiddenModules();
+  const notesOn = !isFeatureHidden('notes');
+  const sections = SETTINGS_SECTIONS.filter((s) => (s !== 'needs-you' || needs.length > 0) && (s !== 'notes' || notesOn));
   const dots: Partial<Record<SettingsSection, Dot>> = { 'needs-you': 'warn', 'backup-safety': warn ? 'warn' : undefined, 'devices-sync': syncDot === 'off' ? undefined : syncDot } as Partial<Record<SettingsSection, Dot>>;
 
   useEffect(() => {
-    scrollTo(slug);
+    // A row of the Notes section (Mirror, …) is a part inside it; the other sections open their rows in place.
+    const part = slug === 'notes' && target ? document.getElementById(`section-${target}`) : null;
+    if (part) part.scrollIntoView?.({ block: 'start' });
+    else scrollTo(slug);
   }, [slug, target]);
   const rowFor = (s: SettingsSection): string | undefined => (slug === s ? target : undefined);
 
@@ -125,6 +119,11 @@ export function SettingsView() {
       <Section slug="organize">
         <OrganizeSection open={slug === 'organize'} />
       </Section>
+      {notesOn ? (
+        <Section slug="notes">
+          <NotesSection />
+        </Section>
+      ) : null}
       <Section slug="display">
         <DisplaySection />
       </Section>

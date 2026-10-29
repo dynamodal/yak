@@ -17,6 +17,7 @@ import { type LastEntry, lastStopped } from './cue';
 import type { WeekStart } from './dates';
 import { compareRunning, type EntryRecord, findRunning, isRunning, liveEntries, type RunningRef, startMs } from './entries';
 import { repeatKey } from './grouping';
+import { buildRecents, type Recents } from './recents';
 import type { HoursFormat } from './format';
 
 export function useController(): TimeController {
@@ -74,6 +75,14 @@ export function useRecentEntries(limit: number): EntryRecord[] {
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [privateDocs, version, limit]);
+}
+
+/** The pill popover's recent list: the entry that stopped last, then distinct recent work, across every space (never the running one). */
+export function useRecents(running: RunningRef | undefined): Recents {
+  const { privateDocs } = useApp();
+  const version = useAllEntriesVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => buildRecents(privateDocs, { running }), [privateDocs, version, running?.id, running?.entry.description, running?.entry.project_id, running?.entry.tags.join('\u0000')]);
 }
 
 export interface TimeData {

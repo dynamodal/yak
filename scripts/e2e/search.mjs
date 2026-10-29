@@ -18,11 +18,11 @@ await p.keyboard.type('Zebra plan');
 await p.keyboard.press('Enter');
 await until(async () => (await p.evaluate(() => Object.values(window.__app.json('space/personal', 'notes')).filter((n) => n.path === 'Zebra plan.md').length)) === 1);
 await p.evaluate(() => { location.hash = '#/time'; });
-const bar = p.locator('.timer-bar');
-await bar.getByLabel('Description', { exact: true }).fill('Feeding the zebra');
-await bar.getByRole('button', { name: 'Start', exact: true }).click();
-await until(async () => (await bar.getByRole('button', { name: 'Stop', exact: true }).count()) === 1);
-await bar.getByRole('button', { name: 'Stop', exact: true }).click();
+await p.locator('.tp-label').click();
+await p.getByRole('dialog', { name: 'Timer details' }).getByLabel('Description', { exact: true }).fill('Feeding the zebra');
+await p.getByRole('dialog', { name: 'Timer details' }).getByRole('button', { name: 'Start', exact: true }).click();
+await until(async () => (await p.getByRole('button', { name: 'Stop timer' }).count()) === 1);
+await p.getByRole('button', { name: 'Stop timer' }).click();
 
 for (const hash of ['#/time', '#/time/reports', '#/notes', '#/organize']) {
   await p.evaluate((h) => { location.hash = h; }, hash);

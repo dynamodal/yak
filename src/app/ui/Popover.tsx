@@ -22,6 +22,9 @@ export interface PopoverProps {
   children: ComponentChildren;
 }
 
+/** Open popovers, innermost last: Escape closes only the innermost, so a picker inside a popover does not close its host. */
+const openStack: symbol[] = [];
+
 /**
  * A floating panel under a control. Escape, a click outside or Tab away closes it; focus returns to
  * the anchor on Escape. Positioned with element.style (allowed by the CSP, unlike style attributes).
@@ -53,8 +56,10 @@ export function Popover({ open, anchor, onClose, label, align = 'start', role = 
 
   useEffect(() => {
     if (!open) return;
+    const me = Symbol('popover');
+    openStack.push(me);
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'Escape') return;
+      if (e.key !== 'Escape' || openStack[openStack.length - 1] !== me) return;
       e.preventDefault();
       close.current();
       anchor.current?.focus();
@@ -73,6 +78,7 @@ export function Popover({ open, anchor, onClose, label, align = 'start', role = 
     document.addEventListener('pointerdown', onPointer);
     document.addEventListener('focusin', onFocus);
     return () => {
+      openStack.splice(openStack.indexOf(me), 1);
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onPointer);
       document.removeEventListener('focusin', onFocus);

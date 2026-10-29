@@ -5,7 +5,7 @@
 //   npm run e2e a11y
 //
 import { createRequire } from 'node:module';
-import { BASE, launch, check, watchPage, poll, finish } from './lib.mjs';
+import { BASE, launch, check, watchPage, poll, finish, nameRunning } from './lib.mjs';
 
 const axeSource = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 const browser = await launch();
@@ -21,7 +21,7 @@ async function axe(page, label) {
   await page.addScriptTag({ path: axeSource });
   const all = (await page.evaluate(() => window.axe.run(document, { resultTypes: ['violations'] }))).violations;
   const violations = all
-    .map((v) => (v.id === 'label-content-name-mismatch' ? { ...v, nodes: v.nodes.filter((n) => !n.html.includes('tb-start') && !n.html.includes('palette-btn')) } : v))
+    .map((v) => (v.id === 'label-content-name-mismatch' ? { ...v, nodes: v.nodes.filter((n) => !n.html.includes('palette-btn')) } : v))
     .filter((v) => v.nodes.length);
   for (const v of violations) {
     const nodes = v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} :: ${n.html.slice(0, 400)} :: ${(n.any[0] ?? n.all[0] ?? n.none[0])?.message ?? ''}`.slice(0, 600));
@@ -40,11 +40,11 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
   await page.locator('.view').waitFor();
 
   // Something to show: a finished entry with a project and a tag, a running one, a note and a task.
-  await page.getByLabel('Description', { exact: true }).first().fill('Accessibility check');
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
-  await page.getByRole('button', { name: 'Stop', exact: true }).click();
-  await page.getByLabel('Description', { exact: true }).first().fill('Still running');
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('button', { name: 'Start timer' }).click();
+  await nameRunning(page, 'Accessibility check');
+  await page.getByRole('button', { name: 'Stop timer' }).click();
+  await page.getByRole('button', { name: 'Start timer' }).click();
+  await nameRunning(page, 'Still running');
   const personal = await page.evaluate(() => window.__app.spaces().personal);
   for (const hash of PAGES) {
     await page.evaluate((h) => { location.hash = h; }, hash.replace('PERSONAL', personal));
@@ -78,11 +78,13 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
   await axe(page, `${tag} share dialog`);
   await page.keyboard.press('Escape');
   await page.evaluate(() => { location.hash = '#/time/list'; });
-  await page.locator('.timer-bar').waitFor();
+  await page.locator('.timer-pill').waitFor();
   await page.keyboard.press('Alt+p');
   await page.locator('dialog.palette').waitFor();
   await axe(page, `${tag} palette`);
   await page.keyboard.press('Escape');
+  await page.locator('.tp-label').click();
+  await axe(page, `${tag} timer popover`);
   const project = page.getByRole('button', { name: /^Project/ }).first();
   await project.click();
   await page.locator('.picker').first().waitFor();
@@ -121,7 +123,8 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
     if (!d.visible) check(false, `a focus stop is not visible: ${d.name}`);
     if (!d.ring) check(false, `a focus stop shows no focus ring: ${d.name}`);
   }
-  check(seen.size >= 10, `Tab reaches the header and the timer (${seen.size} stops)`);
+  check(seen.size >= 5, `Tab walks the page after the skip link (${seen.size} stops; the Time page has no timer bar any more)`);
+  for (const sel of ['.tp-label', '.tp-round']) check(await page.locator(sel).evaluate((e) => e.tabIndex >= 0 && e.getBoundingClientRect().width > 0), `the timer pill's ${sel} is a visible Tab stop`);
   check(await page.evaluate(() => [...document.querySelectorAll('button, a[href]')].every((e) => (e.getAttribute('aria-label') || e.textContent || e.getAttribute('title') || e.querySelector('img[alt]:not([alt=""])')).toString().trim())), 'every button and link has a name');
   await context.close();
 }

@@ -85,7 +85,7 @@ const order = [];
 for (let i = 0; i < 9; i++) {
   order.push(await p.evaluate(() => {
     const a = document.activeElement;
-    return a?.closest('.brand') ? 'logo' : a?.closest('.tabs') ? 'tab' : a?.closest('.header-timer') ? 'timer' : a?.closest('.palette-btn') || a?.classList.contains('palette-btn') ? 'commands' : a?.classList.contains('sync-btn') ? 'sync' : 'other';
+    return a?.closest('.brand') ? 'logo' : a?.closest('.tabs') ? 'tab' : a?.closest('.timer-pill') ? 'timer' : a?.closest('.palette-btn') || a?.classList.contains('palette-btn') ? 'commands' : a?.classList.contains('sync-btn') ? 'sync' : 'other';
   }));
   await p.keyboard.press('Tab');
 }
@@ -125,12 +125,12 @@ await w.goto(`${BASE}?test#/time`);
 await w.waitForFunction(() => window.__app?.fakeStatus);
 await w.addStyleTag({ content: 'body, button, input, select { font-family: "DejaVu Sans Mono", monospace !important; letter-spacing: 0.04em; }' });
 const wOverflow = () => w.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-const controls = ['.brand', '.tabs a', '.header-timer', '.palette-btn', '.sync-btn', '.offline-chip'];
+const controls = ['.brand', '.tabs a', '.timer-pill', '.palette-btn', '.sync-btn', '.offline-chip'];
 for (const running of [false, true]) {
   if (running) {
     await w.setViewportSize({ width: 1280, height: 800 });
     await w.getByRole('button', { name: 'Start timer' }).first().click().catch(() => {});
-    check(await w.locator('.header-timer.running').waitFor({ timeout: 5000 }).then(() => true, () => false), 'the timer runs for the overlap checks');
+    check(await w.locator('.timer-pill.running').waitFor({ timeout: 5000 }).then(() => true, () => false), 'the timer runs for the overlap checks');
   }
   for (const width of [180, 320, 360, 375, 414, 480, 560, 640, 768, 1024, 1280]) {
     await w.setViewportSize({ width, height: 800 });

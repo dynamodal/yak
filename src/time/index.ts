@@ -10,7 +10,9 @@ import { compareRunning, findRunning } from './entries';
 import { HeaderTimer } from './HeaderTimer';
 import { ProjectsView } from './ProjectsView';
 import { TimeBackground } from './TimeBackground';
+import { requestTimerPopover } from './pill-events';
 import { TimerCue } from './TimerCue';
+import { startFromDraft } from './timer-start';
 import { TimerView } from './TimerView';
 
 registerView({
@@ -40,7 +42,9 @@ registerGlobal({ id: 'time', component: TimeBackground });
 registerGlobal({ id: 'time-cue', component: TimerCue });
 registerHeaderItem({ id: 'timer', order: 10, component: HeaderTimer });
 
-// Stop the running timer, or start one in the space new items go to.
+// Alt+S (F-33k): running, it stops the timer and opens nothing. Stopped, it starts one at once (in the space new items go to,
+// with whatever the popover's draft holds) and opens the pill's popover with focus in the description, so a past entry or
+// project can be picked straight away; Esc closes it and leaves the timer running.
 registerCommand({
   id: 'timer.toggle',
   title: 'Start or stop the timer',
@@ -49,7 +53,12 @@ registerCommand({
     const controller = new TimeController(app.privateDocs, app.bus, app.deviceId, app.spaceDocs);
     const running = findRunning(app.privateDocs).sort(compareRunning);
     const current = running[running.length - 1];
-    if (current) controller.stop(current);
-    else controller.start(app.spaceId);
+    if (current) {
+      controller.stop(current);
+      return;
+    }
+    const returnTo = document.activeElement;
+    startFromDraft(controller, app.spaceId, app.spaceDocs, app.setSpaceId);
+    requestTimerPopover(returnTo);
   },
 });

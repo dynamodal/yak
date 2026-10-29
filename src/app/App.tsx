@@ -9,7 +9,7 @@ import { AppContext, type AppContextValue } from './context';
 import { useNotices } from './hooks';
 import { TopNav } from './Nav';
 import { NAV_GROUPS, legacyRoute, navModel } from './nav';
-import { hiddenRoute, useHiddenModules } from './features';
+import { effectiveHidden, hiddenRoute, landingRoute, useHiddenModules } from './features';
 import { allBanners, allGlobals, allHeaderItems, allViews, joinedViews, registeredViews } from './registry';
 import { savedJoinedView } from './timer-views';
 import { navigate, parseHash, useRoute } from './router';
@@ -63,7 +63,7 @@ export function App(props: AppProps) {
     if (route[0] === 'share' && route[1]) rememberShare(safeStorage(), route[1]);
   }, [route[0], route[1]]);
   // Re-render when this device's Features change; `allViews()` and the commands filter themselves.
-  useHiddenModules();
+  const hiddenList = useHiddenModules();
   const pendingNotices = useNotices().length;
   const welcome = props.welcome === true && snapshot.allSpaces.length === 0;
   const noSpaces = snapshot.spaces.length === 0;
@@ -80,10 +80,10 @@ export function App(props: AppProps) {
     if (oldRoute && parseHash(location.hash).join('/') === route.join('/')) location.replace(`#/${oldRoute.map(encodeURIComponent).join('/')}`);
   }, [oldRoute?.join('/'), route.join('/')]);
 
-  // A page this device hides sends you to the timer, or to Settings for a Settings page (F-309).
+  // A page this device hides sends you to the first tab it shows (Settings when every other feature is off), or to Settings for a Settings page (F-309, F-33l).
   const onHiddenPage = !welcome && hiddenRoute(route, registeredViews());
   useEffect(() => {
-    if (onHiddenPage && parseHash(location.hash).join('/') === route.join('/')) location.replace(route[0] === 'settings' ? '#/settings' : '#/time');
+    if (onHiddenPage && parseHash(location.hash).join('/') === route.join('/')) location.replace(route[0] === 'settings' ? '#/settings' : landingRoute(effectiveHidden(hiddenList), registeredViews()));
   }, [onHiddenPage, route.join('/')]);
 
   // `#/time` alone opens the view used last; when that is a joined one (Reports), say so in the address.

@@ -1,9 +1,10 @@
 // Bundle budget (#210): fails when the first-load JavaScript or CSS of dist/ grows past the limit.
 // The budget has headroom of about 5%; raise it in this file, with a reason in the PR, when a feature needs it.
+// CI measures the test build (YAK_TEST_BUILD=1), about 6 kB larger than production; check locally the same way.
 import { readdirSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
-const BUDGET = { 'main-*.js': { raw: 880, gzip: 290 }, 'main-*.css': { raw: 77, gzip: 15 } };
+const BUDGET = { 'main-*.js': { raw: 890, gzip: 295 }, 'main-*.css': { raw: 77, gzip: 15 } };
 const files = readdirSync('dist/assets');
 let failed = false;
 for (const [pattern, limit] of Object.entries(BUDGET)) {

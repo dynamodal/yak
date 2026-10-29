@@ -528,7 +528,8 @@ try {
   const before = await spot();
   await startSelecting(a);
   check((await until(async () => (await a.locator('.page-select').innerText()).trim() === 'Done')) >= 0, 'the Select button reads Done while selecting');
-  check((await spot()) === before, 'entering select mode moves neither the Select button nor the list');
+  const afterSpot = await spot();
+  check(afterSpot === before, `entering select mode moves neither the Select button nor the list (${before} -> ${afterSpot})`);
   await a.locator('.task-list li', { hasText: 'Bulk one' }).locator('.row-check').click();
   await a.locator('.task-list li', { hasText: 'Bulk three' }).locator('.row-check').click({ modifiers: ['Shift'] });
   check((await a.locator('.bulk-count').innerText()) === '3 selected', 'a Shift click selects the tasks in between');

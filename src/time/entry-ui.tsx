@@ -24,6 +24,7 @@ import { groupRepeats, type RepeatGroup } from './grouping';
 import { type SpaceCatalog, type TimeData, useSpaceName } from './hooks';
 import { ProjectPicker, TagPicker } from './pickers';
 import type { DayGroup } from './stats';
+import { useMoveEntries } from './move-entries';
 import { useEntrySelection, useRowPress } from './EntrySelection';
 import { DescriptionField, ProjectChip, Total } from './widgets';
 
@@ -345,6 +346,7 @@ function BillableMark() {
 
 function EntryRow({ entry, data: base, child }: { entry: EntryRecord; data: TimeData; child?: boolean }) {
   const data = useRowData(entry, base);
+  const moveTo = useMoveEntries();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   // Phones: the whole row opens the editor in a sheet; no inline edits (X27).
@@ -448,6 +450,7 @@ function EntryRow({ entry, data: base, child }: { entry: EntryRecord; data: Time
             items={[
               { label: open ? 'Close editor' : 'Edit', onSelect: () => setOpen(!open) },
               { label: 'Duplicate', onSelect: duplicate, disabled: running },
+              ...(running ? [] : moveTo.to([entry]).map((d) => ({ label: `Move to ${d.name}`, onSelect: () => moveTo.move([entry], d.id) }))),
               { label: 'Delete', onSelect: remove, danger: true },
             ]}
           />
@@ -535,6 +538,8 @@ function GroupRow({ group, data: base }: { group: RepeatGroup; data: TimeData })
   const sel = useEntrySelection();
   const ids = group.entries.filter((e) => !isRunning(e)).map((e) => e.id);
   const press = useRowPress(ids);
+  const moveTo = useMoveEntries();
+  const destinations = moveTo.to(group.entries);
   const picked = ids.length > 0 ? (sel?.state(ids) ?? 'none') : 'none';
   return (
     <li class={cx('te-group', expanded && 'expanded', picked === 'all' && 'selected')} data-group={group.key} data-ids={ids.join(',')}>
@@ -580,7 +585,16 @@ function GroupRow({ group, data: base }: { group: RepeatGroup; data: TimeData })
         <Total entries={group.entries} format={data.hoursFormat} />
         <div class="te-actions">
           <IconButton class="te-continue" label={`Continue: ${label}`} icon={<IconPlay />} onClick={() => data.controller.continueFrom(data.spaceId, entryFields(newest))} />
-          <span class="te-more-spacer" aria-hidden="true" />
+          {destinations.length > 0 ? (
+            <MenuButton
+              class="te-more"
+              label={`More actions: ${label} (${group.entries.length} entries)`}
+              icon={<IconMore />}
+              items={destinations.map((d) => ({ label: `Move all to ${d.name}`, onSelect: () => moveTo.move(group.entries, d.id) }))}
+            />
+          ) : (
+            <span class="te-more-spacer" aria-hidden="true" />
+          )}
         </div>
       </div>
       {expanded && (

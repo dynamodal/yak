@@ -530,6 +530,37 @@ const addTag = async (p, scope, name) => {
   await p.close();
 }
 
+// ---- entry menu: Move to space (#64) ----
+{
+  const p = await open('move', { clock: 'noon' });
+  await p.evaluate(() => { location.hash = '#/settings/organize'; });
+  await p.locator('.projects-page').waitFor();
+  await p.getByLabel('New project name').fill('Moveable');
+  await p.getByRole('button', { name: 'Add project', exact: true }).click();
+  await p.evaluate(() => { location.hash = '#/time'; });
+  const d = await openDetails(p);
+  await desc(p).fill('Move me');
+  await pickProject(p, d, 'Moveable');
+  await desc(p).press('Enter');
+  await stopRound(p).waitFor();
+  await sleep(1100);
+  await stopRound(p).click();
+  await startRound(p).waitFor();
+  const mine = (page) => page.evaluate(() => ['space/personal/time', 'space/work/time'].flatMap((id) => Object.values(window.__app.json(id, 'time_entries')).filter((e) => !e.deleted && e.description === 'Move me').map((e) => ({ ...e, space: id }))));
+  check((await mine(p)).length === 1 && (await mine(p))[0].space === 'space/personal/time', 'the entry starts in Personal');
+  const row = line(p, 'Move me');
+  await row.hover();
+  await row.getByRole('button', { name: 'More actions: Move me' }).click();
+  check((await p.getByRole('menuitem', { name: 'Move to Personal' }).count()) === 0 && (await p.getByRole('menuitem', { name: 'Move to Work' }).count()) === 1, 'the menu offers the other space only');
+  await p.getByRole('menuitem', { name: 'Move to Work' }).click();
+  check(await poll(async () => { const m = await mine(p); return m.length === 1 && m[0].space === 'space/work/time' && m[0].project_id; }), 'Move to Work: one live entry in Work, with its project made there');
+  const toast = p.getByRole('status').filter({ hasText: 'Moved 1 entry to Work' });
+  check((await toast.count()) >= 1, 'a message confirms the move');
+  await p.getByRole('button', { name: 'Undo' }).click();
+  check(await poll(async () => { const m = await mine(p); return m.length === 1 && m[0].space === 'space/personal/time'; }), 'Undo puts it back');
+  await p.close();
+}
+
 // ---- narrow screens: 375 px phone, 360 px "mini" window ----
 for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }]) {
   const w = viewport.width;

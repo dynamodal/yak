@@ -6,6 +6,12 @@
 - The command palette (**Alt P**) now finds places in Settings: type "mirror", "backup", "passphrase", "theme" or "devices" and press Enter.
 - **Settings › Features › Mirror** says where to set Mirror up.
 
+## 2026-10-29: Timer keeps its space
+
+- A timer started without a project now goes to the space of your latest entry, not the space of the note you have open.
+- With several spaces, the start popover has a **Space** picker, so you can choose where the entry goes.
+- Nothing stored changed.
+
 ## 2026-10-29: Obsidian plugin 0.2.1
 
 - The Yak Sync plugin has a first public release on GitHub: add `dynamodal/yak` in BRAT. A vault that installed it from the old private repository must be re-added in BRAT.

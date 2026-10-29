@@ -5,7 +5,7 @@ import { type Change, changeToken, markChangesSeen } from './changes';
 /** How many entries the section shows. */
 const SHOWN = 10;
 
-/** Help › What's new: the latest entries of `docs/user/changes.md`. Seeing it clears the dot on the Settings tab. */
+/** Help › What's new: the latest entries of `docs/user/changes/` and the archive `docs/user/changes.md`. Seeing it clears the dot on the Settings tab. */
 export function WhatsNew({ changes }: { changes: Change[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const newest = changeToken(changes[0]);

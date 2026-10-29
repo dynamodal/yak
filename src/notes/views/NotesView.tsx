@@ -384,7 +384,7 @@ export function NotesView({ params }: ViewProps) {
               if (e.key === 'Enter' && first) location.hash = `#/notes/${encodeURIComponent(first.id)}`;
             }}
           />
-          <a class="btn quiet icon notes-gear" href="#/note-settings" aria-label="Note settings" title="Note settings">
+          <a class="btn quiet icon notes-gear" href="#/settings/notes" aria-label="Note settings" title="Note settings">
             <IconSettings />
           </a>
           <span class="notes-break" aria-hidden="true" />

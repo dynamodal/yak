@@ -38,7 +38,7 @@ const hash = (p) => p.evaluate(() => location.hash);
 
   // Features page: Notes back on shows Notes only; Tasks stays hidden until ticked.
   await p.evaluate(() => (location.hash = '#/settings'));
-  await p.getByLabel('Notes', { exact: true }).check();
+  await p.getByRole('checkbox', { name: 'Notes', exact: true }).check();
   check((await tabs(p)).join() === 'Time,Notes,Settings', `Notes on: Notes tab only (${(await tabs(p)).join()})`);
   await p.getByLabel('Tasks', { exact: true }).check();
   check((await tabs(p)).join() === 'Time,Notes,Tasks,Settings', 'Tasks on: Tasks tab');
@@ -56,7 +56,7 @@ const hash = (p) => p.evaluate(() => location.hash);
   await p.evaluate(() => localStorage.setItem('hidden_modules', '[]'));
   await p.evaluate(() => (location.hash = '#/settings'));
   // Notes and Tasks are separate switches (F-33n): Notes off keeps Tasks, and the Tasks switch stays usable.
-  await p.getByLabel('Notes', { exact: true }).uncheck();
+  await p.getByRole('checkbox', { name: 'Notes', exact: true }).uncheck();
   check((await tabs(p)).join() === 'Home,Time,Tasks,Settings', `Notes off keeps Tasks (${(await tabs(p)).join()})`);
   check(!(await p.getByLabel('Tasks', { exact: true }).isDisabled()), 'the Tasks switch is not locked while Notes is hidden');
   // A hidden Settings page goes to Settings (a visible page), not the timer.
@@ -138,7 +138,7 @@ const hash = (p) => p.evaluate(() => location.hash);
   // Every other feature off too: Settings, which is never hidden.
   await p.evaluate(() => (location.hash = '#/settings'));
   await p.getByLabel('Home', { exact: true }).uncheck();
-  await p.getByLabel('Notes', { exact: true }).uncheck();
+  await p.getByRole('checkbox', { name: 'Notes', exact: true }).uncheck();
   await p.getByLabel('Tasks', { exact: true }).uncheck();
   check((await tabs(p)).join() === 'Settings', `all features off: only Settings (${(await tabs(p)).join()})`);
   await p.evaluate(() => (location.hash = '#/time'));

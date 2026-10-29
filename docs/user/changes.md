@@ -1,11 +1,10 @@
 # What's new
 
-## 2026-10-29: Timer row, smarter description, Move to space
+## 2026-10-29: Honest connection messages
 
-- A running timer now has a full row of its own in the header at every window width, so its description and clock stay readable.
-- Typing a description now suggests matching past entries (word order and small typos do not matter) with their project and tags; picking one fills the project, tags and billable too. It works in the timer, **Add entry** and when editing an entry.
-- An entry's **…** menu has **Move to <space>** when you have several spaces (a group of repeats has one too). The project follows by name, and **Undo** puts the entry back.
-- Nothing stored changed.
+- A dropped connection to the relay (waking a laptop, a Wi-Fi change) now says "The relay cannot be reached right now" and retries, instead of claiming too many connections and waiting 90 seconds.
+- A real limit on your network is now reported by the relay itself, with how long it waits (a minute, or the day's reset time).
+- Devices page: the note about the connection server's limits no longer says it limits only very heavy use. Nothing stored changed.
 
 ## 2026-10-29: Timer keeps its space
 

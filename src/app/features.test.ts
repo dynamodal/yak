@@ -31,7 +31,7 @@ describe('hidden modules', () => {
   });
   it('an old list with `notes` but not `tasks` (which used to hide both) now shows Tasks', () => {
     const old = effectiveHidden(readHiddenModules(store('["notes"]')));
-    expect(['notes', 'notes-settings', 'tasks'].map((id) => viewHidden(id, old))).toEqual([true, true, false]);
+    expect(['notes', 'tasks'].map((id) => viewHidden(id, old))).toEqual([true, false]);
     expect(searchKindHidden('task', old)).toBe(false);
   });
   it('Reports has no switch of its own: an old stored `reports` entry is dropped and hides nothing', () => {
@@ -50,7 +50,7 @@ describe('hidden modules', () => {
 describe('registry filter', () => {
   const hidden = effectiveHidden(['notes', 'time']);
   it('hides the views of hidden features, never Settings or backups', () => {
-    expect(['notes', 'tasks', 'reports', 'notes-settings', 'timer'].map((id) => viewHidden(id, hidden))).toEqual([true, false, true, true, true]);
+    expect(['notes', 'tasks', 'reports', 'timer'].map((id) => viewHidden(id, hidden))).toEqual([true, false, true, true]);
     expect(['backup', 'devices', 'mirror', 'import', 'settings'].map((id) => viewHidden(id, hidden))).toEqual([false, false, false, false, false]);
   });
   it('Time off hides the Time page, its old Entries route, Reports and the timer commands', () => {

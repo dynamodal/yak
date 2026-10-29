@@ -26,7 +26,9 @@ export async function startMockRelay(options = {}) {
   const rooms = new Map();
   /** @type {Map<string, Set<import('ws').WebSocket>>} */
   const links = new Map();
-  const state = { links: 0, linkFrames: 0, linkBytes: 0, connections: 0, rejected: 0, messages: 0, pings: 0, silent: false };
+  const state = { links: 0, linkFrames: 0, linkBytes: 0, connections: 0, rejected: 0, messages: 0, pings: 0, refused: 0, silent: false };
+  /** Refuse the next `count` upgrades the way the Worker does (accept, then close with a code); see `refuse()`. */
+  let refusing;
 
   /** Traffic per topic, for `GET /signal/<topic>/stats` (the Worker keeps buckets; the mock keeps totals). */
   const traffic = new Map();
@@ -69,6 +71,16 @@ export async function startMockRelay(options = {}) {
       return;
     }
     const pair = match?.[2];
+    if (refusing && refusing.count > 0) {
+      const { code, reason } = refusing;
+      refusing.count -= 1;
+      state.refused += 1;
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        ws.on('error', () => {});
+        ws.close(code, reason);
+      });
+      return;
+    }
     if (pair) {
       wss.handleUpgrade(req, socket, head, (ws) => {
         const key = `${topic}/${pair}`;
@@ -151,6 +163,18 @@ export async function startMockRelay(options = {}) {
     /** Tell every link socket the relay's budget is spent (tests); `reason` is `day` or `rate`. */
     limitLinks(reason) {
       for (const sockets of links.values()) for (const ws of sockets) ws.send(JSON.stringify({ event: 'limit', reason }));
+    },
+    /**
+     * Refuse the next `count` upgrades (all when omitted) like the Worker: accept, then close at once
+     * with 4429 `rate retry=<s>` or 4430 `day scope=<share|topics> reset=<unix s>`. `refuse(null)` stops.
+     */
+    refuse(kind, options = {}) {
+      if (!kind) {
+        refusing = undefined;
+        return;
+      }
+      const reason = kind === 'rate' ? `rate retry=${options.retry ?? 60}` : `day scope=${options.scope ?? 'share'} reset=${options.reset ?? Math.floor(now() / 1000) + 3600}`;
+      refusing = { code: kind === 'rate' ? 4429 : 4430, reason, count: options.count ?? Infinity };
     },
     openSockets() {
       let n = 0;

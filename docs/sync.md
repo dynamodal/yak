@@ -49,9 +49,9 @@ How sync works today. Decisions and reasons: `decisions/sync.md`.
 - **The estimate errs low:** each Worker instance reports every 50 requests or 30 s, rooms every 200 messages, so a burst can overshoot a little. That is why the budget is half the quota.
 - **Kill switch:** `RELAY=off` (a variable in the dashboard or `wrangler.jsonc`) refuses everything at once.
 - `Origin` must be the site, Obsidian or `ALLOWED_ORIGINS`; otherwise 403.
-- New connections a minute: 60 per address and topic (`CONNECT_LIMIT`), 120 per address in all, status checks included (`ADDRESS_LIMIT`); otherwise 429. Accounts behind one VPN or office address do not crowd each other out.
-- Per address and UTC day, kept by `RelayBudget` (as hashes and counts only): accepted sockets may spend 10% of the day's requests (`ADDRESS_DAY_SHARE`, 2 per socket, so 2 500 at the default) and open 150 different topics (`ADDRESS_DAY_TOPICS`); past either, 429 with `reason: address` and `scope: share` or `topics`. Messages on open sockets are not attributed to an address; the per-socket caps bound them.
-- A device the relay refuses this way (the status check says so) opens no sockets for 90 s, then starts over; open links stay.
+- New connections a minute: 60 per address and topic (`CONNECT_LIMIT`), 120 per address in all, status checks included (`ADDRESS_LIMIT`); past it the upgrade is accepted and closed at once with code 4429 (below). Accounts behind one VPN or office address do not crowd each other out.
+- Per address and UTC day, kept by `RelayBudget` (as hashes and counts only): accepted sockets may spend 10% of the day's requests (`ADDRESS_DAY_SHARE`, 2 per socket, so 2 500 at the default) and open 150 different topics (`ADDRESS_DAY_TOPICS`); past either, the upgrade is closed with code 4430 (below). Messages on open sockets are not attributed to an address; the per-socket caps bound them.
+- A device told this by a close code (below) opens no sockets for the time given (a minute; a daily refusal is retried every 30 min at most, the page names the reset), then starts over; open links stay.
 - Per socket: signaling 20 messages and links 400 frames or 4 MiB per 10 s; a frame is at most 8 KiB (signaling) or 64 KiB (links). Above that the Worker closes the socket.
 - Per room: 100 MiB of link data per UTC day (`RELAY_DAY_BYTES`), a fairness limit, not a cost limit. Past it the room's two devices get `reason":"day"`.
 - Devices wait longer after repeated failed connects (every attempt is a request): up to 5 minutes after six in a row.
@@ -69,14 +69,28 @@ How sync works today. Decisions and reasons: `decisions/sync.md`.
 
 ### Telling whose limit it is
 
-- Every refusal is JSON with `"service":"yak-relay"` and an `X-Relay-Limit` header (`service`, `origin`, `address`). A browser hides the status of a failed WebSocket, so when the relay fails the app asks `GET /signal/status` (at most every 2 minutes) and the Devices page says:
+A browser hides the status and body of a failed WebSocket handshake, so the per-address limits are not HTTP 429 on the handshake. The Worker accepts the upgrade and closes at once with a code from the application range and a short reason (`src/sync/relay-refusal.ts`, `refuseSocket` in `worker/index.ts`):
+
+| Close code | Reason | Meaning |
+| --- | --- | --- |
+| 4429 | `rate retry=<seconds>` | Too many connections a minute from this address (`CONNECT_LIMIT`, `ADDRESS_LIMIT`) |
+| 4430 | `day scope=share\|topics reset=<unix seconds>` | This address spent its share of the day or its topics (`RelayBudget.admit`) |
+
+- The app shows a network limit and pauses only when one of these codes arrives, for the time it names. Any other close or failure is a plain drop: normal backoff (1 s doubling to 15 s, 5 min after 6 failures), no pause, no limit message.
+- The refusal is answered by the Worker itself: no room request, no entry in the daily tally, one counted call as the 429 was. A refused socket still opens and closes in the browser, so a publish sent in that instant is lost; hellos are repeated when the pause ends.
+- Still plain HTTP: 503 `service` (budget spent, `RELAY=off`), 403 `origin`, and 429 on `GET /signal/status` and `/signal/<topic>/stats`.
+- Older clients treat the 4429/4430 close as a plain drop and retry at their normal backoff (at most every 15 s), which is the same pace as before and no worse for the relay. A newer client that meets an HTTP 429 from an older Worker gets no code; the status check then decides (below).
+- Every other refusal is JSON with `"service":"yak-relay"` and an `X-Relay-Limit` header (`service`, `origin`, `address`). When a socket fails without a code, the app asks `GET /signal/status` (at most every 2 minutes), only to tell Cloudflare's own errors from ours, and the Devices page says:
 
 | Answer | The page says |
 | --- | --- |
 | Our JSON, `state: limited` | Yak's relay has used its daily allowance for all users, paused until about `<time>` |
-| Our JSON, `state: ok` | The relay turned this connection away (too many connections, or this page is not allowed) |
+| Our JSON, `state: ok` | The relay cannot be reached right now (the connection dropped); retrying with the normal backoff, no pause |
+| Our JSON, `state: ok`, `originAllowed: false` | The relay does not accept connections from this page |
+| Our JSON with HTTP 429 (an older Worker refusing the status call) | The relay turned this connection away; no new connections for the `Retry-After` time (90 s if none) |
 | Not our JSON (an error page, 5xx, 429) | Cloudflare is refusing requests (its quota or an outage) |
 | No answer, online | The relay cannot be reached from this network |
+| Close 4429 / 4430 | This network opened too many connections in a minute / used its daily share or topics (reset time shown); no probe |
 | A link event `day` / `rate` | Your account's daily data allowance / sending too fast |
 
 - Every line adds that direct sync is not affected.

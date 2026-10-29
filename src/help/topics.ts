@@ -1,6 +1,9 @@
 /** The bundled user guide: Markdown from `docs/user/`, in reading order. Shortcuts and Report are built by the view. */
 const files = import.meta.glob('../../docs/user/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
+/** One file per What's new entry (`YYYY-MM-DD-HHMM-<slug>.md`), so parallel PRs never conflict; `changes.md` is the archive. */
+const fragments = import.meta.glob('../../docs/user/changes/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+
 export interface Topic {
   id: string;
   title: string;
@@ -13,11 +16,11 @@ const ORDER = ['getting-started', 'home', 'timer', 'reports', 'notes', 'spaces',
 
 const BUILT: Record<string, string> = { shortcuts: 'Keyboard shortcuts', report: 'Report a problem' };
 
-import { type Change, changeToken, parseChanges } from './changes';
+import { type Change, changeToken, mergeChanges } from './changes';
 
 /** The entries of What's new, newest first. */
 export function allChanges(): Change[] {
-  return parseChanges(sourceOf('changes'));
+  return mergeChanges(sourceOf('changes'), fragments);
 }
 
 export const latestChange = (): string | undefined => changeToken(allChanges()[0]);

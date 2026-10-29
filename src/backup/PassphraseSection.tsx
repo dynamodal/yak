@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { useApp } from '../app/context';
 import { ownerKeys } from '../app/account-keys-runtime';
-import { withKey } from '../app/key-prompt';
+import { keyPrompt, withKey } from '../app/key-prompt';
 import { passphraseIsShort } from '../app/short-passphrase';
 import { Button } from '../app/ui';
 import { MIN_PASSPHRASE } from '../core/passphrase-rules';
@@ -67,7 +67,12 @@ export function PassphraseSection() {
               <Button
                 onClick={() =>
                   void clearDeviceKey().then(
-                    () => setHasKey(false),
+                    () => {
+                      setHasKey(false);
+                      // Other panels showing the passphrase state (Back up now) read it again.
+                      keyPrompt.version++;
+                      keyPrompt.emit();
+                    },
                     (e: unknown) => setError(errText(e)),
                   )
                 }

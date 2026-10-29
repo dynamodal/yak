@@ -21,7 +21,7 @@ import { blobStore } from '../core/blobs/store';
 import { readZip, ZipDir } from './zip';
 import { createSnapshot } from './snapshot';
 import { hasData, saveBlobFile, saveTextFile, useBackup } from './runtime';
-import { type BackupService, DEFAULT_STALE_HOURS, backupHealth } from './service';
+import { type BackupService, type RunResult, DEFAULT_STALE_HOURS, backupHealth } from './service';
 import { errText, listBackups, type BackupListing } from './store';
 import { usePassphraseState } from './passphrase-state';
 import { PassphraseSection } from './PassphraseSection';
@@ -398,6 +398,7 @@ export function BackupsView({ params }: ViewProps) {
   const [before, setBefore] = useState<BeforeReplace | undefined>();
   const [timeSource, setTimeSource] = useState<{ dir: BackupDir; accounts: string[] } | undefined>();
   const picker = folderPickerSupported();
+  const { hasKey } = usePassphraseState(account, accountId);
   const health = backupHealth(state, now, hasData(store.opened()));
   const fileTotal = (() => {
     const all = listBlobs(store.opened());
@@ -443,6 +444,46 @@ export function BackupsView({ params }: ViewProps) {
       setBusy(false);
     }
   };
+
+  /** Every outcome of a backup run is said on the page, next to the button (#77). */
+  const report = (r: RunResult): void => {
+    if (r.status === 'written') setMessage(`Backed up to ${r.manifest.name}.`);
+    else if (r.status === 'unchanged') setMessage('Nothing has changed since the last backup.');
+    else if (r.status === 'failed') throw new Error(r.error);
+    else if (r.status === 'busy') throw new Error('Another Yak tab is backing up right now. Try again in a moment.');
+    else throw new Error('No backup folder is available. Choose one.');
+  };
+  const chooseAndBackUp = async (): Promise<void> => {
+    if (!(await folder.choose())) {
+      setMessage('No folder was chosen.');
+      return;
+    }
+    await service.refreshFolder();
+    report(await service.run('manual', { force: true }));
+  };
+  const backUpNow = async (): Promise<void> => {
+    // Without a usable folder the button leads to one: the picker for none or a lost folder, the permission prompt for a paused one.
+    if (picker && state.folder.state === 'prompt') {
+      await folder.requestAccess();
+      await service.refreshFolder();
+    } else if (picker && state.folder.state !== 'granted') {
+      return chooseAndBackUp();
+    }
+    report(await service.run('manual', { force: true }));
+  };
+  /** Why Back up now cannot run, or what pressing it does when the folder is not ready. */
+  const lockedOut = state.encrypted === true && !hasKey;
+  const backUpNote = !picker
+    ? 'This browser cannot write to a folder. Use a download below.'
+    : lockedOut
+      ? 'Encrypted backups are on, but this device does not have the passphrase. Enter it under Encrypted backups below.'
+      : state.folder.state === 'none'
+        ? 'No backup folder yet. This button asks you to choose one, then backs up to it.'
+        : state.folder.state === 'prompt'
+          ? 'The browser needs permission again for the backup folder. This button asks for it, then backs up.'
+          : state.folder.state === 'denied' || state.folder.state === 'error'
+            ? 'The backup folder cannot be reached. This button asks you to choose a folder, then backs up to it.'
+            : '';
 
   const open = async (dir: BackupDir, source: string, blobs?: BlobSource): Promise<void> => {
     setOpened({ backup: await openBackup(dir, blobs), source });
@@ -517,12 +558,7 @@ export function BackupsView({ params }: ViewProps) {
             <Button
               disabled={busy}
               onClick={() =>
-                void act(async () => {
-                  if (await folder.choose()) {
-                    await service.refreshFolder();
-                    await service.run('manual', { force: true });
-                  }
-                })
+                void act(chooseAndBackUp)
               }
             >
               {state.folder.state === 'none' ? 'Choose folder…' : 'Change folder…'}
@@ -533,7 +569,7 @@ export function BackupsView({ params }: ViewProps) {
                   void act(async () => {
                     await folder.requestAccess();
                     await service.refreshFolder();
-                    await service.run('permission-granted');
+                    report(await service.run('permission-granted'));
                   })
                 }
               >
@@ -550,18 +586,7 @@ export function BackupsView({ params }: ViewProps) {
       )}
 
       <div class="row">
-        <Button
-          variant="primary"
-          disabled={busy || state.running || state.folder.state !== 'granted'}
-          onClick={() =>
-            void act(async () => {
-              const r = await service.run('manual', { force: true });
-              if (r.status === 'written') setMessage(`Backed up to ${r.manifest.name}.`);
-              else if (r.status === 'failed') throw new Error(r.error);
-              else if (r.status === 'no-folder') throw new Error('No backup folder available.');
-            })
-          }
-        >
+        <Button variant="primary" disabled={busy || lockedOut || !picker} onClick={() => void act(backUpNow)}>
           Back up now
         </Button>
         <Button
@@ -590,6 +615,21 @@ export function BackupsView({ params }: ViewProps) {
         </Button>
         {state.running && <span class="hint">Backing up…</span>}
       </div>
+      {backUpNote ? (
+        <p class="hint" data-backup-now-note>
+          {backUpNote}
+        </p>
+      ) : null}
+      {message ? (
+        <p class="hint" role="status">
+          {message}
+        </p>
+      ) : null}
+      {error ? (
+        <p class="error" role="alert">
+          {error}
+        </p>
+      ) : null}
       {fileTotal.count > 0 && (
         <p class="hint" data-testid="backup-files">
           Your notes hold {fileTotal.count} file{fileTotal.count === 1 ? '' : 's'} ({bytes(fileTotal.bytes)}). Folder backups and the zip download include them; the JSON download is text only and leaves them out.
@@ -612,12 +652,6 @@ export function BackupsView({ params }: ViewProps) {
           ))}
         </select>
       </label>
-      {message ? <p class="hint">{message}</p> : null}
-      {error ? (
-        <p class="error" role="alert">
-          {error}
-        </p>
-      ) : null}
 
       {/* Keyed, like EncryptionPanel: a change in the conditional lines above must never remount a panel that holds typed input or an error. */}
       {opened && (

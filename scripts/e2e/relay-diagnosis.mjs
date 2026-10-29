@@ -61,9 +61,12 @@ async function closeScenario(name, close, expected, { pauses }) {
   const text = await page.locator('main').innerText();
   check(pauses ? !/cannot be reached/.test(text) : !/too many|daily share|limit/i.test(text), `${name}: and does not blame a limit it was not told of`);
   const before = attempts.length;
-  await page.waitForTimeout(9000);
+  // Backoff doubles from 1 s to a 15 s cap (plus up to 25% jitter), so one more attempt can take ~19 s;
+  // a refusal pause is 60 s. Wait on the count with a deadline above the longest backoff step.
+  if (pauses) await page.waitForTimeout(9000);
+  else await until(() => attempts.length > before, 30000, 250);
   const more = attempts.length - before;
-  check(pauses ? more === 0 : more >= 1, `${name}: ${pauses ? 'no new signaling connection while it waits' : 'it keeps retrying'} (${more} in 9 s)`);
+  check(pauses ? more === 0 : more >= 1, `${name}: ${pauses ? 'no new signaling connection while it waits' : 'it keeps retrying'} (${more} new)`);
   if (pauses) check(asked === 0, `${name}: the status was not asked, the close said it`);
   await context.close();
 }

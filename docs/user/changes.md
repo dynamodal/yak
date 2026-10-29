@@ -1,5 +1,15 @@
 # What's new
 
+## 2026-10-29: Fixes before sharing
+
+- The running timer now shows in the **Time** list, so you can edit its start or delete it there. The list no longer says "Nothing tracked" while the first timer runs.
+- Keeping Yak in a background tab no longer triggers the "you were away" prompt. It still appears if the computer slept or the page stopped running for over 10 minutes.
+- **Ctrl+P** prints again; find a note with **Ctrl+O**. **Make task** in a note is now **Ctrl+Shift+Enter** (the old key reopened a closed browser tab).
+- **Add entry** refuses equal From and To times, and says "Ends the next day." when To is before From.
+- The empty Notes page asks you to create your first note when there are none.
+- Moving a note to another space now also copies files linked with Markdown, `![](photo.png)` and `[text](file.pdf)`.
+- Nothing stored changed.
+
 ## 2026-10-29: Organize in Settings, a tidier Home
 
 - **Organize** (projects, clients, tags, task values) is now a section of **Settings**: open it from the contents row or from **Edit…** in a picker, and it opens in place. Old Organize links and **Go to Organize** in the command palette still work.

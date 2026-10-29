@@ -1,6 +1,7 @@
 /**
- * Detects that the user was away: the page was hidden, or the device slept and the page stopped
- * ticking, for longer than a threshold. Pure logic; the caller feeds it events with timestamps.
+ * Detects that the user was away: the device slept or the page stopped ticking for longer than a
+ * threshold. Merely being hidden is not away (a background tab with a timer running is normal; the
+ * page keeps ticking, slowly). Pure logic; the caller feeds it ticks with timestamps.
  */
 export const IDLE_THRESHOLD_MS = 10 * 60 * 1000;
 
@@ -21,18 +22,8 @@ export class IdleTracker {
     this.lastSeen = now;
   }
 
-  /** Call about once a second while the page is visible. Catches sleep, where no event fires. */
+  /** Call about once a second, hidden or not (a hidden tab ticks about once a minute). A gap over the threshold means the page was not running. */
   tick(now: number): IdleGap | null {
-    return this.seen(now);
-  }
-
-  /** The page was hidden at `now`. */
-  hide(now: number): void {
-    this.lastSeen = now;
-  }
-
-  /** The page became visible at `now`. */
-  show(now: number): IdleGap | null {
     return this.seen(now);
   }
 

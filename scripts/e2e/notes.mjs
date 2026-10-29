@@ -448,8 +448,8 @@ try {
   await a.locator('.cm-content').click();
   await a.keyboard.press('Control+End');
   await a.keyboard.type('\n- [x] socks\nshoes\nring Sam'); // Enter continues the list
-  await a.keyboard.press('Control+Shift+t');
-  check((await until(async () => (await textOf(a, 'Tasks/Pack bag.md'))?.endsWith('- [ ] [[ring Sam]]'))) >= 0, 'Ctrl+Shift+T links the checkbox line to a new task');
+  await a.keyboard.press('Control+Shift+Enter');
+  check((await until(async () => (await textOf(a, 'Tasks/Pack bag.md'))?.endsWith('- [ ] [[ring Sam]]'))) >= 0, 'Ctrl+Shift+Enter links the checkbox line to a new task');
   const ring = (await textOf(a, 'Tasks/ring Sam.md')) ?? '';
   check(/projects:[\s\S]*\[\[Pack bag\]\]/.test(ring) && /tags:[\s\S]*task/.test(ring), 'the new task belongs to the note it came from');
   await a.goto(BASE + '?test#/tasks');

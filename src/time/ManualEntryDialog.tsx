@@ -4,7 +4,7 @@ import { Button, Dialog, IconBillable, toast } from '../app/ui';
 import { ensureTag } from './catalog';
 import { addManualEntry, type EntryRecord } from './entries';
 import { type TimeData, useCatalogs } from './hooks';
-import { manualDefaults, manualRange } from './manual-entry';
+import { endsNextDay, manualDefaults, manualProblem, manualRange } from './manual-entry';
 import { ProjectPicker, TagPicker } from './pickers';
 import { DescriptionField } from './widgets';
 
@@ -21,7 +21,7 @@ const EMPTY: Form = { description: '', project_id: null, tags: [], billable: fal
 
 /**
  * "Add entry" on the Time page (F-33m): the form for a finished entry that the timer bar used to hold as its clock mode.
- * Description, project, tags, billable, a date and a from and to time; a to time at or before from means the next day.
+ * Description, project, tags, billable, a date and a from and to time; a to time before from means the next day; equal times are rejected.
  */
 export function ManualEntryDialog({ data, entries, onClose }: { data: TimeData; entries: readonly EntryRecord[]; onClose(): void }) {
   const { setSpaceId } = useApp();
@@ -37,7 +37,7 @@ export function ManualEntryDialog({ data, entries, onClose }: { data: TimeData; 
     const range = manualRange(times.date, times.from, times.to);
     const doc = data.controller.privateDocs.get(spaceId);
     if (!range || !doc || !space) {
-      setError('Enter a date and a start and stop time.');
+      setError(manualProblem(times.from, times.to));
       return;
     }
     const tags = form.tags.map((t) => ensureTag(space.doc, t) ?? t);
@@ -97,6 +97,7 @@ export function ManualEntryDialog({ data, entries, onClose }: { data: TimeData; 
             <input type="time" aria-label="To" value={times.to} onInput={(e) => setTimes((t) => ({ ...t, to: (e.target as HTMLInputElement).value }))} />
           </span>
         </div>
+        {endsNextDay(times.from, times.to) && <p class="hint manual-next-day">Ends the next day.</p>}
         {error ? (
           <p class="error" role="alert">
             {error}

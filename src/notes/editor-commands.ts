@@ -217,7 +217,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { keys: 'Ctrl+`', action: 'Inline code' },
   { keys: 'Ctrl+K', action: 'Link: wrap in [[ ]]' },
   { keys: 'Ctrl+L or Ctrl+.', action: 'Cycle: text → bullet → task → done' },
-  { keys: 'Ctrl+Shift+T', action: 'Make the checkbox line a task note' },
+  { keys: 'Ctrl+Shift+Enter', action: 'Make the checkbox line a task note' },
   { keys: 'Ctrl+Enter', action: 'Tick a task, or open the link under the cursor' },
   { keys: 'Ctrl+Alt+1 … 6, Ctrl+Alt+0', action: 'Heading 1–6, or plain text' },
   { keys: 'Tab / Shift+Tab', action: 'Indent / outdent' },
@@ -229,5 +229,5 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { keys: 'Ctrl+Shift+L', action: 'Select every occurrence' },
   { keys: 'Esc', action: 'Back to one cursor' },
   { keys: 'Ctrl+Z / Ctrl+Shift+Z', action: 'Undo / redo (this device’s edits)' },
-  { keys: 'Ctrl+O or Ctrl+P', action: 'Find a note (quick switcher)' },
+  { keys: 'Ctrl+O', action: 'Find a note (quick switcher)' },
 ];

@@ -12,15 +12,26 @@ import type { BlobStore } from './store';
 
 const lastSegment = (ref: string): string => ref.split(/[\\/]/).pop()!.trim().toLowerCase();
 
-/** The file name a Markdown link or image target points to: decoded, without `<>`, query or heading, last path segment. */
-function markdownTarget(raw: string): string {
+/** The file name a Markdown link or image target points to: decoded, without `<>`, query or heading, last path segment (case kept). */
+function markdownFileName(raw: string): string {
   let t = raw.trim().replace(/^<|>$/g, '').split(/[?#]/)[0]!;
   try {
     t = decodeURIComponent(t);
   } catch {
     // An undecodable target is compared as written.
   }
-  return lastSegment(t);
+  return t.split(/[\\/]/).pop()!.trim();
+}
+
+/** Markdown link and image targets of a text: where the target sits (`from` to `to`) and the file name it names. */
+export function markdownTargets(text: string): { from: number; to: number; name: string }[] {
+  const out: { from: number; to: number; name: string }[] = [];
+  for (const m of text.matchAll(/\]\(\s*(<[^>\n]+>|[^)\s]+)(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g)) {
+    const from = m.index + /^\]\(\s*/.exec(m[0])![0].length;
+    const name = markdownFileName(m[1]!);
+    if (name) out.push({ from, to: from + m[1]!.length, name });
+  }
+  return out;
 }
 
 /**
@@ -36,10 +47,7 @@ export function referencedNames(doc: Y.Doc): Set<string> {
       const ref = lastSegment(m[1]!.split('|')[0]!.split('#')[0]!);
       if (ref) names.add(ref);
     }
-    for (const m of text.matchAll(/\]\(\s*(<[^>\n]+>|[^)\s]+)(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g)) {
-      const ref = markdownTarget(m[1]!);
-      if (ref) names.add(ref);
-    }
+    for (const t of markdownTargets(text)) names.add(t.name.toLowerCase());
   }
   return names;
 }

@@ -33,7 +33,7 @@ export function TimeBackground() {
           addNotice({
             key: `timer-stopped:${r.id}`,
             kind: 'timer-stopped',
-            text: `Another device was also timing, so ${what} was stopped at ${formatTimeOfDay(startMs(r.entry))}'s later start. Only one timer runs at a time.`,
+            text: `Another device was also timing, so ${what} was stopped when the later timer started at ${formatTimeOfDay(startMs(r.entry))}. Only one timer runs at a time.`,
             spaceId: r.spaceId,
           });
         }
@@ -57,12 +57,10 @@ export function TimeBackground() {
       const current = findRunning(privateDocs).sort(compareRunning).at(-1);
       if (current && startMs(current.entry) < gap.since) setIdle((prev) => prev ?? gap);
     };
-    const tick = setInterval(() => {
-      if (document.visibilityState === 'visible') check(tracker.tick(Date.now()));
-    }, 1000);
+    // Ticks run while hidden too, so a hidden tab is not "away"; only a gap with no ticks (sleep, a frozen page) is.
+    const tick = setInterval(() => check(tracker.tick(Date.now())), 1000);
     const onVisibility = (): void => {
-      if (document.visibilityState === 'hidden') tracker.hide(Date.now());
-      else check(tracker.show(Date.now()));
+      if (document.visibilityState === 'visible') check(tracker.tick(Date.now()));
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => {

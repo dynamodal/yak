@@ -482,7 +482,7 @@ export function editorExtensions(o: EditorOptions): Extension[] {
     keymap.of([
       ...yUndoManagerKeymap,
       { key: 'Mod-Enter', run: (v) => openLinkAtCursor(v, o.onOpenLink) || toggleTask(v) },
-      ...(o.onMakeTask ? [{ key: 'Mod-Shift-t', run: makeTask(o.onMakeTask) }] : []),
+      ...(o.onMakeTask ? [{ key: 'Mod-Shift-Enter', run: makeTask(o.onMakeTask) }] : []),
       { key: 'Mod-b', run: toggleWrap('**') },
       { key: 'Mod-i', run: toggleWrap('*') },
       { key: 'Mod-Shift-x', run: toggleWrap('~~') },

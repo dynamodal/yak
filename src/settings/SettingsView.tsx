@@ -67,8 +67,26 @@ export function SettingsView() {
   useEffect(() => {
     // A row of the Notes section (Mirror, …) is a part inside it; the other sections open their rows in place.
     const part = slug === 'notes' && target ? document.getElementById(`section-${target}`) : null;
-    if (part) part.scrollIntoView?.({ block: 'start' });
-    else scrollTo(slug);
+    if (!part) return scrollTo(slug);
+    part.scrollIntoView?.({ block: 'start' });
+    // Parts above it (unused files) load after the first scroll and push it down: keep it in place until the layout settles or the person scrolls.
+    const card = part.closest('.st-section');
+    if (!card || typeof ResizeObserver === 'undefined') return;
+    const again = (): void => part.scrollIntoView?.({ block: 'start' });
+    const ro = new ResizeObserver(again);
+    ro.observe(card);
+    const stop = (): void => ro.disconnect();
+    const timer = window.setTimeout(stop, 3000);
+    window.addEventListener('wheel', stop, { once: true, passive: true });
+    window.addEventListener('touchmove', stop, { once: true, passive: true });
+    window.addEventListener('keydown', stop, { once: true });
+    return () => {
+      stop();
+      clearTimeout(timer);
+      window.removeEventListener('wheel', stop);
+      window.removeEventListener('touchmove', stop);
+      window.removeEventListener('keydown', stop);
+    };
   }, [slug, target]);
   const rowFor = (s: SettingsSection): string | undefined => (slug === s ? target : undefined);
 

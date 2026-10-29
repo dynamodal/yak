@@ -3,7 +3,7 @@
 //
 //   npm run e2e navigation
 //
-import { BASE, launch, check, watchPage, finish, openDetails } from './lib.mjs';
+import { BASE, launch, check, watchPage, finish, openDetails, until } from './lib.mjs';
 
 const browser = await launch();
 const TABS = ['Home', 'Time', 'Notes', 'Tasks', 'Settings'];
@@ -187,8 +187,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await p.keyboard.press('Enter');
   await p.waitForFunction(() => location.hash === '#/settings/notes/mirror', null, { timeout: 3000 }).catch(() => {});
   check((await route(p)) === '#/settings/notes/mirror', 'palette "mirror" opens Settings > Notes at Mirror');
-  await p.waitForTimeout(400);
-  check(await p.locator('#section-mirror').evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight; }), 'the Mirror row is scrolled into view');
+  check((await until(() => p.locator('#section-mirror').evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight; }), 5000)) >= 0, 'the Mirror row is scrolled into view');
   // With Notes off the section, its chip and its palette entries are gone.
   await p.evaluate(() => { localStorage.setItem('hidden_modules', JSON.stringify(['notes'])); window.dispatchEvent(new Event('app:features')); location.hash = '#/settings'; });
   await p.locator('.st-home').waitFor();

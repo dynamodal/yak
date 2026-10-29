@@ -4,7 +4,7 @@ import type { ComponentType } from 'preact';
  * Pieces other modules add to the Settings page (F-33), so the page names no feature module:
  * the devices module adds its notices, key review, connection and reset to Devices and sync and to Advanced.
  */
-export type SettingsSectionId = 'devices-sync' | 'advanced';
+export type SettingsSectionId = 'devices-sync' | 'organize' | 'advanced';
 
 export interface SettingsPartDef {
   id: string;

@@ -94,11 +94,12 @@ describe('navModel', () => {
 describe('legacyRoute', () => {
   const views = [v('projects', 1, 'settings'), v('backup', 2, 'settings'), v('settings', 3, 'settings'), v('timer', 4)];
   it('moves the old Manage and page addresses into Settings', () => {
-    expect(legacyRoute(['manage', 'projects'], views)).toEqual(['organize']);
+    expect(legacyRoute(['manage', 'projects'], views)).toEqual(['settings', 'organize']);
+    expect(legacyRoute(['manage', 'organize'], views)).toEqual(['settings', 'organize']);
     expect(legacyRoute(['manage'], views)).toEqual(['settings']);
     expect(legacyRoute(['manage', 'settings'], views)).toEqual(['settings']);
-    expect(legacyRoute(['projects'], views)).toEqual(['organize']);
-    expect(legacyRoute(['settings', 'projects'], views)).toEqual(['organize']);
+    expect(legacyRoute(['projects'], views)).toEqual(['settings', 'organize']);
+    expect(legacyRoute(['settings', 'projects'], views)).toEqual(['settings', 'organize']);
     expect(legacyRoute(['settings', 'notes-settings'], views)).toEqual(['note-settings']);
     expect(legacyRoute(['settings', 'note-settings'], views)).toEqual(['note-settings']);
     expect(legacyRoute(['settings', 'mirror'], views)).toEqual(['note-settings']);
@@ -106,7 +107,8 @@ describe('legacyRoute', () => {
     expect(legacyRoute(['settings', 'shortcuts'], views)).toEqual(['help', 'shortcuts']);
     expect(legacyRoute(['shortcuts'], views)).toEqual(['help', 'shortcuts']);
     expect(legacyRoute(['note-settings'], views)).toBeUndefined();
-    expect(legacyRoute(['organize'], views)).toBeUndefined();
+    expect(legacyRoute(['organize'], views)).toEqual(['settings', 'organize']);
+    expect(legacyRoute(['settings', 'organize'], views)).toBeUndefined();
     expect(legacyRoute(['manage', 'help', 'devices'], views)).toEqual(['help', 'devices']);
     expect(legacyRoute(['manage', 'devices'], views)).toEqual(['settings', 'devices']);
   });

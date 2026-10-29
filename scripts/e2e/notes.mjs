@@ -120,7 +120,8 @@ try {
   await a.keyboard.type(' #wrangle');
   await until(async () => (await textOf(a, 'Projects/Acme.md')).includes(' #wrangle'));
   const noteHash = await a.evaluate(() => location.hash);
-  await a.evaluate(() => { location.hash = '#/organize'; });
+  await a.evaluate(() => { location.hash = '#/settings/organize'; });
+  await a.locator('.projects-page').waitFor();
   const tagRow = (n) => a.locator('.tag-row', { has: a.locator('.tag-name', { hasText: new RegExp(`^${n}$`) }) });
   const tagAct = async (pg, name, item) => {
     await pg.getByRole('button', { name: `More actions for tag ${name}` }).click();
@@ -133,7 +134,8 @@ try {
   await a.locator('input[aria-label="Add to tags"]').waitFor();
   check((await a.locator('datalist#tags-options option[value="wrangle"]').count()) === 0, 'a hidden tag is not offered by the note tag picker');
   check((await a.locator('.prop-chip', { hasText: '#wrangle' }).count()) === 1, 'but it still shows on the note');
-  await a.evaluate(() => { location.hash = '#/organize'; });
+  await a.evaluate(() => { location.hash = '#/settings/organize'; });
+  await a.locator('.projects-page').waitFor();
   await tagAct(a, 'wrangle', 'Rename or merge');
   await a.getByLabel('New name for wrangle').fill('sorted');
   await a.getByLabel('New name for wrangle').press('Enter');
@@ -498,7 +500,7 @@ try {
   await a.getByLabel('Board project').selectOption({ label: 'Pack bag (0 of 2)' });
   await a.keyboard.press('Escape');
   check((await a.locator('.task-card', { hasText: 'Zip bag' }).count()) === 1 && (await a.locator('.task-card', { hasText: 'Write report' }).count()) === 0, 'the board can show one project');
-  await a.goto(BASE + '?test#/organize');
+  await a.goto(BASE + '?test#/settings/organize');
   await a.getByLabel(/Set the completed date/).click();
   await a.goto(BASE + '?test#/tasks/board');
   await openFilters(a);
@@ -509,7 +511,7 @@ try {
   await a.getByRole('button', { name: 'More actions for Zip bag' }).click();
   await a.getByRole('menuitem', { name: 'Move to Done' }).click();
   check((await until(async () => { const t = (await textOf(a, 'Tasks/Zip bag.md')) ?? ''; return /status: done/.test(t) && !/completedDate/.test(t); })) >= 0, 'with the rule off a move to Done writes no completed date');
-  await a.goto(BASE + '?test#/organize');
+  await a.goto(BASE + '?test#/settings/organize');
   await a.getByLabel(/Set the completed date/).click();
 
   // Bulk edit: select tasks, mark them done, shift dates, move notes, all with one Undo each.

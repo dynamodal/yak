@@ -67,7 +67,8 @@ const addTag = async (p, scope, name) => {
   check((await p.locator('.day-head').first().innerText()).includes('Today'), 'entries are grouped under a day heading with its total');
 
   // project, client, tag
-  await p.evaluate(() => { location.hash = '#/organize'; });
+  await p.evaluate(() => { location.hash = '#/settings/organize'; });
+  await p.locator('.projects-page').waitFor();
   await p.getByLabel('New client name').fill('Acme');
   await p.getByRole('button', { name: 'Add client' }).click();
   await p.getByLabel('New project name').fill('Alpha');
@@ -226,7 +227,8 @@ const addTag = async (p, scope, name) => {
   await until(async () => (await all(p)).length === before + 1);
 
   // the bar offers projects from every space, labelled by space; the entry goes to the project's space
-  await p.evaluate(() => { location.hash = '#/organize'; });
+  await p.evaluate(() => { location.hash = '#/settings/organize'; });
+  await p.locator('.projects-page').waitFor();
   check((await p.getByLabel('Show space').inputValue()) === 'all', 'the Projects page shows all spaces by default');
   await p.getByLabel('Space for new items').first().selectOption({ label: 'Work' });
   await p.getByLabel('New project name').fill('Ops');
@@ -269,7 +271,8 @@ const addTag = async (p, scope, name) => {
 
   // Tags: one list; hiding only leaves the pickers; rename and remove are bulk edits with one Undo.
   const tagged = async (tag) => (await all(p)).filter((e) => (e.tags ?? []).includes(tag)).length;
-  await p.evaluate(() => { location.hash = '#/organize'; });
+  await p.evaluate(() => { location.hash = '#/settings/organize'; });
+  await p.locator('.projects-page').waitFor();
   const tagRow = (name) => p.locator('.tag-row', { has: p.locator('.tag-name', { hasText: new RegExp(`^${name}$`) }) });
   const tagAct = async (pg, name, item) => {
     await pg.getByRole('button', { name: `More actions for tag ${name}` }).click();
@@ -285,7 +288,8 @@ const addTag = async (p, scope, name) => {
   await bar(p).getByRole('button', { name: /^Tags/ }).click();
   check((await p.getByRole('option', { name: 'fresh-tag' }).count()) === 0, 'the hidden tag is not offered in the picker');
   await p.keyboard.press('Escape');
-  await p.evaluate(() => { location.hash = '#/organize'; });
+  await p.evaluate(() => { location.hash = '#/settings/organize'; });
+  await p.locator('.projects-page').waitFor();
   await tagAct(p, 'fresh-tag', 'Show again');
   await tagAct(p, 'fresh-tag', 'Rename or merge');
   await p.getByLabel('New name for fresh-tag').fill('renamed-tag');
@@ -437,7 +441,8 @@ const addTag = async (p, scope, name) => {
   await p.getByLabel('Tag', { exact: true }).fill('both');
   await p.getByRole('button', { name: 'Add tag' }).click();
   await until(async () => (await all(p)).filter((e) => (e.tags ?? []).includes('both')).length === 2);
-  await p.evaluate(() => { location.hash = '#/organize'; });
+  await p.evaluate(() => { location.hash = '#/settings/organize'; });
+  await p.locator('.projects-page').waitFor();
   check((await p.locator('.tag-row[data-tag="both"]').count()) === 1, 'a tag used in two spaces is one row');
   check(/Personal: 1 entry/.test(await p.locator('.tag-row[data-tag="both"]').innerText()) && /Work: 1 entry/.test(await p.locator('.tag-row[data-tag="both"]').innerText()), 'the row shows a count per space');
   await tagAct(p, 'both', 'Rename or merge');
@@ -447,7 +452,8 @@ const addTag = async (p, scope, name) => {
   check((await until(async () => (await all(p)).filter((e) => (e.tags ?? []).includes('everywhere')).length === 2 && (await all(p)).every((e) => !(e.tags ?? []).includes('both')))) >= 0, 'renaming in all spaces at once changes both');
 
   // tags view: rename
-  await p.evaluate(() => { location.hash = '#/organize'; });
+  await p.evaluate(() => { location.hash = '#/settings/organize'; });
+  await p.locator('.projects-page').waitFor();
   await tagAct(p, 'deep', 'Rename or merge');
   await p.getByLabel('New name for deep').fill('focus');
   await p.getByLabel('New name for deep').press('Enter');

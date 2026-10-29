@@ -62,11 +62,6 @@ export function DisplaySection() {
         </select>
       </Field>
       <p class="hint">Week and hours sync with your other devices; the theme is for this device only.</p>
-      <a class="st-fold-link" href="#/organize" title="Projects, clients, tags and task values">
-        <span>
-          <strong>Organize:</strong> projects, clients, tags
-        </span>
-      </a>
       <details class="st-fold">
         <summary>History warnings</summary>
         <p class="hint">A warning appears when a lot of entries are deleted or changed at once, so a mistake or a bad sync can be undone from Backup &amp; restore while it is fresh. Shared across your devices.</p>
@@ -83,9 +78,8 @@ export function FeaturesSection() {
   const toggle = (id: FeatureId, on: boolean): void => setHiddenModules(on ? stored.filter((x) => x !== id) : [...stored, id]);
   return (
     <div class="st-tabs-shown">
-      <p class="hint">
-        Per device. Hiding a feature only hides its pages and controls: your time entries, notes, tasks and other data are kept, keep syncing, and are still in backups. Each tab is its own switch; Home is the summary page that opens first. Hiding Time also hides the timer in the header, its shortcut and Reports. Hiding Notes keeps Tasks, which then open on their own page; hiding Tasks keeps Notes. The app opens on the first tab still shown. Settings, Backup &amp; restore and the sync status are always shown.
-      </p>
+      <p class="hint">Per device. Hiding only hides: your data is kept, keeps syncing and stays in backups.</p>
+      <p class="hint">The app opens on the first tab still shown. Settings, Backup &amp; restore and the sync status are always shown.</p>
       <ul class="features-list">
         {FEATURES.map((f) => {
           const off = hidden.has(f.id);
@@ -132,6 +126,28 @@ export function HelpSection() {
         {APP_NAME}, build {version}. Everything is stored on this device; sync is optional.
       </p>
     </>
+  );
+}
+
+/**
+ * Organize (F-33x): projects, clients, tags and task values, one fold that opens in place (and is open when the address names it).
+ * The body comes from the time module (`registerSettingsPart`), so this page imports no feature; it renders only while open.
+ */
+export function OrganizeSection(props: { open: boolean }) {
+  const [shown, setShown] = useState(false);
+  const ref = useRef<HTMLDetailsElement>(null);
+  const parts = settingsParts('organize');
+  useEffect(() => {
+    if (props.open && ref.current) {
+      ref.current.open = true;
+      setShown(true);
+    }
+  }, [props.open]);
+  return (
+    <details class="st-open" ref={ref} onToggle={(e) => setShown((e.target as HTMLDetailsElement).open)}>
+      <summary>Projects, clients, tags and task values</summary>
+      {shown ? parts.map((p) => <p.component key={p.id} />) : null}
+    </details>
   );
 }
 

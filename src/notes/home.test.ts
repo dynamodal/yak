@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { changedLabel, dueLabel, dueSoon, recentNotes } from './home';
+import { changedLabel, dueLabel, dueSoon, noteExcerpt, noteFolder, recentNotes } from './home';
 import { toTask } from './tasks';
 
 const NOW = new Date(2026, 9, 28, 10, 0); // Wed 28 Oct 2026, local
@@ -49,5 +49,18 @@ describe('changedLabel', () => {
     expect(changedLabel(new Date(2026, 9, 27, 8).toISOString(), NOW)).toBe('Yesterday');
     expect(changedLabel(new Date(2026, 9, 3, 8).toISOString(), NOW)).toBe('3 Oct');
     expect(changedLabel('', NOW)).toBe('');
+  });
+});
+
+describe('noteFolder and noteExcerpt', () => {
+  it('names the folder of a note, empty at the top', () => {
+    expect(noteFolder('Work/Clients/Acme')).toBe('Work/Clients');
+    expect(noteFolder('Acme')).toBe('');
+  });
+  it('takes the first line that is not the title, without marks', () => {
+    expect(noteExcerpt('# Acme\n\n- [ ] Call [[Beta|the team]] about #invoices\nmore', 'Acme')).toBe('Call the team about #invoices');
+    expect(noteExcerpt('Acme\nKickoff notes', 'acme')).toBe('Kickoff notes');
+    expect(noteExcerpt('\n\n', 'Acme')).toBe('');
+    expect(noteExcerpt('x'.repeat(200), 'T')).toHaveLength(90);
   });
 });

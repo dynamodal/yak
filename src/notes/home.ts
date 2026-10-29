@@ -53,3 +53,28 @@ export function changedLabel(iso: string, now: Date): string {
   if (localDate(d) === localDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return 'Yesterday';
   return `${d.getDate()} ${d.toLocaleDateString('en-US', { month: 'short' })}`;
 }
+
+/** A note's folder for a Home row ("Work/Clients"), or '' for a note at the top. */
+export function noteFolder(path: string): string {
+  const i = path.lastIndexOf('/');
+  return i > 0 ? path.slice(0, i) : '';
+}
+
+const EXCERPT_MAX = 90;
+
+/**
+ * One line of a note's body to show under its title: the first line with words that is not the title, without heading, list, quote or
+ * checkbox marks and link brackets; cut at 90 characters. '' when there is none.
+ */
+export function noteExcerpt(body: string, title: string): string {
+  for (const raw of body.split('\n')) {
+    const line = raw
+      .replace(/^\s*(#{1,6}\s+|>\s*|[-*+]\s+(\[[ xX]\]\s+)?|\d+[.)]\s+)/, '')
+      .replace(/\[\[([^\]|]*\|)?([^\]]*)\]\]/g, '$2')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (line === '' || line === '---' || line.toLowerCase() === title.trim().toLowerCase()) continue;
+    return line.length > EXCERPT_MAX ? `${line.slice(0, EXCERPT_MAX - 1).trimEnd()}…` : line;
+  }
+  return '';
+}

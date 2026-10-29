@@ -7,7 +7,7 @@ import { useRoute } from '../app/router';
 import { Page, PageHeader } from '../app/ui';
 import { cx } from '../app/ui/cx';
 import { DevicesSection, useSyncDot } from './DevicesSection';
-import { AdvancedSection, BackupSection, DisplaySection, FeaturesSection, HelpSection, NeedsSection } from './Sections';
+import { AdvancedSection, BackupSection, DisplaySection, FeaturesSection, HelpSection, NeedsSection, OrganizeSection } from './Sections';
 import { SharingSection } from './SharingSection';
 import { SpacesSection } from './SpacesSection';
 
@@ -17,6 +17,7 @@ const TITLES: Readonly<Record<SettingsSection, string>> = {
   'devices-sync': 'Devices and sync',
   spaces: 'Spaces',
   sharing: 'Sharing',
+  organize: 'Organize',
   display: 'Display',
   features: 'Features',
   help: 'Help',
@@ -59,7 +60,7 @@ function scrollTo(slug: string | undefined): void {
 /**
  * Settings (F-33): one long single-column page, `#/settings`. A contents row under the title links to each section
  * (`#/settings/<section>` opens the page scrolled to it; `#/settings/<section>/<id>` also opens that row). Sections, in order: Needs you (only
- * while something waits), Backup and safety, Devices and sync, Spaces, Sharing, Display, Features, Help, Advanced.
+ * while something waits), Backup and safety, Devices and sync, Spaces, Sharing, Organize, Display, Features, Help, Advanced.
  * Devices, spaces and accounts are rows that open in place; only adding a device, Backup and restore and Import have pages of their own.
  */
 export function SettingsView() {
@@ -120,6 +121,9 @@ export function SettingsView() {
       </Section>
       <Section slug="sharing">
         <SharingSection {...(rowFor('sharing') ? { target: rowFor('sharing') as string } : {})} />
+      </Section>
+      <Section slug="organize">
+        <OrganizeSection open={slug === 'organize'} />
       </Section>
       <Section slug="display">
         <DisplaySection />

@@ -7,7 +7,7 @@ import { BASE, launch, check, watchPage, finish, openDetails } from './lib.mjs';
 
 const browser = await launch();
 const TABS = ['Home', 'Time', 'Notes', 'Tasks', 'Settings'];
-const CARDS = ['Backup and safety', 'Devices and sync', 'Spaces', 'Sharing', 'Display', 'Features', 'Help', 'Advanced'];
+const CARDS = ['Backup and safety', 'Devices and sync', 'Spaces', 'Sharing', 'Organize', 'Display', 'Features', 'Help', 'Advanced'];
 
 async function open(name, viewport, hash = '#/time') {
   const context = await browser.newContext({ viewport });
@@ -79,7 +79,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
     await p.waitForFunction((h) => location.hash === h, to, { timeout: 3000 }).catch(() => {});
     check((await route(p)) === to, `wide: the old route ${old} redirects to ${to}`);
   }
-  for (const [old, to] of [['#/projects', '#/organize'], ['#/settings/projects', '#/organize'], ['#/manage/projects', '#/organize'], ['#/settings/note-settings', '#/note-settings'], ['#/settings/mirror', '#/note-settings'], ['#/mirror', '#/note-settings'], ['#/settings/shortcuts', '#/help/shortcuts'], ['#/shortcuts', '#/help/shortcuts']]) {
+  for (const [old, to] of [['#/projects', '#/settings/organize'], ['#/organize', '#/settings/organize'], ['#/settings/projects', '#/settings/organize'], ['#/manage/projects', '#/settings/organize'], ['#/manage/organize', '#/settings/organize'], ['#/settings/note-settings', '#/note-settings'], ['#/settings/mirror', '#/note-settings'], ['#/mirror', '#/note-settings'], ['#/settings/shortcuts', '#/help/shortcuts'], ['#/shortcuts', '#/help/shortcuts']]) {
     await p.evaluate((h) => { location.hash = h; }, old);
     await p.waitForFunction((h) => location.hash === h, to, { timeout: 3000 }).catch(() => {});
     check((await route(p)) === to, `wide: the old route ${old} redirects to ${to}`);
@@ -148,7 +148,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await p.context().close();
 }
 
-// ---- Organize and note settings: owned by no tab, reached from pickers, Settings and the ⚙ on Notes (F-325) ----
+// ---- Organize is a section of Settings (F-33x); note settings are owned by no tab, reached from the ⚙ on Notes (F-325) ----
 {
   const p = await open('organize', { width: 375, height: 800 });
   await p.getByRole('button', { name: 'Start timer' }).click();
@@ -158,28 +158,29 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   await edit.waitFor();
   check((await edit.count()) === 1, 'the project picker has an Edit… link');
   await edit.click();
-  await p.getByRole('heading', { name: 'Organize', level: 1 }).waitFor();
-  check((await route(p)) === '#/organize' && (await p.locator('.tabs a.active').count()) === 0, 'Edit… in the project picker opens Organize, which no tab owns');
+  await p.locator('details.st-open[open] .projects-page').waitFor();
+  check((await route(p)) === '#/settings/organize', 'Edit… in the project picker opens the Organize section of Settings, open in place');
   for (const h of ['Projects', 'Clients', 'Tags across entries, notes and tasks', 'Task values']) check((await p.getByRole('heading', { name: h, level: 2 }).count()) === 1, `Organize has the section ${h}`);
   await p.evaluate(() => { location.hash = '#/time'; });
   const details = await openDetails(p);
   await details.getByRole('button', { name: /^Tags/ }).click();
   await p.locator('.picker .picker-edit').click();
-  await p.getByRole('heading', { name: 'Organize', level: 1 }).waitFor();
-  check((await route(p)) === '#/organize', 'Edit… in the tag picker opens Organize');
+  await p.locator('details.st-open[open] .projects-page').waitFor();
+  check((await route(p)) === '#/settings/organize', 'Edit… in the tag picker opens Organize');
   await p.evaluate(() => { location.hash = '#/settings'; });
-  await p.getByRole('link', { name: /^Organize/ }).click();
-  await p.getByRole('heading', { name: 'Organize', level: 1 }).waitFor();
-  check((await route(p)) === '#/organize', 'Settings has a link to Organize');
+  await p.locator('.st-home').waitFor();
+  await p.locator('[data-toc="organize"]').dispatchEvent('click'); // the timer details popover that held the picker can still be open over the page
+  await p.locator('details.st-open[open] .projects-page').waitFor();
+  check((await route(p)) === '#/settings/organize' && (await p.locator('.st-card[data-section="organize"] .st-anchor').count()) === 1, 'the Organize chip opens the section, which has a link icon');
   await p.evaluate(() => { location.hash = '#/notes'; });
-  await p.getByRole('link', { name: 'Note settings' }).click();
+  await p.getByRole('link', { name: 'Note settings' }).dispatchEvent('click');
   await p.getByRole('heading', { name: 'Note settings', level: 1 }).waitFor();
   check((await route(p)) === '#/note-settings' && (await p.getByRole('heading', { name: 'Mirror to a folder', level: 2 }).count()) === 1, 'the gear on Notes opens note settings, with Mirror');
   await p.keyboard.press('Alt+P');
   await p.getByLabel('Find a command').fill('organize');
   await p.keyboard.press('Enter');
-  await p.getByRole('heading', { name: 'Organize', level: 1 }).waitFor();
-  check((await route(p)) === '#/organize', 'the palette goes to Organize');
+  await p.locator('details.st-open[open] .projects-page').waitFor();
+  check((await route(p)) === '#/settings/organize', 'the palette goes to Organize');
   await p.context().close();
 }
 

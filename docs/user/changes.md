@@ -1,5 +1,12 @@
 # What's new
 
+## 2026-11-02: Organize in Settings, a tidier Home
+
+- **Organize** (projects, clients, tags, task values) is now a section of **Settings**: open it from the contents row or from **Edit…** in a picker, and it opens in place. Old Organize links and **Go to Organize** in the command palette still work.
+- Settings › Features has a shorter intro; the details sit beside each switch.
+- Home cards fill the width without big gaps; project names in **Where the week went** wrap instead of being cut off; **Recent notes** shows the folder and a line of each note.
+- Nothing stored changed.
+
 ## 2026-11-02: Home
 
 - A new **Home** tab comes first and is where Yak opens: a summary with cards for what needs you (the same rows as Settings), this week's hours with a bar per day, tasks due soon (late ones marked, tick one off right there), recent notes, and where the week went by project.

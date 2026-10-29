@@ -24,7 +24,7 @@ await p.getByRole('dialog', { name: 'Timer details' }).getByRole('button', { nam
 await until(async () => (await p.getByRole('button', { name: 'Stop timer' }).count()) === 1);
 await p.getByRole('button', { name: 'Stop timer' }).click();
 
-for (const hash of ['#/time', '#/time/reports', '#/notes', '#/organize']) {
+for (const hash of ['#/time', '#/time/reports', '#/notes', '#/settings/organize']) {
   await p.evaluate((h) => { location.hash = h; }, hash);
   await p.keyboard.press('Control+Shift+F');
   check((await p.locator('dialog.search-dialog').count()) === 1, `Ctrl+Shift+F opens the search on ${hash}`);

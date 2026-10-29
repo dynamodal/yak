@@ -27,7 +27,7 @@ registerSearchSource({
       title: name,
       open: () => {
         setSearchTarget({ kind: 'tag', spaceId, id: key });
-        location.hash = '#/organize';
+        location.hash = '#/settings/organize';
       },
     }));
   },

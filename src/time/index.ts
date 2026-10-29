@@ -4,11 +4,12 @@ import './time.css';
 import { registerCommand } from '../app/commands';
 import { useEffect } from 'preact/hooks';
 import { registerGlobal, registerHeaderItem, registerView } from '../app/registry';
+import { registerSettingsPart } from '../app/settings-parts';
 import { IconClock } from '../app/ui';
 import { TimeController } from './controller';
 import { compareRunning, findRunning } from './entries';
 import { HeaderTimer } from './HeaderTimer';
-import { ProjectsView } from './ProjectsView';
+import { OrganizeBody } from './ProjectsView';
 import { TimeBackground } from './TimeBackground';
 import { requestTimerPopover } from './pill-events';
 import { TimerCue } from './TimerCue';
@@ -35,9 +36,9 @@ function EntriesRedirect() {
 }
 registerView({ id: 'entries', title: 'Entries', path: 'entries', order: 20, hidden: true, component: EntriesRedirect });
 registerCommand({ id: 'go.entries', title: 'Go to Entries', run: () => void (location.hash = '#/time/week') });
-// Organize (projects, clients, tags, task values) is owned by no tab: pickers, the palette and Settings link to it.
-registerView({ id: 'organize', title: 'Organize', path: 'organize', order: 92, hidden: true, component: ProjectsView });
-registerCommand({ id: 'go.organize', title: 'Go to Organize', run: () => void (location.hash = '#/organize') });
+// Organize (projects, clients, tags, task values) is a section of Settings (F-33x): this module adds its body; pickers and the palette link to it.
+registerSettingsPart({ id: 'organize', section: 'organize', order: 10, component: OrganizeBody });
+registerCommand({ id: 'go.organize', title: 'Go to Organize', run: () => void (location.hash = '#/settings/organize') });
 registerGlobal({ id: 'time', component: TimeBackground });
 registerGlobal({ id: 'time-cue', component: TimerCue });
 registerHeaderItem({ id: 'timer', order: 10, component: HeaderTimer });

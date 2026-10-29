@@ -228,7 +228,7 @@ export function ProjectPicker({ spaces, spaceId, projectId, onChange, showSpace,
             );
           })}
         </ul>
-        <a class="picker-edit" href="#/organize">Edit…</a>
+        <a class="picker-edit" href="#/settings/organize">Edit…</a>
       </Popover>
     </>
   );
@@ -318,7 +318,7 @@ export function TagPicker({ value, known, onChange, onCreate, label = 'Tags', cl
           )}
           {!q && shown.length === 0 && <p class="picker-empty">No tags yet. Type a name and press Enter.</p>}
         </div>
-        <a class="picker-edit" href="#/organize">Edit…</a>
+        <a class="picker-edit" href="#/settings/organize">Edit…</a>
       </Popover>
     </>
   );

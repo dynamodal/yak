@@ -139,7 +139,7 @@ export function ProjectPicker({ spaces, spaceId, projectId, onChange, showSpace,
       <Button
         buttonRef={anchor}
         class={cx('picker-btn project-btn', !project && 'empty', extra)}
-        aria-label={`${label}: ${name}${where}`}
+        aria-label={!project && typeof placeholder === 'string' ? `${placeholder}: ${label}` : `${label}: ${name}${where}`}
         title={project ? `${project.name}${client ? ` (${client.name})` : ''}${multi ? ` · ${space?.name ?? spaceId}` : ''}` : 'Choose a project'}
         aria-haspopup="dialog"
         aria-expanded={open}

@@ -133,6 +133,7 @@ registerView({ id: 'timer', title: 'Time', path: 'time', order: 10, component: T
 - A view gets everything through `useApp()` (`src/app/context.tsx`): the store, the active space id and its `Y.Doc`, the device id, the sync service.
 - Re-render on document changes with `useYVersion(yType)` (`src/app/hooks.ts`), which observes deeply and returns a counter.
 - Write with `doc.transact(() => …)`; one user action is one transaction.
+- First-load budget (`scripts/check-bundle.mjs`, F-85): a module's `index.ts` registers eagerly and cheaply; the code behind a view, a Home card or a Settings part loads on first open through `lazyView` / `lazyComponent` (`src/app/lazy.tsx`). Eager: the shell, the header items, the Time page and its timer, the Home page with the Needs card, the sync and backup runtimes, banners and the data other code reads at start (`note-store`, `tasks`, search and tag sources). Lazy: Notes, Tasks, Reports, Settings and its Organize part, Import, Backup & restore, Add a device and the QR code, Help and the bundled guide (the "New" chip loads `help/topics` after the first paint), Mirror. A lazy view imports the CSS only it uses (`notes.css`, `reports.css`, `import.css`); rules other code also relies on stay in the first-load CSS (`notes/shared.css`). Do not import a feature's barrel (`../qr`) from eager code; import the file you need. Every chunk is in the service worker's precache (`src/offline/build-plugin.ts` lists all of `dist/`), so a lazy view opens offline after one visit.
 
 ## Sync
 

@@ -1,5 +1,6 @@
-import { QrCode, Scanner } from '../qr';
-import type { PairingPayload } from '../qr';
+import { QrCode } from '../qr/QrCode';
+import { Scanner } from '../qr/Scanner';
+import type { PairingPayload } from '../qr/payload';
 
 function grouped(secret: string): string {
   return secret.match(/.{1,4}/g)?.join('-') ?? secret;

@@ -1,3 +1,4 @@
+import '../notes.css';
 import { Fragment } from 'preact';
 import { createAttachmentHost } from '../../core/blobs/host';
 import { useEffect, useMemo, useState } from 'preact/hooks';
@@ -47,7 +48,8 @@ import { FOCUS_EVENT, GOTO_EVENT, NoteEditor } from './NoteEditor';
 import { MoveDialog } from './MoveDialog';
 import { ShortcutsDialog } from './ShortcutsDialog';
 import { Properties, readDisplay, writeDisplay, type PropertiesDisplay } from './Properties';
-import { onSwitcherRequest, QuickSwitcher, takeSwitcherRequest } from './QuickSwitcher';
+import { QuickSwitcher } from './QuickSwitcher';
+import { onSwitcherRequest, takeSwitcherRequest } from '../switcher-request';
 import { Tree } from './Tree';
 
 /** A path problem, or one with a note other than `selfId` already at that path. */

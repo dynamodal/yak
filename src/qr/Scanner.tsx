@@ -1,3 +1,4 @@
+import './qr.css';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Button } from '../app/ui';
 import type { PairingPayload } from './payload';

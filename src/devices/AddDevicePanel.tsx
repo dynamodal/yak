@@ -4,7 +4,8 @@ import { withKey } from '../app/key-prompt';
 import { copyText } from '../app/clipboard';
 import { invites } from '../app/invites';
 import { Button, toast } from '../app/ui';
-import { groupSecret, joinLink, QrCode } from '../qr';
+import { QrCode } from '../qr/QrCode';
+import { groupSecret, joinLink } from '../qr/payload';
 import { OwnName } from './DeviceKeysPanel';
 
 const shortId = (id: string): string => id.slice(0, 8);

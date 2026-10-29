@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { addSpace, randomId } from '../core/account';
-import { Scanner } from '../qr';
-import type { PairingPayload } from '../qr';
+import { Scanner } from '../qr/Scanner';
+import type { PairingPayload } from '../qr/payload';
 import { defaultSignalingUrl } from '../sync/transport-factory';
 import { APP_NAME } from '../constants';
 import { useApp } from './context';

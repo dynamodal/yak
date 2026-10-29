@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { groupSecret, parseJoinInput } from '../qr';
+import { groupSecret, parseJoinInput } from '../qr/payload';
 
 /**
  * The one-time code field of a device that joins (option A+, #22). Typing a code works as before; pasting a join link or

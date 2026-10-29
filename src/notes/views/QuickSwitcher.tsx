@@ -3,27 +3,6 @@ import { Dialog } from '../../app/ui';
 import type { NoteInfo } from '../note-store';
 import { switcherMatches } from '../search';
 
-// Ctrl/Cmd+K anywhere in the app asks for the switcher; the notes view shows it.
-let pending = false;
-const listeners = new Set<() => void>();
-
-export function requestSwitcher(): void {
-  pending = true;
-  for (const l of listeners) l();
-}
-
-/** Subscribe to switcher requests; returns true once if a request is pending (and clears it). */
-export function onSwitcherRequest(fn: () => void): () => void {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-}
-
-export function takeSwitcherRequest(): boolean {
-  const was = pending;
-  pending = false;
-  return was;
-}
-
 export interface QuickSwitcherProps {
   notes: readonly NoteInfo[];
   /** Names the space of a note, when several spaces are on show. */

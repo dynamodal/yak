@@ -1,0 +1,16 @@
+/* Rules the shell and other modules also rely on (badges, chips, banners, due colours): they stay in the first-load CSS. The rest of the Notes and Tasks styles are in notes.css, loaded with those views. */
+button.link.unresolved { color: var(--muted); text-decoration-style: dashed; }
+.count { color: var(--muted); font-size: 0.8em; }
+.badge { font-size: var(--text-xs); padding: 0 0.4rem; margin-left: 0.4rem; }
+.badge.warn, .banner.warn { color: var(--warn); }
+.banner { border: 1px solid currentColor; border-radius: var(--radius); padding: 0.4rem 0.6rem; margin: 0.5rem 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.chip { padding: 0.1rem 0.5rem; border-radius: var(--radius-pill); font-size: var(--text-sm); }
+[draggable='true'] { -webkit-user-drag: element; }
+.tag-list { margin: 0.75rem 0; }
+.due.overdue { color: var(--danger); font-weight: var(--weight-semibold); }
+.prio-high { color: var(--danger); }
+.prio-low { color: var(--muted); }
+.placeholder { color: var(--muted); }
+.row-check { flex: none; width: 1.25rem; height: 1.25rem; margin: 0 0.25rem; }
+.outline { list-style: none; padding-left: 0; }

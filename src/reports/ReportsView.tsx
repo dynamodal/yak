@@ -1,3 +1,4 @@
+import './reports.css';
 import { type VNode, cloneElement } from 'preact';
 import { testMode } from '../core/test-build';
 import { useEffect, useMemo, useState } from 'preact/hooks';

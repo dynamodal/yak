@@ -1,7 +1,6 @@
 import { registerView } from '../app/registry';
 import { registerDataLine } from '../app/data-lines';
 import { ImportLine } from './ImportLine';
-import './import.css';
 import { lazyView } from '../app/lazy';
 
 registerView({ id: 'import', title: 'Import', path: 'import', order: 85, group: 'settings', component: lazyView(() => import('./ImportView').then((m) => ({ default: m.ImportView }))) });

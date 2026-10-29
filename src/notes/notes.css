@@ -1,12 +1,5 @@
 /* Notes and tasks: layout only. Tokens: src/app/theme/tokens.css; buttons, pills: src/app/ui. */
 
-button.link.unresolved { color: var(--muted); text-decoration-style: dashed; }
-.count { color: var(--muted); font-size: 0.8em; }
-.badge { font-size: var(--text-xs); padding: 0 0.4rem; margin-left: 0.4rem; }
-.badge.warn, .banner.warn { color: var(--warn); }
-.banner { border: 1px solid currentColor; border-radius: var(--radius); padding: 0.4rem 0.6rem; margin: 0.5rem 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-.chip { padding: 0.1rem 0.5rem; border-radius: var(--radius-pill); font-size: var(--text-sm); }
 .only-narrow { display: none; }
 .sr-status { min-height: 1.4em; margin: 0.25rem 0; color: var(--muted); font-size: var(--text-sm); }
 
@@ -42,14 +35,12 @@ button.link.unresolved { color: var(--muted); text-decoration-style: dashed; }
 .tree-row:hover .tree-more, .tree-row:focus-within .tree-more, .tree-more[aria-expanded='true'] { visibility: visible; }
 .tree-rename { flex: 1; min-width: 0; }
 .drop-target > .tree-row, .tree-root.drop-target { outline: 2px dashed var(--accent); outline-offset: -2px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
-[draggable='true'] { -webkit-user-drag: element; }
 
 .search-hits { list-style: none; margin: 0; padding: 0; }
 .search-hits a { display: block; padding: 0.35rem 0.4rem; border-radius: var(--radius-sm); color: var(--text); text-decoration: none; }
 .search-hits a:hover, .search-hits a.active { background: var(--surface-2); }
 .hit-title { display: block; font-weight: var(--weight-semibold); }
 .hit-path, .hit-snippet { display: block; color: var(--muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
-.tag-list { margin: 0.75rem 0; }
 
 /* The note: a centred reading column, as with Obsidian's readable line length. */
 .note-pane { max-width: var(--reading-width); margin: 0 auto; }
@@ -135,9 +126,6 @@ button.link.unresolved { color: var(--muted); text-decoration-style: dashed; }
 .task-title { color: var(--text); font-weight: var(--weight-semibold); text-decoration: none; }
 .task-title:hover { text-decoration: underline; }
 .task-meta { display: inline-flex; flex-wrap: wrap; gap: 0.5rem; color: var(--muted); font-size: var(--text-sm); }
-.due.overdue { color: var(--danger); font-weight: var(--weight-semibold); }
-.prio-high { color: var(--danger); }
-.prio-low { color: var(--muted); }
 
 .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(15rem, 1fr); gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem; align-items: start; }
 .board-col { background: var(--surface-2); border: 2px dashed transparent; border-radius: var(--radius); padding: 0.5rem; min-height: 8rem; }
@@ -158,7 +146,6 @@ button.link.unresolved { color: var(--muted); text-decoration-style: dashed; }
 .th-sort { background: none; border: none; padding: 0.2rem 0.2rem; color: inherit; font-weight: var(--weight-semibold); }
 .cell { width: 100%; text-align: left; background: none; border: 1px solid transparent; padding: 0.2rem 0.35rem; min-height: 1.9rem; }
 .cell:hover { border-color: var(--border); }
-.placeholder { color: var(--muted); }
 td.editing input { width: 100%; min-width: 8rem; }
 
 @media (max-width: 48rem) {
@@ -206,7 +193,6 @@ td.editing input { width: 100%; min-width: 8rem; }
 .prop-choose { max-width: 7.5rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; border-radius: var(--radius-xs); padding: 0.1rem 0.25rem; }
 
 /* Selecting notes and tasks to edit them together */
-.row-check { flex: none; width: 1.25rem; height: 1.25rem; margin: 0 0.25rem; }
 .search-hits li { display: flex; align-items: flex-start; }
 .search-hits li > a { flex: 1; min-width: 0; }
 .tree-row.note-row { padding-left: 0; }
@@ -219,7 +205,6 @@ li.selected > .tree-row, .search-hits li.selected, .task-list li.selected, .task
 .bookmarks ul { list-style: none; margin: 0; padding: 0; }
 .bookmarks a { display: block; padding: 0.2rem 0.4rem; border-radius: var(--radius-xs); color: inherit; text-decoration: none; overflow-wrap: anywhere; }
 .bookmarks a.active { background: var(--surface-2, var(--border)); }
-.outline { list-style: none; padding-left: 0; }
 @media (max-width: 40rem) { .notes-open kbd { display: none; } }
 
 .checklist { font-variant-numeric: tabular-nums; }

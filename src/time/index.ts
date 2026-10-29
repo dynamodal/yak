@@ -2,6 +2,7 @@ import './search-source';
 import './tag-source';
 import './time.css';
 import { registerCommand } from '../app/commands';
+import { lazyComponent } from '../app/lazy';
 import { useEffect } from 'preact/hooks';
 import { registerGlobal, registerHeaderItem, registerView } from '../app/registry';
 import { registerSettingsPart } from '../app/settings-parts';
@@ -9,7 +10,6 @@ import { IconClock } from '../app/ui';
 import { TimeController } from './controller';
 import { compareRunning, findRunning } from './entries';
 import { HeaderTimer } from './HeaderTimer';
-import { OrganizeBody } from './ProjectsView';
 import { TimeBackground } from './TimeBackground';
 import { requestTimerPopover } from './pill-events';
 import { TimerCue } from './TimerCue';
@@ -37,7 +37,7 @@ function EntriesRedirect() {
 registerView({ id: 'entries', title: 'Entries', path: 'entries', order: 20, hidden: true, component: EntriesRedirect });
 registerCommand({ id: 'go.entries', title: 'Go to Entries', run: () => void (location.hash = '#/time/week') });
 // Organize (projects, clients, tags, task values) is a section of Settings (F-33x): this module adds its body; pickers and the palette link to it.
-registerSettingsPart({ id: 'organize', section: 'organize', order: 10, component: OrganizeBody });
+registerSettingsPart({ id: 'organize', section: 'organize', order: 10, component: lazyComponent(() => import('./ProjectsView').then((m) => ({ default: m.OrganizeBody }))) });
 registerCommand({ id: 'go.organize', title: 'Go to Organize', run: () => void (location.hash = '#/settings/organize') });
 registerGlobal({ id: 'time', component: TimeBackground });
 registerGlobal({ id: 'time-cue', component: TimerCue });

@@ -1,3 +1,4 @@
+import './reports.css';
 import { HomeCard } from '../app/home-cards';
 import { dayKey, dayShortLabel } from './dates';
 import { formatDuration, formatPercent } from './format';

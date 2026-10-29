@@ -22,6 +22,12 @@ describe('changes', () => {
     expect(changesSeen('2026-10-20')).toBe('2026-10-19');
     expect(hasNewChanges('2026-10-20')).toBe(true);
   });
+  it('a stored value later than the newest entry is stale, so the dot shows until seen', () => {
+    store.set('app-changes-seen', '2026-11-02');
+    expect(hasNewChanges('2026-10-29')).toBe(true);
+    markChangesSeen('2026-10-29');
+    expect(hasNewChanges('2026-10-29')).toBe(false);
+  });
   it('the dot clears once seen', () => {
     store.set('app-changes-seen', '2026-10-17');
     expect(hasNewChanges('2026-10-19')).toBe(true);

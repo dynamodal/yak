@@ -52,7 +52,8 @@ export function changesSeen(newest: string | undefined): string {
 }
 
 export function hasNewChanges(newest: string | undefined): boolean {
-  return !!newest && changesSeen(newest) < newest;
+  // Inequality, not `<`: a stored value later than every known entry (an entry whose date was corrected) is stale and counts as unseen.
+  return !!newest && changesSeen(newest) !== newest;
 }
 
 export function markChangesSeen(newest: string | undefined): void {

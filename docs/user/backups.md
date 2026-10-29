@@ -20,6 +20,15 @@ In Firefox and Safari use **Download backup (zip, with files)** regularly; it sa
 
 A banner appears, and the **Settings** tab gets an amber **!** badge, when the last backup is too old or failed, or when the browser needs permission again. The sync button in the header lists the reason under **Other**.
 
+## Several devices
+
+You do not need to back up every space on every device.
+When your devices sync, a recent backup made by another device counts for this one if it holds everything this device holds.
+**Settings › Backup and safety** then says **Backed up by** that device and when, and no warning appears.
+If you change something here that no recent backup holds yet, nothing happens at first: open the device that backs up (so it syncs and backs up), or download a backup.
+Once the backup is older than the limit you chose, the warning names that device.
+Only spaces a device keeps are affected, and a device that never syncs warns exactly as before.
+
 ## Restore
 
 - On **Backup & restore** choose a backup from the list, **Restore from a backup file…** (a `.zip` or `.json`) or **Restore from a folder…**.

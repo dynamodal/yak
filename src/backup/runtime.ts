@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'preact/hooks';
+import { useNow } from '../app/hooks';
+import type * as Cover from './cover';
+
+// A chunk that fails to load only means no cover: the warning stays as it would be without. Loaded on use: only a device that is not covered by its own backup, or one that backs up, needs it, and the main bundle is on a budget.
+const coverModule = (): Promise<typeof Cover> => import('./cover');
 import { testMode } from '../core/test-build';
 import * as Y from 'yjs';
 import { useApp } from '../app/context';
 import { STORAGE_PREFIX } from '../constants';
 import type { EventBus } from '../core/bus';
 import { accountOfDoc } from '../core/account';
-import { isLogDoc, type DocumentStore } from '../core/doc-store';
+import { isLogDoc, spaceLogDocId, spaceOfDoc, type DocumentStore } from '../core/doc-store';
 import { historyStore } from '../core/history/store';
 import { deviceKey } from './encryption-state';
 import { BrowserFolder } from './folder';
 import { completePendingReplace, takeAppliedNotice, reloadOnReplaceElsewhere } from './replace';
-import { BackupService, type BackupState, type LockFn, type StatusStore, type StoredStatus } from './service';
+import { backupHealth, BackupService, DEFAULT_STALE_HOURS, type BackupState, type Health, type LockFn, type StatusStore, type StoredStatus } from './service';
 
 const STATUS_KEY = `${STORAGE_PREFIX}-backup-status`;
 
@@ -63,7 +68,7 @@ let runtime: BackupRuntime | undefined;
 function backupRuntime(app: { store: DocumentStore; bus: EventBus; deviceId: string; accountId: string; account: Y.Doc }): BackupRuntime {
   if (runtime) return runtime;
   const folder = new BrowserFolder();
-  const service = new BackupService({ docs: () => new Map([...app.store.opened()].filter(([id]) => !isLogDoc(id) && (accountOfDoc(id) === undefined || accountOfDoc(id) === app.accountId))), deviceId: app.deviceId, accountId: app.accountId, history: historyStore, keyring: () => deviceKey(app.accountId, app.account), folder, status: localStatus, lock: webLock });
+  const service = new BackupService({ docs: () => new Map([...app.store.opened()].filter(([id]) => !isLogDoc(id) && (accountOfDoc(id) === undefined || accountOfDoc(id) === app.accountId))), deviceId: app.deviceId, accountId: app.accountId, history: historyStore, keyring: () => deviceKey(app.accountId, app.account), folder, status: localStatus, lock: webLock, onBackup: (e) => recordCover(app.store, app.deviceId, e) });
   const ready = (async () => {
     reloadOnReplaceElsewhere();
     try {
@@ -81,6 +86,16 @@ function backupRuntime(app: { store: DocumentStore; bus: EventBus; deviceId: str
   runtime = { service, folder, store: app.store, bus: app.bus, deviceId: app.deviceId, accountId: app.accountId, ready };
   if (testMode()) void import('./test-hook').then((m) => m.installTestHook(runtime as BackupRuntime));
   return runtime;
+}
+
+/** Tell the devices that keep a space what this backup holds of it: one record per space, in the space's log document. */
+function recordCover(store: DocumentStore, deviceId: string, e: { kind: 'folder' | 'download'; encrypted: boolean; at: string; documents: readonly { id: string; state_vector_base64: string }[] }): void {
+  void coverModule().then(({ coverDocs, writeCover }) => {
+    for (const [space, docs] of coverDocs(e.documents, spaceOfDoc)) {
+      const log = store.get(spaceLogDocId(space));
+      if (log) writeCover(log, deviceId, { at: e.at, kind: e.kind, encrypted: e.encrypted, docs });
+    }
+  }, () => undefined);
 }
 
 export function useBackup(): BackupRuntime & { state: BackupState } {
@@ -146,4 +161,26 @@ export function remindTomorrow(now = Date.now()): number {
     // Without storage the banner comes back on the next start.
   }
   return until;
+}
+
+/**
+ * The backup health of this device, counting a recent backup by another device as cover (#83).
+ * Re-read every minute.
+ */
+export function useBackupHealth(): Health {
+  const app = useApp();
+  const { state, store } = useBackup();
+  const now = useNow(60_000);
+  const limit = (state.staleAfterHours ?? DEFAULT_STALE_HOURS) * 3_600_000;
+  const data = hasData(store.opened());
+  const own = backupHealth(state, now, data);
+  // Another device's backup can only help when this device's own is missing or old and nothing else is wrong.
+  const helps = !own.ok && (own.kind === 'never' || own.kind === 'stale');
+  const [m, setM] = useState<typeof Cover>();
+  useEffect(() => {
+    if (helps && !m) void coverModule().then(setM, () => undefined);
+  }, [helps, m]);
+  if (!helps || !m) return own;
+  const c = m.coverOf(app, hasData, now, limit);
+  return c ? m.coverHealth(own, c, now, (d) => m.nameOf(app.account, d), state.folder.state === 'unsupported') : own;
 }

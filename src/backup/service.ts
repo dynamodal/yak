@@ -15,6 +15,7 @@ import { MANIFEST, blobPath, encodeText, type Manifest } from './format';
 import { bundleText } from './restore';
 import { createSnapshot } from './snapshot';
 import { errText } from './store';
+import type { BackedUpDoc } from './cover';
 
 /** Wait after a timer stops before backing up, so a quick stop/start/stop makes one backup. */
 export const STOP_DEBOUNCE_MS = 5_000;
@@ -22,6 +23,8 @@ export const HOURLY_MS = 60 * 60 * 1000;
 /** First check after the app opens, when the last backup is more than an hour old. */
 const STARTUP_DELAY_MS = 15_000;
 export const DEFAULT_STALE_HOURS = 24;
+/** A cover record older than this is rewritten by an unchanged check; the shortest staleness choice is 12 hours. */
+const COVER_REFRESH_MS = 3 * 3_600_000;
 
 export type FolderState = 'unsupported' | 'none' | 'granted' | 'prompt' | 'denied' | 'error';
 
@@ -49,6 +52,8 @@ export interface StoredStatus {
   /** Last automatic check that found nothing new since the last backup, which was still there. */
   lastCheckedAt?: string;
   lastDownloadAt?: string;
+  /** When this device last told the other devices what its backups hold (cover records, #83). */
+  lastCoverAt?: string;
   lastErrorAt?: string;
   lastError?: string;
   staleAfterHours?: number;
@@ -94,6 +99,8 @@ export interface ServiceOptions {
   /** The account's encryption key and parameters on this device, once the passphrase was entered. */
   keyring?: () => Promise<{ key: CryptoKey; params: EncryptionParams } | undefined>;
   folder: FolderAccess;
+  /** Told after each folder backup, each download, and an unchanged check when the last telling is old: what the backup holds. */
+  onBackup?: (e: { kind: 'folder' | 'download'; encrypted: boolean; at: string; documents: readonly BackedUpDoc[] }) => void;
   status: StatusStore;
   lock?: LockFn;
   now?: () => Date;
@@ -260,6 +267,9 @@ export class BackupService {
       (await acct.exists(`${CURRENT}/${MANIFEST}`))
     ) {
       this.save({ lastCheckedAt: this.now().toISOString() });
+      // The folder still holds exactly this state: tell the other devices again once the last telling is old.
+      const told = s.lastCoverAt ? Date.parse(s.lastCoverAt) : NaN;
+      if (Number.isNaN(told) || this.now().getTime() - told >= COVER_REFRESH_MS) this.tell('folder', snap.manifest);
       return { status: 'unchanged' };
     }
     try {
@@ -297,6 +307,7 @@ export class BackupService {
         lastErrorAt: undefined,
         lastError: undefined,
       });
+      this.tell('folder', snap.manifest);
       return { status: 'written', manifest };
     } catch (e) {
       // Permission may have been withdrawn while writing; show that rather than a raw error.
@@ -308,6 +319,12 @@ export class BackupService {
     }
   }
 
+  /** Record what a backup holds for the other devices (the sink never throws). */
+  private tell(kind: 'folder' | 'download', manifest: Manifest): void {
+    this.opts.onBackup?.({ kind, encrypted: this.stored.encrypted === true, at: manifest.created_at, documents: manifest.documents });
+    this.save({ lastCoverAt: this.now().toISOString() });
+  }
+
   /** A whole backup as one JSON file, for browsers without folder access (or as an extra copy). It leaves the files in notes out. */
   async downloadable(): Promise<{ fileName: string; text: string; manifest: Manifest; leftOut: { count: number; bytes: number } }> {
     if (this.stored.encrypted) throw new Error('A downloaded file is not encrypted. Turn off encrypted backups on this device to download one.');
@@ -316,6 +333,7 @@ export class BackupService {
     const snap = await createSnapshot(docs, { deviceId: this.opts.deviceId, reason: 'download', now: this.now(), files: { ...found, storage: 'none' } });
     const text = bundleText(snap);
     this.save({ lastDownloadAt: snap.manifest.created_at });
+    this.tell('download', snap.manifest);
     return { fileName: `backup-${snap.manifest.name}.json`, text, manifest: snap.manifest, leftOut: { count: found.blobs.length + found.missing, bytes: found.blobs.reduce((n, b) => n + b.size, 0) } };
   }
 
@@ -344,6 +362,7 @@ export class BackupService {
     const { zipBlob } = await import('./zip');
     const blob = await zipBlob(entries, { now: this.now() });
     this.save({ lastDownloadAt: snap.manifest.created_at });
+    this.tell('download', snap.manifest);
     return { fileName: `backup-${snap.manifest.name}.zip`, blob, manifest: snap.manifest };
   }
 
@@ -361,6 +380,8 @@ export interface Health {
   ok: boolean;
   kind: 'ok' | 'never' | 'stale' | 'failed' | 'permission' | 'lost' | 'empty';
   text: string;
+  /** The data is safe because another device's recent backup holds it (not this device's own). */
+  covered?: boolean;
 }
 
 export function ago(ms: number): string {
@@ -391,12 +412,12 @@ export function backupHealth(s: BackupState, now: number, hasData: boolean): Hea
   if (s.lastErrorAt && Date.parse(s.lastErrorAt) > lastSuccess) {
     return { ok: false, kind: 'failed', text: `The last backup failed: ${s.lastError ?? 'unknown error'}` };
   }
+  const limit = (s.staleAfterHours ?? DEFAULT_STALE_HOURS) * 3_600_000;
   if (last === undefined) {
     if (!hasData) return { ok: true, kind: 'empty', text: 'Nothing to back up yet.' };
     const how = s.folder.state === 'unsupported' ? 'Download a backup' : 'Choose a backup folder';
     return { ok: false, kind: 'never', text: `No backup yet. ${how} so your data survives a cleared browser.` };
   }
-  const limit = (s.staleAfterHours ?? DEFAULT_STALE_HOURS) * 3_600_000;
   if (now - last > limit) return { ok: false, kind: 'stale', text: `The last backup was ${ago(now - last)}.` };
   return { ok: true, kind: 'ok', text: `Backed up ${ago(now - last)}.` };
 }

@@ -1,14 +1,10 @@
-import { useNow } from '../app/hooks';
 import { DataLine } from '../app/ui';
-import { hasData, useBackup } from './runtime';
-import { backupHealth } from './service';
+import { useBackupHealth } from './runtime';
 
 /** The backup status line in Backup and safety on Settings: how old the last backup is, linking to Backup & restore. */
 export function BackupLine() {
-  const { state, store } = useBackup();
-  const now = useNow(60_000);
-  const health = backupHealth(state, now, hasData(store.opened()));
-  const text = health.kind === 'ok' ? health.text.replace(/^Backed up /, '').replace(/\.$/, '') : health.kind === 'stale' ? health.text.replace(/^The last backup was /, '').replace(/\.$/, '') : health.kind === 'never' ? 'none yet' : health.kind === 'empty' ? 'nothing to back up yet' : 'needs attention';
+  const health = useBackupHealth();
+  const text = health.covered ? health.text.slice(0, -1) : health.kind === 'ok' ? health.text.replace(/^Backed up /, '').slice(0, -1) : health.kind === 'stale' ? (/^The last backup was ([^.]*)/.exec(health.text)?.[1] ?? 'needs attention') : health.kind === 'never' ? 'none yet' : health.kind === 'empty' ? 'nothing to back up yet' : 'needs attention';
   const tone = health.ok ? (health.kind === 'ok' ? 'ok' : 'off') : health.kind === 'never' ? 'off' : 'warn';
   return (
     <DataLine id="backup" tone={tone} label="Backup" text={text}>

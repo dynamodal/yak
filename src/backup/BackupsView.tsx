@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { useNow } from '../app/hooks';
 import * as Y from 'yjs';
 import { useApp } from '../app/context';
 import { readSpaces } from '../core/account';
@@ -20,8 +19,8 @@ import { accountBlobSource, folderBlobSource, listBlobs, restoreBlobs, totalBlob
 import { blobStore } from '../core/blobs/store';
 import { readZip, ZipDir } from './zip';
 import { createSnapshot } from './snapshot';
-import { hasData, saveBlobFile, saveTextFile, useBackup } from './runtime';
-import { type BackupService, type RunResult, DEFAULT_STALE_HOURS, backupHealth } from './service';
+import { saveBlobFile, saveTextFile, useBackup, useBackupHealth } from './runtime';
+import { type BackupService, type RunResult, DEFAULT_STALE_HOURS } from './service';
 import { errText, listBackups, type BackupListing } from './store';
 import { usePassphraseState } from './passphrase-state';
 import { PassphraseSection } from './PassphraseSection';
@@ -388,7 +387,6 @@ export function BackupsView({ params }: ViewProps) {
       return fn(asked);
     }
   };
-  const now = useNow(60_000);
   const [history, setHistory] = useState<{ items: BackupListing[]; total: number } | undefined>();
   const [historyError, setHistoryError] = useState('');
   const [opened, setOpened] = useState<{ backup: OpenedBackup; source: string } | undefined>();
@@ -399,7 +397,7 @@ export function BackupsView({ params }: ViewProps) {
   const [timeSource, setTimeSource] = useState<{ dir: BackupDir; accounts: string[] } | undefined>();
   const picker = folderPickerSupported();
   const { hasKey } = usePassphraseState(account, accountId);
-  const health = backupHealth(state, now, hasData(store.opened()));
+  const health = useBackupHealth();
   const fileTotal = (() => {
     const all = listBlobs(store.opened());
     return { count: all.length, bytes: totalBlobBytes(all) };

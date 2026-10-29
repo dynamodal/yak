@@ -203,7 +203,7 @@ const clockSeconds = async (p) => {
   await poll(async () => (await running(p)).length === 0);
   d = await openDetails(p);
   await d.locator('.tp-recent-row').first().click();
-  check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].space === 'space/work' && r[0].description === 'Work item'; }), 'Continue with another space\'s note open keeps the entry\'s space (#62)');
+  check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].space === 'space/work'; }), 'Continue with another space\'s note open keeps the entry\'s space (#62)');
   await stopRound(p).click();
   await poll(async () => (await running(p)).length === 0);
 

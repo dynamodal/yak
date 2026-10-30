@@ -47,6 +47,8 @@ declare module 'obsidian' {
   }
   export class App {
     vault: Vault;
+    /** True on a phone or tablet. */
+    isMobile?: boolean;
     fileManager: { trashFile(file: TAbstractFile): Promise<void> };
   }
   export interface PluginManifest {
@@ -69,6 +71,7 @@ declare module 'obsidian' {
     constructor(app: App, plugin: Plugin);
     containerEl: HTMLElement;
     display(): void;
+    hide(): void;
   }
   export class Modal {
     constructor(app: App);
@@ -83,6 +86,7 @@ declare module 'obsidian' {
   }
   export interface TextComponent {
     setPlaceholder(v: string): TextComponent;
+    inputEl: HTMLInputElement;
     setValue(v: string): TextComponent;
     onChange(cb: (v: string) => void): TextComponent;
   }
@@ -99,6 +103,7 @@ declare module 'obsidian' {
     constructor(containerEl: HTMLElement);
     setName(name: string): this;
     setDesc(desc: string): this;
+    setHeading(): this;
     addText(cb: (text: TextComponent) => void): this;
     addButton(cb: (button: ButtonComponent) => void): this;
     addToggle(cb: (toggle: ToggleComponent) => void): this;

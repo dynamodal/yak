@@ -98,6 +98,8 @@ check((await page.getByLabel('Hours format').count()) === 0, 'timer: no hours se
 // ---- Change both on Settings
 await go('#/settings', 'h1');
 await page.getByLabel('Week starts on').selectOption('sunday');
+await page.getByLabel('Hours shown as').selectOption('decimal1');
+check((await stored()).hours_format === 'decimal1' && (await page.locator('.hint', { hasText: 'totals may not add up' }).count()) === 1, 'one decimal place is stored and the rounding hint shows (#99)');
 await page.getByLabel('Hours shown as').selectOption('hm');
 check((await stored()).week_start === 'sunday' && (await stored()).hours_format === 'hm', 'settings map holds sunday and hm');
 

@@ -653,6 +653,22 @@ try {
   check((await until(async () => (await inSpace(a, 'space/personal')).some((x) => x.endsWith('Acme.md')))) >= 0, 'Undo brings the dragged note back');
   acmeId = (await byPath(a, 'Projects/Acme.md'))[0];
 
+  // A space with no notes is a drop target too (#102).
+  await a.goto(BASE + '?test#/settings');
+  await a.getByRole('button', { name: '+ New space' }).click();
+  await a.getByLabel('New space name').fill('Blank');
+  await a.getByRole('button', { name: 'Create space' }).click();
+  await a.locator('[data-space] .st-row-title', { hasText: /^\s*Blank\s*$/ }).waitFor();
+  await a.goto(BASE + '?test#/notes');
+  await a.getByLabel('Space', { exact: true }).selectOption({ label: 'All spaces' });
+  const blank = a.locator('.notes-space', { hasText: 'Blank' });
+  check((await blank.locator('.tree-root.tree-empty').count()) === 1, 'a space with no notes shows its empty tree');
+  await a.locator('.notes-space', { hasText: 'Personal' }).locator('a.tree-note', { hasText: 'Acme' }).dragTo(blank.locator('.tree-root'));
+  check((await until(async () => (await blank.locator('a.tree-note', { hasText: 'Acme' }).count()) === 1)) >= 0, 'dragging a note into an empty space moves it there');
+  await a.locator('.toast', { hasText: 'Moved to Blank' }).getByRole('button', { name: 'Undo' }).click();
+  check((await until(async () => (await inSpace(a, 'space/personal')).some((x) => x.endsWith('Acme.md')))) >= 0, 'Undo brings it back');
+  acmeId = (await byPath(a, 'Projects/Acme.md'))[0];
+
   // Outline, unlinked mentions, bookmarks, weekly and monthly notes.
   await a.goto(BASE + `?test#/notes/${acmeId}`);
   await a.locator('.cm-content').waitFor();

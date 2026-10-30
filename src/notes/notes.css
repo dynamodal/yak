@@ -90,9 +90,9 @@
 
 /* CodeMirror lives in a shadow root and is themed in editor.ts; only the host is styled here. It has no border at
    rest; a hover tint and an accent line with a soft background while it has focus show it is active. */
-.note-editor { display: block; min-height: 30vh; padding: 0.5rem 0.25rem; border-radius: var(--radius-sm); transition: background-color 0.12s, box-shadow 0.12s; }
-.note-editor:hover { background: color-mix(in srgb, var(--surface-2) 50%, transparent); }
-.note-editor:focus-within { background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+.note-editor { display: block; min-height: 30vh; padding: 0.5rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--surface-2) 45%, transparent); transition: background-color 0.12s, box-shadow 0.12s, border-color 0.12s; }
+.note-editor:hover { background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
+.note-editor:focus-within { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
 
 .note-links { margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border); font-size: var(--text-sm); }
 .note-links summary { color: var(--muted); font-weight: var(--weight-semibold); cursor: pointer; padding: 0.3rem 0; }

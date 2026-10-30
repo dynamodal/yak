@@ -140,12 +140,13 @@ await nudge.locator('[data-need="backup-never"]').waitFor();
 check((await nudge.locator('section.st-section > h2').first().innerText()).trim() === 'Needs you' && /No backup yet/.test(await nudge.locator('[data-need="backup-never"]').innerText()), 'Settings lists "No backup yet" first, under Needs you');
 check((await nudge.locator('[data-toc="needs-you"] [data-dot="warn"]').count()) === 1 && (await nudge.locator('.main-tabs a', { hasText: /^Settings/ }).locator('.tab-badge.warn').count()) === 1, 'its chip and the Settings tab carry an amber dot');
 await nudge.locator('[data-need="backup-never"] a').click();
-check(await poll(async () => nudge.url().endsWith('#/settings/backup')), 'its Set up link opens Backup & restore');
+check(await poll(async () => nudge.url().endsWith('#/settings/backups')), 'its Set up link opens Backups');
 await nudge.goBack();
 await nudge.locator('[data-backup-never]').getByRole('button', { name: 'Set up' }).click();
-check(await poll(async () => nudge.url().endsWith('#/settings/backup')), 'Set up opens Backup & restore');
+check(await poll(async () => nudge.url().endsWith('#/settings/backups')), 'Set up opens Backups');
+await nudge.evaluate(() => { location.hash = '#/settings/backups/open'; });
 await nudge.locator('[data-storage]').waitFor();
-check(/Storage:/.test(await nudge.locator('[data-storage]').innerText()), 'Backup & restore says what the browser keeps (Storage)');
+check(/Storage:/.test(await nudge.locator('[data-storage]').innerText()), 'Backups says what the browser keeps (Storage)');
 check(/deletes Yak's data/.test(await nudge.locator('.backups').innerText()), 'and that clearing site data deletes Yak\'s data');
 await nudge.close();
 

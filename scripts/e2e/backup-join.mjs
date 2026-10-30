@@ -29,7 +29,7 @@ const a = await mk('A');
 await startSyncing(a);
 const b = await mk('B');
 await joinByInvite(a, b);
-await b.evaluate(() => { location.hash = '#/settings/backup'; });
+await b.evaluate(() => { location.hash = '#/settings/backups/open'; });
 await b.waitForFunction(() => window.__backup !== undefined, null, { timeout: 15000 });
 await b.evaluate(() => window.__backup.ready());
 
@@ -69,7 +69,7 @@ check(await said(/^Backed up to /), 'and says so');
 
 // Another tab holds the backup lock: the button waits (says it is backing up), then reports the result.
 const other = await b.context().newPage();
-await other.goto(`${BASE}?test#/settings/backup`);
+await other.goto(`${BASE}?test#/settings/backups/open`);
 await other.evaluate(() => new Promise((res) => { navigator.locks.request('app-backup', () => new Promise((release) => { window.__release = release; })); setTimeout(res, 200); }));
 const before = (await b.evaluate(() => window.__backup.state())).lastBackupAt;
 await button.click();
@@ -80,7 +80,9 @@ check((await b.evaluate(() => window.__backup.state())).lastBackupAt !== before,
 await other.close();
 
 // The device forgets the passphrase while encrypted backups stay on: disabled, with the reason, and nothing is written.
+await b.evaluate(() => { location.hash = '#/settings/passphrase/manage'; });
 await b.getByRole('button', { name: 'Forget the passphrase on this device' }).click();
+await b.evaluate(() => { location.hash = '#/settings/backups'; });
 check(await poll(async () => /does not have the passphrase/.test(await note()), 10000), 'without the passphrase the page says why next to the button');
 check(await button.isDisabled(), 'and Back up now is disabled, so no unencrypted backup can be written');
 

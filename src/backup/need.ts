@@ -8,6 +8,6 @@ export function useBackupNeed(): NeedItem | undefined {
   // In a test build the bar stays away unless the URL has `backupbar` (see BackupBanner); so does this, so it never shifts the pages a suite measures.
   if (testMode() && !new URLSearchParams(location.search).has('backupbar')) return undefined;
   return health.kind === 'never'
-    ? { id: 'backup-never', text: 'No backup yet · clearing this site\'s data in the browser deletes everything here', href: '#/settings/backup', action: 'Set up', tone: 'warn' }
+    ? { id: 'backup-never', text: 'No backup yet · clearing this site\'s data in the browser deletes everything here', href: '#/settings/backups', action: 'Set up', tone: 'warn' }
     : undefined;
 }

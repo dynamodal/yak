@@ -18,7 +18,7 @@ export function HistoryBanner() {
       <Button
         onClick={() => {
           dismissAlert();
-          navigate('settings', 'backup', String(alert.before));
+          navigate('settings', 'version-history', String(alert.before));
         }}
       >
         Review

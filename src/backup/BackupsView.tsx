@@ -4,10 +4,9 @@ import { useApp } from '../app/context';
 import { useSyncStatus } from '../app/hooks';
 import { readSpaces } from '../core/account';
 import { askBackupPassphrase, withKey as withAccountKey } from '../app/key-prompt';
-import { Button, FileButton, Page, PageHeader } from '../app/ui';
+import { Button, FileButton, OpenDetails, Page, PageHeader } from '../app/ui';
+import { useRoute } from '../app/router';
 import { WrongPassphraseError } from '../core/crypto';
-import type { ViewProps } from '../app/registry';
-import { HistorySection } from '../history/HistoryView';
 import { ENCRYPTION_FILE, EncryptedError, keyFor, readParamsAt, withKey } from './crypto';
 import { SubDir, type BackupDir } from './dir';
 import { readableFolder } from './encryption-state';
@@ -24,7 +23,6 @@ import { saveBlobFile, saveTextFile, useBackup, useBackupHealth } from './runtim
 import { type BackupService, type RunResult, DEFAULT_STALE_HOURS } from './service';
 import { errText, listBackups, type BackupListing } from './store';
 import { usePassphraseState } from './passphrase-state';
-import { PassphraseSection } from './PassphraseSection';
 import { requestPersistence, type PersistenceResult } from '../core/persistence';
 
 /** Whether the browser promised to keep this site's data (`storage.persist()`), asked again each time the page opens. */
@@ -157,7 +155,7 @@ function RestorePanel(props: { backup: OpenedBackup; source: string; onClose(): 
 
   return (
     <div class="card restore-panel" aria-label="Restore">
-      <h2>Restore: {when(manifest.created_at)}</h2>
+      <h3>Restore: {when(manifest.created_at)}</h3>
       <dl class="backup-facts">
         <dt>From</dt>
         <dd>{props.source}</dd>
@@ -244,7 +242,7 @@ function RestorePanel(props: { backup: OpenedBackup; source: string; onClose(): 
           <p>
             Your current data is kept
             {state.folder.state === 'granted' ? ' as a backup in the backup folder (written first) and' : ''} on this device.
-            To undo: Settings › Backup and safety › Backup & restore › Merge it back.
+            To undo: Settings › Backups › Merge it back.
           </p>
           {paired && <p>Only this device changes. Your other devices will send their data back when they connect.</p>}
           <p class="hint">Close other tabs of the app first.</p>
@@ -296,7 +294,7 @@ function TimeRestore(props: { source: { dir: BackupDir; accounts: string[] }; de
   };
   return (
     <div class="card time-restore" aria-label="Restore to a time">
-      <h3>Restore to a time</h3>
+      <h4>Restore to a time</h4>
       <p class="hint">Rebuilds your data as it was then, from the newest restore point before it and the changes logged after. You see what it holds before anything changes.</p>
       <div class="row">
         {props.source.accounts.length > 1 && (
@@ -331,20 +329,30 @@ function TimeRestore(props: { source: { dir: BackupDir; accounts: string[] }; de
 }
 
 /** Encrypted backups are written only with the passphrase, which is created in the passphrase sheet (F-324). */
-function EncryptionPanel(props: { account: Y.Doc; accountId: string; service: BackupService; encrypted: boolean }) {
-  const { account, accountId, service, encrypted } = props;
+function EncryptionPanel(props: { account: Y.Doc; accountId: string; service: BackupService; encrypted: boolean; standalone: boolean }) {
+  const { account, accountId, service, encrypted, standalone } = props;
   const { params, hasKey } = usePassphraseState(account, accountId);
   return (
     <>
-      <h2>Encrypted backups</h2>
+      <h3>Encrypted backups</h3>
       {!params ? (
         <div class="card" aria-label="Set a backup passphrase">
-          <p>Encrypted backups hold no readable files. They need a passphrase, which you set once.</p>
-          <div class="row">
-            <Button variant="primary" onClick={() => void withAccountKey({ verb: 'continue', run: async () => undefined })}>
-              Create a passphrase…
-            </Button>
-          </div>
+          <p>
+            Encrypted backups hold no readable files. They need a passphrase, which you set once.
+            {standalone ? null : (
+              <>
+                {' '}
+                <a href="#/settings/passphrase">Set the passphrase</a>
+              </>
+            )}
+          </p>
+          {standalone ? (
+            <div class="row">
+              <Button variant="primary" onClick={() => void withAccountKey({ verb: 'continue', run: async () => undefined })}>
+                Create a passphrase…
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : !hasKey ? (
         <div class="card" aria-label="Unlock encrypted backups">
@@ -358,7 +366,7 @@ function EncryptionPanel(props: { account: Y.Doc; accountId: string; service: Ba
       ) : (
         <div class="card">
           <label class="row">
-            <input type="checkbox" checked={encrypted} onChange={(e) => service.setEncrypted((e.target as HTMLInputElement).checked)} />
+            <input type="checkbox" data-encrypted-only checked={encrypted} onChange={(e) => service.setEncrypted((e.target as HTMLInputElement).checked)} />
             Write only encrypted backups from this device
           </label>
           <p class="hint">
@@ -377,9 +385,17 @@ function localInput(ms: number): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-export function BackupsView({ params }: ViewProps) {
+/**
+ * Backups (#97): a Settings section. Closed it shows the state of the last backup, any warning and Back up now; the fold holds where backups go,
+ * encryption and restore. `standalone` is the page the welcome screen opens to restore before anything is set up: all of it open, with a header.
+ */
+function BackupsPanel({ standalone }: { standalone: boolean }) {
+  const route = useRoute();
+  // `#/settings/backups/<anything>` opens the fold; the bare section stays closed.
+  const openFromRoute = !standalone && route[0] === 'settings' && route[1] === 'backups' && route[2] !== undefined;
+  const [listOpen, setListOpen] = useState(standalone);
   const { state, service, folder, store, deviceId, accountId } = useBackup();
-  const { account, spaces } = useApp();
+  const { account } = useApp();
   // The passphrase of an encrypted backup being restored, asked for in the passphrase sheet only when the folder needs one and this device does not hold it.
   const restorePass = useRef('');
   const needPass = async <T,>(fn: (pass: string) => Promise<T>): Promise<T> => {
@@ -429,8 +445,8 @@ export function BackupsView({ params }: ViewProps) {
   };
 
   useEffect(() => {
-    void loadHistory();
-  }, [state.lastBackupName, state.folder.state, state.folder.id]);
+    if (listOpen) void loadHistory();
+  }, [listOpen, state.lastBackupName, state.folder.state, state.folder.id]);
 
   useEffect(() => {
     void beforeReplace().then(setBefore, () => undefined);
@@ -533,18 +549,43 @@ export function BackupsView({ params }: ViewProps) {
     await open(bundleToDir(await file.text()), `file ${file.name}`);
   };
 
-  return (
-    <Page width="settings" class="backups">
-      <PageHeader title="Backup & restore" />
-      <p class="hint backups-what">
-        Backups are full copies of your data in a folder outside the browser, or a download. They are your files and are not synced. A backup restore covers everything: entries, notes and tasks, projects, clients, tags, settings and the files in notes.
-        For undoing a recent change use Version history (below) or Recently deleted instead. <a href="#/help/backups">How the three fit together</a>
-      </p>
+  const summary = (
+    <>
       <p class={`backup-health ${health.ok ? 'ok' : 'warn'}`}>{health.text}</p>
       {state.notice ? <p class="hint">{state.notice}</p> : null}
+      <div class="row">
+        <Button variant="primary" disabled={busy || lockedOut || !picker} onClick={() => void act(backUpNow)}>
+          Back up now
+        </Button>
+        {state.running && <span class="hint">Backing up…</span>}
+      </div>
+      {backUpNote ? (
+        <p class="hint" data-backup-now-note>
+          {backUpNote}
+        </p>
+      ) : null}
+      {message ? (
+        <p class="hint" role="status">
+          {message}
+        </p>
+      ) : null}
+      {error ? (
+        <p class="error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </>
+  );
+
+  const body = (
+    <>
+      <p class="hint backups-what">
+        A backup restore covers everything: entries, notes and tasks, projects, clients, tags, settings and the files in notes.
+        For undoing a recent change use Version history or Recently deleted instead. <a href="#/help/backups">How the three fit together</a>
+      </p>
       <StorageLine />
 
-      <h2>Backup folder</h2>
+      <h3>Where backups go</h3>
       {picker ? (
         <div class="card">
           <p>
@@ -593,9 +634,6 @@ export function BackupsView({ params }: ViewProps) {
       )}
 
       <div class="row">
-        <Button variant="primary" disabled={busy || lockedOut || !picker} onClick={() => void act(backUpNow)}>
-          Back up now
-        </Button>
         <Button
           disabled={busy}
           onClick={() =>
@@ -620,23 +658,7 @@ export function BackupsView({ params }: ViewProps) {
         >
           Download backup (JSON, without files)
         </Button>
-        {state.running && <span class="hint">Backing up…</span>}
       </div>
-      {backUpNote ? (
-        <p class="hint" data-backup-now-note>
-          {backUpNote}
-        </p>
-      ) : null}
-      {message ? (
-        <p class="hint" role="status">
-          {message}
-        </p>
-      ) : null}
-      {error ? (
-        <p class="error" role="alert">
-          {error}
-        </p>
-      ) : null}
       {fileTotal.count > 0 && (
         <p class="hint" data-testid="backup-files">
           Your notes hold {fileTotal.count} file{fileTotal.count === 1 ? '' : 's'} ({bytes(fileTotal.bytes)}). Folder backups and the zip download include them; the JSON download is text only and leaves them out.
@@ -674,11 +696,9 @@ export function BackupsView({ params }: ViewProps) {
         />
       )}
 
-      <EncryptionPanel key="encryption" account={account} accountId={accountId} service={service} encrypted={state.encrypted === true} />
+      <EncryptionPanel key="encryption" account={account} accountId={accountId} service={service} encrypted={state.encrypted === true} standalone={standalone} />
 
-      <PassphraseSection key="passphrase" />
-
-      <h2>Restore</h2>
+      <h3>Restore</h3>
       <p class="hint">Restoring from a backup checks every file's checksum first and shows what the backup holds before anything changes. Merge adds what is missing; Replace makes this device exactly like the backup and keeps what it replaces.</p>
       <div class="row">
         <FileButton label="Restore from a backup file…" inputLabel="Backup file" accept=".json,.zip,application/json,application/zip" onChange={(e) => void act(() => fromFile(e.target as HTMLInputElement))} />
@@ -748,7 +768,7 @@ export function BackupsView({ params }: ViewProps) {
         </p>
       )}
 
-      <h3>Backups in the folder</h3>
+      <h4>Backups in the folder</h4>
       {historyError ? <p class="error">{historyError}</p> : null}
       {!history ? (
         <p class="empty">{state.folder.state === 'granted' ? 'Loading…' : 'Backups made to a folder are listed here.'}</p>
@@ -817,7 +837,33 @@ export function BackupsView({ params }: ViewProps) {
         </>
       )}
 
-      {spaces.length > 0 && <HistorySection params={params} />}
-    </Page>
+    </>
   );
+
+  if (standalone)
+    return (
+      <Page width="settings" class="backups">
+        <PageHeader title="Restore from a backup" />
+        {summary}
+        {body}
+      </Page>
+    );
+  return (
+    <div class="backups" data-backups>
+      {summary}
+      <OpenDetails summary="Where backups go, encryption, restore" open={openFromRoute} onToggle={setListOpen}>
+        {body}
+      </OpenDetails>
+    </div>
+  );
+}
+
+/** The Backups section of Settings (a part the backup module adds, so Settings names no feature module). */
+export function BackupsPart() {
+  return <BackupsPanel standalone={false} />;
+}
+
+/** What the welcome screen opens to restore from a backup before this device is set up. */
+export function BackupsView() {
+  return <BackupsPanel standalone />;
 }

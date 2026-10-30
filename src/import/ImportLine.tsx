@@ -1,7 +1,7 @@
 import { useHiddenModules } from '../app/features';
 import { DataLine } from '../app/ui';
 
-/** A line in Backup and safety on Settings: bring in a Toggl or CSV export (hidden while this device hides Import). */
+/** A line in Passphrase and import on Settings: bring in a Toggl or CSV export (hidden while this device hides Import). */
 export function ImportLine() {
   const hidden = useHiddenModules();
   if (hidden.includes('import')) return null;

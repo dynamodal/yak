@@ -24,7 +24,7 @@ export function AccountKeyCard(props: { account: Y.Doc; deviceId: string }) {
     return (
       <div class="card" aria-label="Protect the account key">
         <p>
-          This device started the passphrase setup but lost part of it, so it cannot finish it. On another device, remove this one in Devices, then enter your backup passphrase there in Backup & restore › Your passphrase to start again. You
+          This device started the passphrase setup but lost part of it, so it cannot finish it. On another device, remove this one in Devices, then enter your backup passphrase there in Settings › Passphrase and import › Manage passphrase to start again. You
           can allow this device again afterwards.
         </p>
       </div>
@@ -35,7 +35,7 @@ export function AccountKeyCard(props: { account: Y.Doc; deviceId: string }) {
     return (
       <div class="card" aria-label="Protect the account key">
         <p>
-          The passphrase setup was started on {name} and is not finished. Enter your backup passphrase on that device, in Backup & restore › Your passphrase. If it is gone, remove it in Devices, then enter the passphrase here to start again.
+          The passphrase setup was started on {name} and is not finished. Enter your backup passphrase on that device, in Settings › Passphrase and import › Manage passphrase. If it is gone, remove it in Devices, then enter the passphrase here to start again.
         </p>
       </div>
     );

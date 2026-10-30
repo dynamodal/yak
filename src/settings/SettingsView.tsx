@@ -9,7 +9,7 @@ import { useRoute } from '../app/router';
 import { Page, PageHeader } from '../app/ui';
 import { cx } from '../app/ui/cx';
 import { DevicesSection, useSyncDot } from './DevicesSection';
-import { AdvancedSection, BackupSection, DisplaySection, FeaturesSection, HelpSection, NeedsSection, NotesSection, OrganizeSection } from './Sections';
+import { AdvancedSection, DisplaySection, FeaturesSection, HelpSection, NeedsSection, NotesSection, OrganizeSection, PartsSection, PassphraseSection, RecentlyDeletedSection } from './Sections';
 import { SharingSection } from './SharingSection';
 import { SpacesSection } from './SpacesSection';
 
@@ -26,6 +26,14 @@ function Anchor({ slug, title }: { slug: SettingsSection; title: string }) {
   );
 }
 
+/** The one line under a heading: what the section is and where its data is kept. */
+const BLURBS: Partial<Record<SettingsSection, string>> = {
+  backups: 'Full copies of your data in a folder outside the browser, or a download. They are your files and are not synced.',
+  'version-history': 'Earlier versions of your time entries, notes and tasks. Stored in a separate database in this browser; for now each device records its own.',
+  'recently-deleted': 'Deleted items you can still bring back. Stored with your data, so they sync with it.',
+  passphrase: 'The passphrase protects encrypted backups and approves devices and shares. It is never stored.',
+};
+
 function Section(props: { slug: SettingsSection; children: ComponentChildren; class?: string }) {
   const title = TITLES[props.slug];
   return (
@@ -34,6 +42,11 @@ function Section(props: { slug: SettingsSection; children: ComponentChildren; cl
         {title}
         <Anchor slug={props.slug} title={title} />
       </h2>
+      {BLURBS[props.slug] ? (
+        <p class="hint st-blurb" data-blurb={props.slug}>
+          {BLURBS[props.slug]}
+        </p>
+      ) : null}
       {props.children}
     </section>
   );
@@ -49,8 +62,8 @@ function scrollTo(slug: string | undefined): void {
 /**
  * Settings (F-33): one long single-column page, `#/settings`. A contents row under the title links to each section
  * (`#/settings/<section>` opens the page scrolled to it; `#/settings/<section>/<id>` also opens that row). Sections, in order: Needs you (only
- * while something waits), Backup and safety, Devices and sync, Spaces, Sharing, Organize, Notes (only while Notes is on), Display, Features, Help, Advanced.
- * Devices, spaces and accounts are rows that open in place; only adding a device, Backup and restore and Import have pages of their own.
+ * while something waits), Backups, Version history, Recently deleted, Passphrase and import, Devices and sync, Spaces, Sharing, Organize, Notes (only while Notes is on), Display, Features, Help, Advanced.
+ * Devices, spaces and accounts are rows that open in place; only adding a device and Import have pages of their own.
  */
 export function SettingsView() {
   const route = useRoute();
@@ -62,7 +75,7 @@ export function SettingsView() {
   useHiddenModules();
   const notesOn = !isFeatureHidden('notes');
   const sections = SETTINGS_SECTIONS.filter((s) => (s !== 'needs-you' || needs.length > 0) && (s !== 'notes' || notesOn));
-  const dots: Partial<Record<SettingsSection, Dot>> = { 'needs-you': 'warn', 'backup-safety': warn ? 'warn' : undefined, 'devices-sync': syncDot === 'warn' ? 'warn' : undefined } as Partial<Record<SettingsSection, Dot>>;
+  const dots: Partial<Record<SettingsSection, Dot>> = { 'needs-you': 'warn', backups: warn ? 'warn' : undefined, 'devices-sync': syncDot === 'warn' ? 'warn' : undefined } as Partial<Record<SettingsSection, Dot>>;
 
   useEffect(() => {
     // A row of the Notes section (Mirror, …) is a part inside it; the other sections open their rows in place.
@@ -126,8 +139,17 @@ export function SettingsView() {
           <NeedsSection needs={needs} />
         </Section>
       ) : null}
-      <Section slug="backup-safety">
-        <BackupSection />
+      <Section slug="backups">
+        <PartsSection section="backups" />
+      </Section>
+      <Section slug="version-history">
+        <PartsSection section="version-history" />
+      </Section>
+      <Section slug="recently-deleted">
+        <RecentlyDeletedSection />
+      </Section>
+      <Section slug="passphrase">
+        <PassphraseSection open={slug === 'passphrase' && target === 'manage'} />
       </Section>
       <Section slug="devices-sync">
         <DevicesSection {...(rowFor('devices-sync') ? { target: rowFor('devices-sync') as string } : {})} />

@@ -19,7 +19,7 @@ async function profile(name) {
   const context = await browser.newContext({ acceptDownloads: true });
   const page = await context.newPage();
   watchPage(page, name, { consoleErrors: true });
-  await page.goto(`${BASE}?test#/settings/backup`);
+  await page.goto(`${BASE}?test#/settings/backups/open`);
   await ready(page);
   return page;
 }
@@ -55,7 +55,7 @@ await E(a, () => window.__app.addFile('space/personal', 'one.txt', 'file one byt
 await E(a, () => window.__app.addFile('space/personal', 'two.txt', 'file two bytes'));
 const unit = await E(a, () => window.__app.spaces().personal);
 await E(a, () => window.__backup.useOpfs('e2e-backup-files'));
-await a.goto(`${BASE}?test#/settings/backup`);
+await a.goto(`${BASE}?test#/settings/backups/open`);
 await ready(a);
 await a.getByText('Backing up to').waitFor();
 check(/Your notes hold 2 files/.test(await a.getByTestId('backup-files').innerText()), 'A: Backups says how many files the notes hold');
@@ -94,7 +94,7 @@ const c = await profile('C');
 await E(c, () => window.__backup.useOpfs('e2e-backup-files-c'));
 await E(c, (f) => window.__backup.importAccount(f), accountFiles);
 await c.goto(`${BASE}?test#/devices`);
-await c.goto(`${BASE}?test#/settings/backup`);
+await c.goto(`${BASE}?test#/settings/backups/open`);
 await ready(c);
 await c.getByRole('button', { name: 'Restore to a time…' }).click();
 await c.getByLabel('Restore as of').fill(later());

@@ -1,7 +1,7 @@
 # Projects and clients as notes
 
 Issue #12.
-Status: **design, waiting for the owner's answers** (open questions at the end); build after #147, #138 and #93.
+Status: **design agreed** (owner's answers below, decision T-12 in `decisions/time.md`); build after #147, #138 and #93.
 Owner decision (2026-10-30, in #12): one list; a project and a client are Markdown notes; a task's `projects: [[<name>]]` is a real link; UUIDs stay internal; rates stay private.
 
 ## Today
@@ -57,9 +57,11 @@ Field names follow Toggl v9 where one exists (`docs/architecture.md`); values ar
 - Unknown fields and the body are left untouched (the note may also be a TaskNotes or Dataview target).
 - A `client` that is plain text (`client: Client A`) is read like a link to that name, and written back as a link only when Yak changes the field.
 
-## Recognition (open question 1)
+## Recognition (answered: `type:` field)
 
 A note is a project when its front matter has `type: project`; a client when `type: client`.
+Owner, 2026-10-30: the `type:` field, since TaskNotes offers no project marker to reuse.
+TaskNotes identifies tasks by a tag (`task`, default) or a configurable property and value (e.g. `type: task`); its `projects` links may point at any note and mark nothing, so `type: project` follows its property method.
 
 | Option | For | Against |
 | --- | --- | --- |
@@ -128,14 +130,14 @@ A note is a project when its front matter has `type: project`; a client when `ty
 
 ### Steps
 
-Run once per space as an explicit action (open question 2): Settings › Organize shows "Turn projects into notes" with a preview, then a report.
+Run once per space as an explicit action (owner, 2026-10-30): Settings › Organize shows "Turn projects into notes" with a preview, then a report. Never automatic on update.
 
-1. **Check** every device that keeps the space runs a build that understands project notes (the device's `v` in the account document); otherwise list the devices to update and stop (open question 3).
+1. **Check** every device that keeps the space runs a build that understands project notes (the device's `v` in the account document); otherwise list the devices to update and stop (owner, 2026-10-30: version gate, no compatibility window; old builds never write a converted space).
 2. **Offer a backup** first (Backups part), as for any bulk change.
 3. **Clients:** each live client gets `Clients/<name>.md` (`type: client`, `archived` if archived), note id derived from the client id (hash), so two devices running the step create the same key.
 4. **Projects:** each live project gets `Projects/<name>.md` with `type`, `client`, `color`, `billable`, `active`; its record gets `note_id`. Same id rule.
 5. **Task project names:** each name in task `projects` (link or text, case-insensitive) that matches no project:
-   - resolves to an existing note → that note becomes the project: `type: project` added, body untouched (open question 4);
+   - resolves to an existing note → that note becomes the project: `type: project` added, body untouched, listed in the report (owner, 2026-10-30: adopt, never a second note of the same name);
    - otherwise → a new `Projects/<name>.md` (no client, palette colour, not billable) and a record keyed by the note id.
    Plain-text task values are left as written; they now match by name.
 6. **Existing notes at a target path** (`Projects/<name>.md` already there, not typed): same as step 5, adopt it.
@@ -153,11 +155,12 @@ Run once per space as an explicit action (open question 2): Settings › Organiz
 - Later: the notes are ordinary notes; deleting the `type` line or the note leaves the record as it was.
 - The document version cannot go down; a rollback build declares the same version and reads records.
 
-## mdbase (open question 5)
+## mdbase (answered: compatible now, files later)
 
 - The mdbase spec (v0.3.0, release candidate) types a collection with `mdbase.yaml` and `_types/<name>.md` (JSON Schema; `match.path_glob` / `match.where`; explicit `type:` key).
 - TaskNotes' own mdbase files (`mdbase-tasknotes`) still use the older v0.2 format (`fields:`, `tn_role`), so one file set cannot match both today.
 - The front matter above fits both: `type: project` is mdbase's explicit type, `projects` stays TaskNotes' link list, `client` is a link field.
+- Owner, 2026-10-30: this build writes no mdbase files; the front matter stays compatible.
 - Writing the files later is additive: per space folder, `mdbase.yaml` and `_types/project.md`, `client.md`, `task.md`, as notes the app hides from the tree.
 
 ## Cost
@@ -174,10 +177,12 @@ Size L, about five PRs after the three blockers:
 
 Risks: link resolution across many notes on every change (keep it incremental), duplicate names, and the mirror reading a move between space folders as delete plus create.
 
-## Open questions
+## Owner's answers (2026-10-30)
 
-1. How is a note recognised as a project or client: `type:` field, folder or tag?
-2. Is the conversion an explicit action per space, or automatic when a device updates?
-3. Older builds: stop them (version gate, convert only once every device is updated) or keep them writing during a compatibility window?
-4. A task project name that resolves to an existing plain note: adopt that note, or make a new one?
-5. mdbase: write `mdbase.yaml` and `_types/` now, or only keep the front matter compatible and add them later?
+| # | Question | Answer |
+| --- | --- | --- |
+| 1 | How is a note recognised? | `type: project` / `type: client` front matter; TaskNotes has no project marker to reuse |
+| 2 | Explicit action or automatic? | Explicit action per space in Organize: preview, backup offer, report |
+| 3 | Older builds? | Version gate: convert only when every device keeping the space is updated; old builds then stop writing it |
+| 4 | Task name resolving to an existing plain note? | Adopt that note (`type: project` added, body untouched, in the report) |
+| 5 | mdbase files? | Not now; front matter stays compatible, files are a later additive step |

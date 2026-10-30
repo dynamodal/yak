@@ -48,8 +48,8 @@ check((await p.locator('.history-kind', { hasText: 'Deleted since' }).count()) =
 check((await p.locator('.history-banner').count()) === 0, 'the banner is gone once reviewed');
 
 // Restore two of them: they come back as new edits, the others stay deleted.
-await p.getByLabel('Restore Bulk 3').check();
-await p.getByLabel('Restore Bulk 4').check();
+await p.getByRole('checkbox', { name: 'Restore Bulk 3', exact: true }).check();
+await p.getByRole('checkbox', { name: 'Restore Bulk 4', exact: true }).check();
 await p.getByRole('button', { name: /^Restore selected \(2\)/ }).click();
 await p.getByRole('group', { name: 'Confirm restore' }).getByRole('button', { name: 'Restore', exact: true }).click();
 check((await until(async () => (await live('Bulk')) === 2)) >= 0, 'only the two chosen entries are back');
@@ -149,7 +149,7 @@ await p.evaluate((ms) => { location.hash = `#/settings/version-history/${ms}`; }
 await p.locator('.history-notes .history-row').first().waitFor();
 check((await p.locator('.history-notes .history-row', { hasText: 'Plan.md' }).innerText()).includes('Deleted since'), 'History lists a note deleted since');
 check(/notes and tasks/i.test(await p.locator('.history-page .hint').first().innerText()), 'the page says it covers notes and tasks');
-await p.getByLabel('Restore Plan.md').check();
+await p.getByRole('checkbox', { name: 'Restore Plan.md', exact: true }).check();
 await p.getByRole('button', { name: /^Restore selected \(1\)/ }).click();
 await p.getByRole('group', { name: 'Confirm restore' }).getByRole('button', { name: 'Restore', exact: true }).click();
 check((await until(async () => (await noteText()).includes('second part'))) >= 0, 'restoring a note from History brings it back with its text');

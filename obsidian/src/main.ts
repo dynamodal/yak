@@ -405,7 +405,10 @@ class YakSettings extends PluginSettingTab {
     const keys = this.plugin.keys.keys;
     if (keys) {
       const fp = new Setting(el).setName('This vault\'s fingerprint').setDesc('Compare it with the one the app shows for this vault before you approve it.');
-      void deviceFingerprint({ deviceId: this.plugin.data.deviceId, ...keys.publicKeys }).then((f) => fp.setDesc(`${formatFingerprint(f, 2)}. Compare it with the one the app shows for this vault before you approve it.`));
+      void deviceFingerprint({ deviceId: this.plugin.data.deviceId, ...keys.publicKeys }).then((f) => {
+        // A block body: Obsidian 1.14's Setting is a thenable, so a promise must never resolve with it (#91).
+        fp.setDesc(`${formatFingerprint(f, 2)}. Compare it with the one the app shows for this vault before you approve it.`);
+      });
     }
     const join = this.plugin.keys.join;
     if (join?.phase === 'compare' && !join.confirmed)
@@ -434,8 +437,12 @@ class YakSettings extends PluginSettingTab {
           .setCta()
           .onClick(() => {
             this.plugin.joinWithCode(code).then(
-              () => new Notice('Joining…'),
-              (e: unknown) => new Notice(e instanceof Error ? e.message : String(e)),
+              () => {
+                new Notice('Joining…');
+              },
+              (e: unknown) => {
+                new Notice(e instanceof Error ? e.message : String(e));
+              },
             );
           }),
       );

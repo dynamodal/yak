@@ -17,7 +17,8 @@ CI (F-6 and F-41 in `docs/decisions/app.md`):
   - `Types and unit tests`: `typecheck`, `typecheck:worker`, `npm test`, `check:prod-bundle` (a normal build holds none of the test hooks).
   - `Browser suites (1/2)` and `(2/2)`: download `dist-test`, run `npm run e2e -- --no-build --shard i/2`. Playwright's Chromium comes from the cache (`.github/actions/chrome`); `playwright-core install --with-deps` (apt, about 38 s) runs only on a cache miss. The runner's preinstalled Google Chrome was tried and rejected: it requests `/favicon.ico`, and the suites fail on that 404 console error.
   - `Checks`: waits for all of them and is green only if each succeeded. It is the one status branch rules require, so keep its name. Docs-only changes run it too, so it always reports.
-- Pushes to `main` and manual runs also run `Browser suites (real timers)`: `npm run e2e -- --no-build --real-timers`, the suites that shorten product timers, with the real ones (60 s direct-path retry and so on). It is part of `Checks` on those runs.
+- Pushes to `main`, merge queue entries and manual runs also run `Browser suites (real timers)`: `npm run e2e -- --no-build --real-timers`, the suites that shorten product timers, with the real ones (60 s direct-path retry and so on). It is part of `Checks` on those runs.
+- Merge queue: `main` lands PRs through GitHub's merge queue. Each PR is tested combined with the PRs ahead of it before it lands; the required check is `Checks`.
 - Also by hand (Actions → CI → Run workflow).
 - Hosted CI is the record; run suites locally while working.
 - Only if Actions is unavailable (F38b):

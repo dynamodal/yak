@@ -149,7 +149,9 @@ const setupPlugin = async ({ bundle, relay, code, vault: vaultName }) => {
       addCommand(c) {
         commands.push(c);
       }
-      addSettingTab() {}
+      addSettingTab(tab) {
+        window.__settingTab = tab;
+      }
       registerDomEvent(el, type, cb) {
         el.addEventListener(type, cb);
       }
@@ -176,7 +178,50 @@ const setupPlugin = async ({ bundle, relay, code, vault: vaultName }) => {
         notices.push(m);
       }
     }
-    const stub = { Plugin, Modal, Notice, PluginSettingTab: class {}, Setting: class {}, TFile, TFolder, TAbstractFile };
+    // The settings tab, with Obsidian 1.14's Setting: a thenable (`then` calls back with itself), so a
+    // promise resolved with one never settles (#91). Components accept any call and return themselves.
+    const component = () => new Proxy({}, { get: (_, k) => (k === 'then' ? undefined : () => component()) });
+    class Setting {
+      constructor(el) {
+        this.row = el.appendChild(document.createElement('div'));
+      }
+      setName(n) {
+        this.row.setAttribute('data-name', n);
+        return this;
+      }
+      setDesc(d) {
+        this.row.setAttribute('data-desc', d);
+        return this;
+      }
+      addText(cb) {
+        cb(component());
+        return this;
+      }
+      addToggle(cb) {
+        cb(component());
+        return this;
+      }
+      addButton(cb) {
+        cb(component());
+        return this;
+      }
+      addDropdown(cb) {
+        cb(component());
+        return this;
+      }
+      then(cb) {
+        cb(this);
+        return this;
+      }
+    }
+    class PluginSettingTab {
+      constructor(app) {
+        this.app = app;
+        this.containerEl = document.body.appendChild(document.createElement('div'));
+        this.containerEl.setAttribute('data-settings-tab', '');
+      }
+    }
+    const stub = { Plugin, Modal, Notice, PluginSettingTab, Setting, TFile, TFolder, TAbstractFile };
     const module = { exports: {} };
     new Function('module', 'exports', 'require', bundle)(module, module.exports, (n) => {
       if (n !== 'obsidian') throw new Error(`unexpected require ${n}`);
@@ -310,5 +355,15 @@ await app.locator('.invite-requests').getByRole('button', { name: 'Approve' }).c
 await unlockIfAsked(app);
 check(await until(() => S(() => window.__plugin.accountDoc() !== undefined && window.__plugin.keys.trust.proof !== undefined && window.__plugin.keys.trust.required()).catch(() => false), 40000) >= 0, 'the second vault joins by invite, approved, with keys required');
 check(await until(() => S(() => window.__plugin.accountDoc()?.id).then(async (id) => id === (await A(() => window.__app.accountId()))), 20000) >= 0, 'in the same account');
+
+// Obsidian 1.14 froze on this tab once keys existed (#91): open it now that they do, and check the page answers.
+await P(() => window.__settingTab.display());
+check(
+  await P(() => document.querySelector('[data-settings-tab] [data-name="This vault\'s fingerprint"]') !== null),
+  'the settings tab shows the fingerprint row once the vault has keys',
+);
+const fpDone = await plugged(() => /\w{4}/.test(document.querySelector('[data-settings-tab] [data-name="This vault\'s fingerprint"]').getAttribute('data-desc') ?? '') && !document.querySelector('[data-settings-tab] [data-name="This vault\'s fingerprint"]').getAttribute('data-desc').startsWith('Compare'), 10000);
+check(fpDone >= 0, 'the fingerprint fills in and the page still responds');
+check((await Promise.race([P(() => 1 + 1), new Promise((r) => setTimeout(() => r('hung'), 5000))])) === 2, 'the page answers after the settings tab opens');
 
 await finish(browser);

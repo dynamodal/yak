@@ -68,7 +68,7 @@ export function ReportTable({ report, format, groupBy, thenBy }: ReportTableProp
         </table>
       </Scroll>
       <p class="hint">
-        Cells are {format === 'hm' ? 'h:mm' : 'decimal hours'} per {unit}.
+        Cells are {format === 'hm' ? 'h:mm' : 'decimal hours, rounded'} per {unit}.
       </p>
     </>
   );

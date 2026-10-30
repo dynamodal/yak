@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { clockDuration, decimalHours, formatAmounts, formatDuration, formatMoney, formatPercent, parseHoursFormat, rangeLabel } from './format';
+import { clockDuration, decimalHours, formatCompact, formatAmounts, formatDuration, formatMoney, formatPercent, parseHoursFormat, rangeLabel } from './format';
 import { at, useTimeZone } from './testing';
 
 const H = 3_600_000;
@@ -9,6 +9,17 @@ describe('formatDuration', () => {
     expect(formatDuration(1.25 * H, 'decimal')).toBe('1.25 h');
     expect(formatDuration(0, 'decimal')).toBe('0.00 h');
     expect(formatDuration(100.5 * H, 'decimal')).toBe('100.50 h');
+  });
+
+  test('decimal hours with one place or none (#99)', () => {
+    expect(formatDuration(1.25 * H, 'decimal1')).toBe('1.3 h');
+    expect(formatDuration(1.24 * H, 'decimal1')).toBe('1.2 h');
+    expect(formatDuration(1.6 * H, 'decimal0')).toBe('2 h');
+    expect(formatDuration(0, 'decimal0')).toBe('0 h');
+    expect(formatCompact(1.6 * H, 'decimal1')).toBe('1.6');
+    expect(parseHoursFormat('decimal1')).toBe('decimal1');
+    expect(parseHoursFormat('decimal0')).toBe('decimal0');
+    expect(parseHoursFormat('nonsense')).toBe('decimal');
   });
 
   test('h:mm rounds to the nearest minute', () => {

@@ -169,6 +169,8 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
   await q.getByRole('button', { name: 'Add task' }).click();
   await q.getByRole('link', { name: 'Axe check' }).waitFor();
   await q.evaluate(() => localStorage.setItem('hidden_modules', '["notes"]'));
+  // As above: let the new task reach IndexedDB before the reload (#30).
+  await sleep(500);
   await q.reload();
   await q.getByRole('link', { name: 'Axe check' }).click();
   await q.locator('.cm-content').waitFor();

@@ -190,6 +190,26 @@ describe('thinning', () => {
     expect(runs.map((r) => r.map((s) => s.seq))).toEqual([[2, 3, 4]]);
   });
 
+  it('never merges across a "Before restore" mark', () => {
+    const day = new Date(2026, 5, 1, 9).getTime();
+    const segs = [seg(1, day), seg(2, day + 3600_000), seg(3, day + 7200_000), seg(4, day + 10_800_000)];
+    expect(planThinning(segs, now).map((r) => r.map((s) => s.seq))).toEqual([[1, 2, 3, 4]]);
+    expect(planThinning(segs, now, undefined, [day + 3600_000 + 5]).map((r) => r.map((s) => s.seq))).toEqual([[1, 2], [3, 4]]);
+  });
+
+  it('keeps the state at a mark after thinning', async () => {
+    const store = new MemoryStore();
+    const old = new Date(2026, 5, 1, 9).getTime();
+    const doc = new Y.Doc();
+    const updates: Uint8Array[] = [];
+    doc.on('update', (u: Uint8Array) => updates.push(u));
+    for (const word of ['a', 'b', 'c', 'd']) doc.getText('t').insert(doc.getText('t').length, word);
+    for (const [i, u] of updates.entries()) await store.append({ docId: 'd', start: old + i * 1000, end: old + i * 1000, update: u, local: true, baseline: false });
+    await store.addMark({ id: 'm', docId: 'd', noteId: '', name: 'Before restore', at: old + 1500, text: '', kind: 'before-restore' });
+    await thinDocument(store, 'd', now);
+    expect(replay(await store.list('d'), old + 1500).doc.getText('t').toString()).toBe('ab');
+  });
+
   it('merges without losing content', async () => {
     const store = new MemoryStore();
     const doc = new Y.Doc();
@@ -326,6 +346,19 @@ describe('browsing the log', () => {
     ]);
     expect(pointSummary(points[0] as Point)).toBe('2 entries · 1 note');
     expect(pointSummary({ entries: 0, notes: 0 })).toBe('Other changes');
+    expect(points.every((p) => p.source === 'This device')).toBe(true);
+  });
+
+  it('lists a "Before restore" mark once, as a point of its own', async () => {
+    const { store, clock, recorder, doc } = setup();
+    clock.t = T;
+    await recorder.attach('d', doc);
+    for (const docId of ['d', 'd2']) await store.addMark({ id: docId, docId, noteId: '', name: 'Before restore', at: T + 5000, text: '', kind: 'before-restore' });
+    await store.addMark({ id: 'n', docId: 'd', noteId: 'note', name: 'v1', at: T + 6000, text: 'x' });
+    const points = await dayPoints(store, ['d', 'd2'], dayOf(T));
+    expect(points).toHaveLength(1);
+    expect(points[0]).toMatchObject({ mark: 'Before restore', end: T + 5000, source: 'This device' });
+    expect(pointSummary(points[0] as Point)).toBe('Before restore');
   });
 
   it('keeps a day with 200 points quick', async () => {

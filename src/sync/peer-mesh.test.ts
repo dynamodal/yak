@@ -894,6 +894,10 @@ describe('signed handshake (#256)', () => {
     a.mesh.start();
     // The first offer may go out before the hellos tell each side the other verified it; a reconnect uses the pair key.
     await waitFor(() => a.mesh.state === 'connected' && b.mesh.state === 'connected', 8000, 'connected');
+    // aaa seals offers with the pair key only once bbb's hello lists it as verified; cut before that and the reconnect uses
+    // the shared key and never fails (#30: the flake on loaded runners, where that hello comes late).
+    const listsA = () => (a.mesh as unknown as { sessions: Map<string, { listsMe: boolean }> }).sessions.get('bbb')?.listsMe === true;
+    await waitFor(listsA, 8000, 'bbb lists aaa as verified');
     net.cut();
     await waitFor(() => logText(a).includes('pair key failed'), 16000, 'pair key given up');
     await waitFor(() => a.mesh.state === 'connected' && b.mesh.state === 'connected' && a.opens.length === 2, 12000, 'connected again with the shared key');

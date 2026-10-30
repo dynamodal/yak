@@ -159,7 +159,7 @@ registerView({ id: 'timer', title: 'Time', path: 'time', order: 10, component: T
 
 - Data migrations (F39, F-261): `src/core/migrations.ts` holds the step lists (`DOC_MIGRATIONS`, `DEVICE_MIGRATIONS`) and the runner; `DocumentStore.open` runs document steps before sync sees the document, `main.tsx` runs device steps first. Add a step at the end of the list; test it with `migrationConverges`.
 - `src/core/history/`: change log (`recorder.ts`, IndexedDB `idb-store.ts`), time travel and restore (`travel.ts`), days and points (`browse.ts`), thinning, the bulk-change watch.
-- `src/history/`: the "Go back in time" part of Backup & restore (`HistorySection`), the warning banner, the recorder host (one writer tab).
+- `src/history/`: the "Version history" part of Backup & restore (`HistorySection`), the warning banner, the recorder host (one writer tab).
 - Note versions: `src/notes/views/NoteHistory.tsx`.
 
 ## Mirror

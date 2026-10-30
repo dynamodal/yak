@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import * as Y from 'yjs';
 import { useApp } from '../app/context';
+import { useSyncStatus } from '../app/hooks';
 import { readSpaces } from '../core/account';
 import { askBackupPassphrase, withKey as withAccountKey } from '../app/key-prompt';
 import { Button, FileButton, Page, PageHeader } from '../app/ui';
@@ -13,7 +14,7 @@ import { readableFolder } from './encryption-state';
 import { RESTORE_POINTS, findAccounts, readIndex, snapshotDir, stateAtTime } from './incremental';
 import { MANIFEST, type DocCounts, type Manifest } from './format';
 import { folderPickerSupported, pickReadFolder } from './folder';
-import { beforeReplace, recoverBeforeReplace, replaceSupported, startReplace, type BeforeReplace } from './replace';
+import { beforeReplace, dismissMergeBack, mergeBackOffered, recoverBeforeReplace, replaceSupported, startReplace, type BeforeReplace } from './replace';
 import { bundleToDir, mergeBackup, openBackup, type OpenedBackup } from './restore';
 import { accountBlobSource, folderBlobSource, listBlobs, restoreBlobs, totalBlobBytes, type BlobSource } from './blobs';
 import { blobStore } from '../core/blobs/store';
@@ -85,7 +86,8 @@ function docLabel(id: string, spaces: readonly { id: string; name: string }[]): 
 
 function RestorePanel(props: { backup: OpenedBackup; source: string; onClose(): void; onDone(text: string): void }) {
   const { store, deviceId, service, state, bus } = useBackup();
-  const { spaces: ourSpaces } = useApp();
+  const { spaces: ourSpaces, sync } = useApp();
+  const paired = useSyncStatus(sync).paired;
   // Name documents by the backup's own account (a backup from another browser has other space ids).
   const [backupSpaces, setBackupSpaces] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
@@ -237,11 +239,15 @@ function RestorePanel(props: { backup: OpenedBackup; source: string; onClose(): 
       {confirming && (
         <div class="confirm-replace">
           <p>
-            Replace removes this device's data and loads the backup exactly as it was. Changes made after{' '}
-            {when(manifest.created_at)} are removed from this device. The current data is kept on this device so it can be
-            merged back{state.folder.state === 'granted' ? ', and a backup of it is written to the backup folder first' : ''}.
-            Paired devices are not changed and send their data back when they connect. Close other tabs of the app first.
+            This makes this device exactly like the backup from {when(manifest.created_at)}. Everything made after that is removed from this device.
           </p>
+          <p>
+            Your current data is kept
+            {state.folder.state === 'granted' ? ' as a backup in the backup folder (written first) and' : ''} on this device.
+            To undo: Settings › Backup and safety › Backup & restore › Merge it back.
+          </p>
+          {paired && <p>Only this device changes. Your other devices will send their data back when they connect.</p>}
+          <p class="hint">Close other tabs of the app first.</p>
           <label class="row">
             <input type="checkbox" checked={understood} onChange={(e) => setUnderstood((e.target as HTMLInputElement).checked)} />
             I understand that later changes on this device will be removed.
@@ -530,7 +536,10 @@ export function BackupsView({ params }: ViewProps) {
   return (
     <Page width="settings" class="backups">
       <PageHeader title="Backup & restore" />
-      <p class="help-link"><a href="#/help/backups">How this works</a></p>
+      <p class="hint backups-what">
+        Backups are full copies of your data in a folder outside the browser, or a download. They are your files and are not synced. A backup restore covers everything: entries, notes and tasks, projects, clients, tags, settings and the files in notes.
+        For undoing a recent change use Version history (below) or Recently deleted instead. <a href="#/help/backups">How the three fit together</a>
+      </p>
       <p class={`backup-health ${health.ok ? 'ok' : 'warn'}`}>{health.text}</p>
       {state.notice ? <p class="hint">{state.notice}</p> : null}
       <StorageLine />
@@ -670,7 +679,7 @@ export function BackupsView({ params }: ViewProps) {
       <PassphraseSection key="passphrase" />
 
       <h2>Restore</h2>
-      <p class="hint">Restoring checks every file's checksum first and shows what the backup holds before anything changes.</p>
+      <p class="hint">Restoring from a backup checks every file's checksum first and shows what the backup holds before anything changes. Merge adds what is missing; Replace makes this device exactly like the backup and keeps what it replaces.</p>
       <div class="row">
         <FileButton label="Restore from a backup file…" inputLabel="Backup file" accept=".json,.zip,application/json,application/zip" onChange={(e) => void act(() => fromFile(e.target as HTMLInputElement))} />
         {picker && (
@@ -710,9 +719,9 @@ export function BackupsView({ params }: ViewProps) {
           }}
         />
       )}
-      {before && (
-        <p class="hint">
-          The data from before the replace on {when(before.at)} is kept on this device.{' '}
+      {mergeBackOffered(before) && (
+        <p class="hint merge-back">
+          The data from before the replace on {when(before.at)} is kept on this device. It adds back what the replace removed; nothing is lost.{' '}
           <Button
             disabled={busy}
             onClick={() =>
@@ -723,6 +732,18 @@ export function BackupsView({ params }: ViewProps) {
             }
           >
             Merge it back
+          </Button>{' '}
+          <Button
+            disabled={busy}
+            onClick={() =>
+              void act(async () => {
+                await dismissMergeBack();
+                setBefore(await beforeReplace());
+                setMessage('Hidden. The earlier data stays on this device.');
+              })
+            }
+          >
+            Dismiss
           </Button>
         </p>
       )}

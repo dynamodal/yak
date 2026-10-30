@@ -6,6 +6,8 @@ import {
   clientProjectCount,
   createClient,
   createProject,
+  deleteClient,
+  deleteProject,
   deleteTag,
   ensureTag,
   liveClients,
@@ -21,6 +23,7 @@ import {
 } from './catalog';
 import { addManualEntry, liveEntries } from './entries';
 import { at, makeSpaceDocs, syncDevices } from './testing';
+import { trashItems } from '../core/trash';
 
 const doc = () => makeSpaceDocs().get('personal')!;
 
@@ -156,5 +159,22 @@ describe('private rates through the catalog', () => {
     expect(liveProjects(shared)[0]).toMatchObject({ rate: 50, currency: 'USD' });
     expect(updateProject(shared, 'missing', { rate: 1 }, priv)).toBe(false);
     expect(updateProject(shared, id, { rate: -1 }, priv)).toBe(false);
+  });
+});
+
+describe('Recently deleted (B-107)', () => {
+  it('deleting a project, client or tag stamps it; a tag merged by a rename is not listed', () => {
+    const d = new Y.Doc();
+    deleteProject(d, createProject(d, { name: 'P' })!);
+    deleteClient(d, createClient(d, 'C')!);
+    ensureTag(d, 'gone');
+    deleteTag(d, 'gone');
+    ensureTag(d, 'a');
+    ensureTag(d, 'b');
+    renameTag(d, 'a', 'b');
+    expect(trashItems(d, 'projects').map((t) => t.title)).toEqual(['P']);
+    expect(trashItems(d, 'clients').map((t) => t.title)).toEqual(['C']);
+    expect(trashItems(d, 'tags').map((t) => t.title)).toEqual(['gone']);
+    expect(trashItems(d, 'projects')[0]!.deletedAt).not.toBeNull();
   });
 });

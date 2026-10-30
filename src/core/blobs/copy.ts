@@ -28,11 +28,12 @@ export function copyIndexEntry(src: Y.Doc, dst: Y.Doc, name: string): CopiedFile
     live.map((x) => x.name),
   );
   const existing = map.get(a.hash);
-  if (existing) {
-    // Deleted in the target: bring it back under a free name.
+  if (existing && !existing.has('purged_at')) {
+    // Deleted in the target: bring it back under a free name. A tombstone (deleted for good) is replaced by a new entry below.
     dst.transact(() => {
       existing.set('name', unique);
       existing.set('deleted', false);
+      existing.delete('deleted_at');
     });
     return { hash: a.hash, name: unique };
   }

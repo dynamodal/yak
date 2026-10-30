@@ -37,6 +37,8 @@ export interface Project {
   created_at: string;
   updated_at: string;
   deleted: boolean;
+  /** When it was deleted (ISO), for Recently deleted (B-107); absent when never deleted or deleted before the field existed ("date unknown"). */
+  deleted_at?: string | null;
 }
 
 export interface Client {
@@ -45,12 +47,18 @@ export interface Client {
   created_at: string;
   updated_at: string;
   deleted: boolean;
+  /** As `Project.deleted_at`. */
+  deleted_at?: string | null;
 }
 
 export interface Tag {
   name: string;
   created_at: string;
   deleted: boolean;
+  /** As `Project.deleted_at`. */
+  deleted_at?: string | null;
+  /** Set when a rename merged it into another tag: not a delete, so Recently deleted leaves it out. */
+  merged?: boolean;
 }
 
 export type CollectionName = 'time_entries' | 'projects' | 'clients' | 'tags' | 'notes';
@@ -94,7 +102,8 @@ export function softDelete(doc: Y.Doc, name: CollectionName, id: string): boolea
 export function liveRecords<T>(doc: Y.Doc, name: CollectionName): (T & { id: string })[] {
   const out: (T & { id: string })[] = [];
   collection(doc, name).forEach((record, id) => {
-    if (record.get('deleted') === true) return;
+    // A tombstone (Delete for good, B-107) is never live, even if a concurrent restore cleared `deleted`.
+    if (record.get('deleted') === true || record.has('purged_at')) return;
     const plain: Record<string, unknown> = { id };
     record.forEach((v, k) => {
       plain[k] = v;

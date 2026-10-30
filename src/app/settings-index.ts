@@ -46,7 +46,7 @@ const section = (s: SettingsSection, keywords: string[], features?: FeatureId[])
 export const SETTINGS_ENTRIES: readonly SettingsEntry[] = [
   section('backups', ['backup', 'backups', 'restore', 'encrypt', 'folder', 'download', 'merge', 'replace', 'zip']),
   section('version-history', ['history', 'earlier version', 'go back in time', 'undo', 'warn', 'deleted', 'changed']),
-  section('recently-deleted', ['trash', 'deleted', 'undelete', 'restore', 'bin']),
+  section('recently-deleted', ['trash', 'deleted', 'undelete', 'restore', 'bin', 'delete for good', 'delete files straight away']),
   section('passphrase', ['passphrase', 'password', 'unlock', 'encryption', 'key', 'import', 'toggl', 'csv']),
   { id: 'passphrase-manage', title: 'Passphrase › Manage', section: 'passphrase', row: 'manage', keywords: ['forget', 'unlock', 'account key', 'protect'] },
   { id: 'import', title: 'Import', section: 'passphrase', href: '#/settings/import', keywords: ['toggl', 'csv', 'bring in'], features: ['import'] },

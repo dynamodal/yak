@@ -515,6 +515,9 @@ export function RecentlyDeleted({ entries, data }: { entries: readonly EntryReco
           );
         })}
       </ul>
+      <p class="hint">
+        Every kind of deleted item: <a href="#/settings/recently-deleted">Settings › Recently deleted</a>.
+      </p>
       {error ? (
         <p class="error te-error" role="alert">
           {error}

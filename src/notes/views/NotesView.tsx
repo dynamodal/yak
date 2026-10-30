@@ -515,7 +515,9 @@ export function NotesView({ params }: ViewProps) {
                 </li>
               ))}
             </ul>
-            <p class="hint">Deleted notes can be brought back for {NOTE_RESTORE_DAYS} days.</p>
+            <p class="hint">
+              Deleted notes can be brought back for {NOTE_RESTORE_DAYS} days. Every kind of deleted item: <a href="#/settings/recently-deleted">Settings › Recently deleted</a>.
+            </p>
           </details>
         )}
         {error ? !note && <p class="error">{error}</p> : null}

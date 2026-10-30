@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { BULK_EDIT } from '../core/bulk';
-import { collection, createRecord, nowIso, softDelete, updateRecord } from '../core/schema';
+import { collection, createRecord, nowIso, updateRecord } from '../core/schema';
+import { restoreRecord, trashItems, trashRecord, TRASH_DAYS } from '../core/trash';
 import { minimalEdit, parseNote, propertyEdit, type ParsedNote, type FrontMatterValue, type TextEdit } from './frontmatter';
 import { extractInlineTags, extractLinks, frontMatterTags, makeResolver, uniqueTags, type Resolver, type WikiLink } from './links';
 import { rewriteTag } from './tag-rewrite';
@@ -158,34 +159,29 @@ export function moveNotes(doc: Y.Doc, moves: readonly { id: string; path: string
   });
 }
 
+/** Soft delete, stamped for Recently deleted (B-107). */
 export function deleteNote(doc: Y.Doc, id: string): boolean {
-  return softDelete(doc, 'notes', id);
+  return trashRecord(doc, 'notes', id);
 }
 
 /** A deleted note can be brought back for this long, like a time entry (owner, 2026-10-17). */
-export const NOTE_RESTORE_DAYS = 45;
+export const NOTE_RESTORE_DAYS = TRASH_DAYS;
 
 export interface DeletedNote {
   id: string;
   path: string;
-  /** When it was deleted: the record's last update. */
+  /** When it was deleted: `deleted_at`, or the record's last update when later or the only date. */
   at: number;
 }
 
-/** Notes deleted within the restore window, newest first. */
+/** Notes deleted within the restore window, newest first. Deleted for good ones are gone. */
 export function recentlyDeletedNotes(doc: Y.Doc, now: number = Date.now()): DeletedNote[] {
-  const out: DeletedNote[] = [];
-  notesMap(doc).forEach((rec, id) => {
-    if (rec.get('deleted') !== true) return;
-    const at = Date.parse(String(rec.get('updated_at') ?? ''));
-    if (Number.isFinite(at) && now - at < NOTE_RESTORE_DAYS * 86_400_000) out.push({ id, path: String(rec.get('path') ?? ''), at });
-  });
-  return out.sort((a, b) => b.at - a.at);
+  return trashItems(doc, 'notes', now).map((t) => ({ id: t.id, path: t.title, at: t.deletedAt ?? 0 }));
 }
 
-/** Undo a delete moments after it happened (the toast's Undo). */
+/** Undo a delete (the toast's Undo, the Recently deleted lists). Refused once deleted for good. */
 export function restoreNote(doc: Y.Doc, id: string): boolean {
-  return updateRecord(doc, 'notes', id, { deleted: false });
+  return restoreRecord(doc, 'notes', id).ok;
 }
 
 export function touchNote(doc: Y.Doc, id: string): void {

@@ -7,6 +7,7 @@ import { attachmentsMap, listAttachments, type Attachment } from '../core/blobs/
 import { WARN_FRACTION, formatBytes } from '../core/blobs/limits';
 import { blobStore } from '../core/blobs/store';
 import { deleteFiles, spaceFiles, unreferencedFiles, type SpaceFiles } from '../core/blobs/unused';
+import { readDeleteFilesNow, TRASH_DAYS } from '../core/trash';
 
 /** Re-render when the space's notes or file index change. */
 function useChanges(doc: Y.Doc): number {
@@ -26,7 +27,9 @@ function useChanges(doc: Y.Doc): number {
 }
 
 function SpaceUnused({ name, unit, doc }: { name: string; unit: string; doc: Y.Doc }) {
+  const { account } = useApp();
   const changes = useChanges(doc);
+  const now = readDeleteFilesNow(account);
   const [usage, setUsage] = useState<SpaceFiles | undefined>();
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
@@ -43,7 +46,7 @@ function SpaceUnused({ name, unit, doc }: { name: string; unit: string; doc: Y.D
   const remove = async (hashes: string[]): Promise<void> => {
     setError('');
     try {
-      await deleteFiles(doc, blobStore(unit), hashes);
+      await deleteFiles(doc, blobStore(unit), hashes, { straightAway: readDeleteFilesNow(account) });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -90,7 +93,16 @@ function SpaceUnused({ name, unit, doc }: { name: string; unit: string; doc: Y.D
               </li>
             ))}
           </ul>
-          <p class="hint">A delete removes the file on every device that keeps this space, and in a shared space for everyone in it. Only a backup can bring it back.</p>
+          <p class="hint">
+            A delete removes the file on every device that keeps this space, and in a shared space for everyone in it.{' '}
+            {now ? (
+              <>Files are deleted for good straight away (<a href="#/settings/recently-deleted">Recently deleted</a>); only a backup can bring one back.</>
+            ) : (
+              <>
+                <a href="#/settings/recently-deleted">Recently deleted</a> keeps it, contents included, for {TRASH_DAYS} days.
+              </>
+            )}
+          </p>
         </>
       )}
       {error ? (

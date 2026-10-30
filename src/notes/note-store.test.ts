@@ -131,10 +131,19 @@ describe('recently deleted notes', () => {
     deleteNote(doc, b);
     deleteNote(doc, c);
     const day = 86_400_000;
+    for (const id of [a, b]) notesMap(doc).get(id)?.delete('deleted_at'); // deleted by an older build: `updated_at` is the date
     notesMap(doc).get(a)?.set('updated_at', new Date(Date.now() - 50 * day).toISOString());
     notesMap(doc).get(b)?.set('updated_at', new Date(Date.now() - 2 * day).toISOString());
     expect(recentlyDeletedNotes(doc).map((n) => n.path)).toEqual(['C.md', 'B.md']);
     restoreNote(doc, c);
     expect(recentlyDeletedNotes(doc).map((n) => n.path)).toEqual(['B.md']);
+    expect(notesMap(doc).get(c)?.has('deleted_at')).toBe(false);
+  });
+
+  it('a delete is stamped with deleted_at', () => {
+    const doc = new Y.Doc();
+    const a = createNote(doc, 'A.md', 'a');
+    deleteNote(doc, a);
+    expect(typeof notesMap(doc).get(a)?.get('deleted_at')).toBe('string');
   });
 });

@@ -3,7 +3,8 @@ import { type Rate, readRate, writeRate } from '../core/rates';
 import { BULK_EDIT } from '../core/bulk';
 import { visibleTags } from '../core/hidden-tags';
 import { PROJECT_COLORS } from '../app/theme/palette';
-import { type Client, collection, createRecord, liveRecords, nowIso, type Project, softDelete, type Tag, updateRecord } from '../core/schema';
+import { type Client, collection, createRecord, liveRecords, nowIso, type Project, type Tag, updateRecord } from '../core/schema';
+import { trashRecord } from '../core/trash';
 import { cleanTags } from './entries';
 
 export type ProjectRecord = Project & { id: string };
@@ -170,7 +171,7 @@ export function renameTag(doc: Y.Doc, from: string, to: string, entriesDoc: Y.Do
   doc.transact(() => {
     for (const t of liveTags(doc)) {
       if (t.name.toLowerCase() !== lower) continue;
-      if (merging) softDelete(doc, 'tags', t.id);
+      if (merging) updateRecord(doc, 'tags', t.id, { deleted: true, merged: true });
       else updateRecord(doc, 'tags', t.id, { name: target });
     }
   }, BULK_EDIT);
@@ -182,7 +183,7 @@ export function renameTag(doc: Y.Doc, from: string, to: string, entriesDoc: Y.Do
 export function deleteTag(doc: Y.Doc, name: string, entriesDoc: Y.Doc = doc): number {
   const lower = name.toLowerCase();
   doc.transact(() => {
-    for (const t of liveTags(doc)) if (t.name.toLowerCase() === lower) softDelete(doc, 'tags', t.id);
+    for (const t of liveTags(doc)) if (t.name.toLowerCase() === lower) trashRecord(doc, 'tags', t.id);
   }, BULK_EDIT);
   return rewriteEntryTags(entriesDoc, name, (tags) => tags.filter((t) => t.toLowerCase() !== lower));
 }
@@ -210,9 +211,9 @@ export function moveProjectEntries(entriesDoc: Y.Doc, from: string, to: string |
   return n;
 }
 
-/** Delete a project that no entry uses any more (soft, like every delete). */
+/** Delete a project that no entry uses any more (soft, like every delete; Recently deleted keeps it 45 days). */
 export function deleteProject(doc: Y.Doc, id: string): boolean {
-  return softDelete(doc, 'projects', id);
+  return trashRecord(doc, 'projects', id);
 }
 
 /** Live projects of a client. */
@@ -235,5 +236,5 @@ export function moveClientProjects(doc: Y.Doc, from: string, to: string | null):
 
 /** Delete a client that has no projects any more. */
 export function deleteClient(doc: Y.Doc, id: string): boolean {
-  return softDelete(doc, 'clients', id);
+  return trashRecord(doc, 'clients', id);
 }

@@ -50,22 +50,8 @@ export function PartsSection(props: { section: 'backups' | 'version-history' | '
   );
 }
 
-/** Recently deleted: what can be brought back today, where, and for how long. The lists themselves stay where the items live; the model is in the user guide. */
-export function RecentlyDeletedSection() {
-  return (
-    <ul class="st-links" data-recently-deleted>
-      <li>
-        <strong>Time entries:</strong> restorable for 45 days from <a href="#/time/list">Time › Recently deleted</a>, or with Undo right after deleting.
-      </li>
-      <li>
-        <strong>Notes and tasks:</strong> restorable for 45 days from <a href="#/notes">Notes › Recently deleted</a>.
-      </li>
-      <li>
-        <strong>Projects, clients, tags and files in notes:</strong> not listed yet; a delete is final for now. <a href="#/help/backups">How the three layers fit together</a>
-      </li>
-    </ul>
-  );
-}
+/** Recently deleted (B-107): every kind of deleted item, in `RecentlyDeleted.tsx`. */
+export { RecentlyDeletedSection } from './RecentlyDeleted';
 
 /**
  * Notes (F-55): links, files and unused files, daily, weekly and monthly notes, 

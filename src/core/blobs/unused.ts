@@ -3,11 +3,12 @@ import { liveRecords } from '../schema';
 import { attachmentsMap, listAttachments, type Attachment } from './attachments';
 import { MAX_UNIT_BYTES } from './limits';
 import type { BlobStore } from './store';
+import { deletedAtMs, isPurged, purgeRecord, trashRecord, TRASH_MS } from '../trash';
 
 /**
  * Cleaning up files (#166 slice 5, decision N-166j). Nothing is deleted automatically: this finds the
  * files no note refers to, and deletes the ones the person picks. A delete is soft in the index
- * (`deleted: true`, as every record), and every device drops the bytes when it sees it.
+ * (`deleted: true`, as every record); the bytes stay for Recently deleted and go when it is done with them.
  */
 
 const lastSegment = (ref: string): string => ref.split(/[\\/]/).pop()!.trim().toLowerCase();
@@ -60,21 +61,42 @@ export function unreferencedFiles(doc: Y.Doc): Attachment[] {
     .sort((a, b) => b.size - a.size || a.name.localeCompare(b.name));
 }
 
-/** Delete files for everyone who keeps the space: the index entries are marked deleted (this device drops the bytes now, the others when the change reaches them). */
-export async function deleteFiles(doc: Y.Doc, store: BlobStore, hashes: readonly string[]): Promise<void> {
-  const map = attachmentsMap(doc);
+/**
+ * Delete files for everyone who keeps the space: the index entries are marked deleted and stamped, so
+ * Recently deleted keeps them (bytes included) for `TRASH_DAYS` (B-107). With `now` set (the account
+ * setting "Delete files for good straight away") they are deleted for good and the bytes go at once.
+ */
+export async function deleteFiles(doc: Y.Doc, store: BlobStore, hashes: readonly string[], o: { straightAway?: boolean; now?: number } = {}): Promise<void> {
+  const now = o.now ?? Date.now();
   doc.transact(() => {
-    for (const hash of hashes) map.get(hash)?.set('deleted', true);
+    for (const hash of hashes) {
+      trashRecord(doc, 'files', hash, now);
+      if (o.straightAway) purgeRecord(doc, 'files', hash, now);
+    }
   });
-  await dropDeletedBytes(doc, store);
+  await dropDeletedBytes(doc, store, { now });
 }
 
-/** Remove the bytes, and any half-received pieces, of every file the index says is deleted. Runs on each device that sees a delete. */
-export async function dropDeletedBytes(doc: Y.Doc, store: BlobStore): Promise<number> {
+/**
+ * Remove the bytes, and any half-received pieces, of deleted files that are done with: deleted for good,
+ * or deleted more than `TRASH_DAYS` ago. A file deleted without a date (before B-107) keeps whatever
+ * bytes are left, as nothing tells when it may go. With `straightAway` (the account setting) every deleted
+ * file is deleted for good first. Runs on each device that sees a delete, and now and then for the window.
+ */
+export async function dropDeletedBytes(doc: Y.Doc, store: BlobStore, o: { now?: number; straightAway?: boolean } = {}): Promise<number> {
+  const now = o.now ?? Date.now();
+  const map = attachmentsMap(doc);
+  if (o.straightAway) {
+    const pending = [...map.entries()].filter(([, m]) => m.get('deleted') === true && !isPurged(m)).map(([h]) => h);
+    if (pending.length) doc.transact(() => pending.forEach((h) => purgeRecord(doc, 'files', h, now)));
+  }
   let n = 0;
-  for (const [hash, m] of [...attachmentsMap(doc).entries()]) {
+  for (const [hash, m] of [...map.entries()]) {
     if (m.get('deleted') !== true) continue;
+    // Half-received pieces of a deleted file are no use to anyone; a restore fetches again.
     await store.deletePieces(hash).catch(() => undefined);
+    const at = deletedAtMs('files', m);
+    if (!isPurged(m) && (at === null || now - at < TRASH_MS)) continue;
     if (await store.has(hash).catch(() => false)) {
       await store.delete(hash);
       n++;

@@ -190,7 +190,10 @@ export async function restoreBlobs(manifest: Manifest, source: BlobSource, store
     }
     const doc = docFor?.(b.unit);
     const entry = doc ? attachmentsMap(doc).get(b.hash) : undefined;
-    if (entry && entry.get('deleted') === true) entry.set('deleted', false);
+    if (entry && entry.get('deleted') === true && !entry.has('purged_at')) {
+      entry.set('deleted', false);
+      entry.delete('deleted_at');
+    }
   }
   return out;
 }

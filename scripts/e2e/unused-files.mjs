@@ -3,7 +3,8 @@
 //   npm run e2e unused-files
 //
 // A note links one of two files, so the other is unused. Manage lists it with its size,
-// nothing was deleted by itself, Delete asks first, and a delete removes the file (index and bytes).
+// nothing was deleted by itself, Delete asks first, and a delete removes the file from the index; its bytes
+// stay for Recently deleted until it is deleted for good there.
 import { BASE, launch, check, watchPage, until, finish, newNote } from './lib.mjs';
 
 const SPACE = 'space/personal';
@@ -36,9 +37,14 @@ try {
   check((await bytes()) === total, 'Delete asks first: nothing is removed yet');
   await page.getByRole('button', { name: 'Delete for everyone' }).click();
   check((await until(async () => (await unused.count()) === 0)) >= 0, 'the file leaves the list');
-  check((await until(async () => (await bytes()) === 'keep me'.length)) >= 0, 'its bytes are gone, the other file stays');
   const left = Object.values(await index()).filter((a) => a.deleted !== true).map((a) => a.name);
   check(left.join() === 'keep.txt', `the index keeps only keep.txt (${left.join()})`);
+  await page.waitForTimeout(800);
+  check((await bytes()) === total, 'Recently deleted keeps its bytes for 45 days (B-107)');
+  await page.goto(BASE + '?test#/settings/recently-deleted');
+  await page.getByRole('button', { name: 'Delete drop.txt for good', exact: true }).click();
+  await page.locator('.rd-confirm').getByRole('button', { name: 'Delete for good' }).click();
+  check((await until(async () => (await bytes()) === 'keep me'.length)) >= 0, 'deleted for good: its bytes are gone, the other file stays');
 } finally {
   await finish(browser);
 }

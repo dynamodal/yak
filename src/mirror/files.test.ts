@@ -39,7 +39,7 @@ describe('mirror files', () => {
     expect(t.fs.bytes('Personal/attachments/a.bin')).toEqual(bytes(9, 9));
   });
 
-  it('a file deleted in the folder is deleted in the index and the store', async () => {
+  it('a file deleted in the folder is deleted in the index; the store keeps the bytes for Recently deleted', async () => {
     const t = setup();
     t.fs.putBytes('Personal/attachments/x.bin', bytes(1));
     await t.sync();
@@ -47,7 +47,8 @@ describe('mirror files', () => {
     await t.fs.delete('Personal/attachments/x.bin');
     await t.sync();
     expect(t.names()).toEqual([]);
-    expect(await t.blobs.get(hash)).toBeUndefined();
+    expect(await t.blobs.get(hash)).toBeDefined();
+    expect(typeof attachmentsMap(t.space.doc).get(hash)!.get('deleted_at')).toBe('string');
     await t.sync();
     expect(t.fs.paths()).toEqual([]);
   });
@@ -60,7 +61,7 @@ describe('mirror files', () => {
     attachmentsMap(t.space.doc).get(hash)!.set('deleted', true);
     await t.sync();
     expect(t.fs.paths()).toEqual([]);
-    expect(await t.blobs.get(hash)).toBeUndefined();
+    expect(await t.blobs.get(hash)).toBeDefined(); // the file sweep drops it later (B-107)
     expect(t.names()).toEqual([]);
   });
 

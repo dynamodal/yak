@@ -4,6 +4,8 @@ import './app.css';
 import './ui/ui.css';
 import { render } from 'preact';
 import * as Y from 'yjs';
+import { createRecord } from '../core/schema';
+import { trashRecord, type TrashKind } from '../core/trash';
 import { bus } from '../core/bus';
 import { deviceId } from '../core/device';
 import { accountDocId, accountLogDocId, accountOfDoc, LEGACY_ACCOUNT_KEY, readSpaces } from '../core/account';
@@ -237,7 +239,7 @@ async function boot(root: HTMLElement, started: () => void): Promise<void> {
   });
   void requestPersistence().then((r) => sync.log.log('storage', `persistence ${r}`));
 
-  startFileSweep(store);
+  startFileSweep(store, () => account);
   render(<App store={store} sync={sync} bus={bus} deviceId={me} account={accountState} welcome={welcome} />, root);
   started();
   const eraseStore = rawStorage();
@@ -336,6 +338,15 @@ async function boot(root: HTMLElement, started: () => void): Promise<void> {
       fileBytes: async (id: string) => {
         const unit = spaceOfDoc(testDocId(store, id));
         return unit ? blobStore(unit).totalSize() : 0;
+      },
+      /** Recently deleted (B-107): make a record (a note's `text` becomes a Y.Text) and delete it with the stamp, as the app's deletes do. */
+      addRecord: (id: string, name: 'time_entries' | 'notes' | 'projects' | 'clients' | 'tags', fields: Record<string, unknown>) => {
+        const doc = store.get(testDocId(store, id));
+        return doc ? createRecord(doc, name, typeof fields.text === 'string' ? { ...fields, text: new Y.Text(fields.text) } : fields) : undefined;
+      },
+      trash: (id: string, kind: TrashKind, recordId: string) => {
+        const doc = store.get(testDocId(store, id));
+        return doc ? trashRecord(doc, kind, recordId) : false;
       },
       /** Set or delete one entry of a map in a document (tests drive notes and roster records this way). */
       mapSet: (id: string, map: string, key: string, value: unknown) => void store.get(testDocId(store, id))?.getMap(map).set(key, value),

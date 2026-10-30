@@ -10,7 +10,7 @@ import { MIRROR_ORIGIN } from './engine';
  * One flat `attachments/` folder per space. The file store and the `attachments` index are the
  * truth on the app side; the folder is the other side. Rules:
  * - a file new in the folder enters the store and the index (any type, 10 MB cap, ` 2` suffix on a clash);
- * - a file deleted in the folder is deleted (index entry and bytes); the other way too;
+ * - a file deleted in the folder is deleted (the index entry; the bytes go with Recently deleted, B-107); the other way too;
  * - a file arriving from sync is written when missing;
  * - a changed file replaces the old content under its name.
  */
@@ -67,9 +67,12 @@ export async function syncFiles(fs: MirrorFs, space: MirrorSpace, all: FileInfo[
   const nameOf = (hash: string): string => String(map.get(hash)?.get('name') ?? '');
   /** The disk file the index entry is meant to be: same name as the index says. */
   const canonical = (e: FileEntry): boolean => inFolder(e.path) && isLive(e.hash) && nameOf(e.hash).toLowerCase() === baseName(e.path).toLowerCase();
+  // A delete in the folder is a delete for everyone; the bytes stay for Recently deleted (B-107) and the file sweep drops them later.
   const drop = async (hash: string): Promise<void> => {
-    doc.transact(() => map.get(hash)?.set('deleted', true), MIRROR_ORIGIN);
-    await store.delete(hash);
+    doc.transact(() => {
+      map.get(hash)?.set('deleted', true);
+      map.get(hash)?.set('deleted_at', new Date().toISOString());
+    }, MIRROR_ORIGIN);
   };
   const untrack = (k: string): void => void delete entries[k];
   const track = (rel: string, hash: string, stamp: string): void => void (entries[key(rel)] = { path: rel, hash, stamp });
@@ -95,7 +98,7 @@ export async function syncFiles(fs: MirrorFs, space: MirrorSpace, all: FileInfo[
           await fs.delete(abs(e.path));
           disk.delete(k);
         }
-        await store.delete(e.hash);
+        // The bytes stay in the store for Recently deleted (B-107); the file sweep drops them when it is done with them.
         untrack(k);
         continue;
       }

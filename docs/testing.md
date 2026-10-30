@@ -57,7 +57,8 @@ CI (F-6 and F-41 in `docs/decisions/app.md`):
 - Obsidian is downloaded into `obsidian/e2e/.obsidian-cache/` (git-ignored) on first use; each run opens a fresh copy of `obsidian/e2e/vault/` with the plugin enabled.
 - The app runs in Playwright's Chromium beside Obsidian (`scripts/e2e/lib.mjs`). Obsidian is driven through its real UI; `executeObsidian` only reads state and edits a vault file as an editor would.
 - Obsidian 1.14 opens Settings in a window of its own, and notices appear in the focused window: switch windows (`inMain` in `specs/join.e2e.mjs`).
-- Display: Linux without one runs under `xvfb-run` when installed (CI). On a desktop, Obsidian windows open on screen while the suite runs.
+- Display: `run.mjs` starts its own Xvfb and runs Obsidian on it with `WAYLAND_DISPLAY` unset, so no window opens on the desktop or takes its focus; locally and in CI alike. Without Xvfb it refuses to run; `YAK_XVFB` names an Xvfb that is not on `PATH`, and `-- --show` opens the windows on the desktop to watch or debug.
+- Chromium's headless backend (`--ozone-platform=headless`) was tried instead and rejected: Obsidian starts but never opens its DevTools port, so WebDriver cannot attach.
 - A failed step prints the plugin's join state and the end of its connection log.
 
 ## Performance

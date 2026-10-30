@@ -183,7 +183,7 @@ jobs:
           path: dist
       - uses: ./.github/actions/chrome
       - run: npm run build:obsidian
-      # No display on the runner: obsidian/e2e/run.mjs starts Obsidian under xvfb-run (preinstalled).
+      # obsidian/e2e/run.mjs starts Obsidian on its own Xvfb (preinstalled on the runner).
       - run: npm run e2e:obsidian-app -- --no-build
 
   # The status branch rules require (decision F-6, F-20 area): green only when every job above is green.

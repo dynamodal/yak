@@ -9,7 +9,7 @@
 //
 // onPrepare serves dist/ (a test build) with scripts/serve-dist.mjs and its mock relay, as `npm run e2e` does; the
 // specs reach it through TARGET, and the app runs beside Obsidian in Playwright's Chromium (scripts/e2e/lib.mjs).
-// Linux CI needs a display: run under xvfb-run.
+// Obsidian needs an X display: run.mjs gives it a virtual one (Xvfb), never the desktop's.
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';

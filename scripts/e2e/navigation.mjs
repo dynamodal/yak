@@ -87,7 +87,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   // A detail view: the Settings tab stays lit and Back returns to the page.
   await p.evaluate(() => { location.hash = '#/settings'; });
   await p.locator('.st-home').waitFor();
-  await p.locator('.st-actions').getByRole('link', { name: '+ Add a device' }).first().click();
+  await p.locator('[data-line="sync"]').getByRole('link').first().click();
   await p.getByRole('heading', { name: 'Add a device', level: 1 }).waitFor();
   check((await route(p)) === '#/settings/devices/add' && (await p.locator('.tabs a.active').innerText()) === 'Settings', 'wide: Add a device opens its own page and the Settings tab stays lit');
   await p.goBack();

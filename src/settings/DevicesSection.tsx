@@ -335,11 +335,6 @@ export function DevicesSection(props: { target?: string }) {
           </ul>
         </div>
       )}
-      <div class="row st-actions">
-        <a class="btn" href="#/settings/devices/add">
-          + Add a device
-        </a>
-      </div>
     </>
   );
 }

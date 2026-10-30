@@ -17,6 +17,7 @@ export function TimerPageHeader({ title, active, parent = 'timer', primary }: { 
     <PageHeader
       title={title}
       hideTitle
+      anchor
       views={
         <nav class="seg" aria-label="Time views">
           {items.map((m) => (

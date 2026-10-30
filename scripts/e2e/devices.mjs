@@ -49,6 +49,15 @@ check((await a.getByRole('button', { name: 'Start syncing my devices' }).count()
 await startSyncing(a);
 await joinByInvite(a, b);
 (await until(async () => (await st(a)) === 'connected' && (await st(b)) === 'connected', 20000)) >= 0 ? ok('A and B paired') : fail('A and B did not pair');
+// Two devices can share a name (#119): every row carries the start of its id, the full id on hover.
+{
+  const aId = await idOf(a), bId = await idOf(b);
+  await open(a, 'this');
+  const mine = row(a, 'this').locator('.st-row-head code');
+  const theirs = row(a, bId).locator('.st-row-head code');
+  check((await mine.innerText()) === aId.slice(0, 8) && (await mine.getAttribute('title')) === `Device ID ${aId}`, "this device's row shows the start of its id, the full id on hover");
+  check((await theirs.innerText()) === bId.slice(0, 8) && (await theirs.getAttribute('title')) === `Device ID ${bId}`, "another device's row shows the start of its id, the full id on hover");
+}
 // Compatible mode (#255): each updated device publishes its keys and the Devices page shows the lock state.
 await openAdvanced(a);
 check((await until(async () => /Has keys/.test(await a.locator('details.advanced').first().innerText()), 10000)) >= 0, 'this device shows that it has keys (under Advanced)');

@@ -25,6 +25,7 @@ import { KeyTrust } from '../../src/app/key-trust';
 import { deviceFingerprint } from '../../src/core/account-keys';
 import { formatFingerprint } from '../../src/core/keys';
 import { PluginKeys, type KeyData } from './plugin-keys';
+import { defaultDeviceName, syncStatusLine } from './device-name';
 
 /**
  * The Yak plugin (#64): this vault is a device of the account. It joins with the sync code,
@@ -42,6 +43,8 @@ const LOG_LINES = 300;
 
 interface PluginData {
   deviceId: string;
+  /** The name the owner gave this device in the settings tab; unset means the default name (#118). */
+  deviceName?: string;
   relay: string;
   /** The root folder in the vault, one name. */
   root: string;
@@ -208,8 +211,8 @@ export default class YakPlugin extends Plugin {
     this.account = account;
     account.subscribe(() => void this.mirror.run());
     await account.refresh();
-    // Without a name the Devices page shows an id; the owner can rename it there.
-    if (!deviceName(doc, this.data.deviceId)) setDeviceName(doc, this.data.deviceId, `Obsidian (${this.app.vault.getName()})`);
+    // Without a name the Devices page shows an id; a vault that already has one keeps it (#118).
+    if (!deviceName(doc, this.data.deviceId)) setDeviceName(doc, this.data.deviceId, this.deviceNameNow());
     this.keys.attach(doc);
   }
 
@@ -226,9 +229,31 @@ export default class YakPlugin extends Plugin {
     else if (j.phase === 'declined' || j.phase === 'failed') new Notice(`Yak: ${j.error ?? 'the other device declined this vault.'}`);
   }
 
+  /** The name this device joins under: the owner's choice, else vault, platform and a short id (#118). */
+  deviceNameNow(): string {
+    const chosen = this.data.deviceName?.trim();
+    if (chosen) return chosen;
+    return defaultDeviceName(this.app.vault.getName(), this.app.isMobile === true, this.data.deviceId);
+  }
+
+  /** The name in the account, once it has arrived, else the one this device will join under. */
+  shownDeviceName(): string {
+    const account = this.accountDoc();
+    return (account && deviceName(account.doc, this.data.deviceId)) ?? this.deviceNameNow();
+  }
+
+  /** Rename this device; an empty name goes back to the default. */
+  async renameDevice(name: string): Promise<void> {
+    const trimmed = name.trim();
+    this.data.deviceName = trimmed || undefined;
+    await this.saveData(this.data);
+    const account = this.accountDoc();
+    if (account) setDeviceName(account.doc, this.data.deviceId, this.deviceNameNow());
+  }
+
   /** Join with a code from the app; in an account that requires keys, the code is a one-time invite and the vault waits for approval. */
   joinWithCode(code: string): Promise<void> {
-    return this.keys.joinWithCode(code, this.data.relay, this.app.vault.getName());
+    return this.keys.joinWithCode(code, this.data.relay, this.deviceNameNow());
   }
 
   private spaceInputs(): SpaceInput[] {
@@ -354,60 +379,73 @@ function keyNotes(p: YakPlugin): string[] {
 }
 
 class YakSettings extends PluginSettingTab {
+  private off: (() => void) | undefined;
+
   constructor(private readonly plugin: YakPlugin) {
     super(plugin.app, plugin);
   }
 
+  hide(): void {
+    this.off?.();
+    this.off = undefined;
+  }
+
+  /** Not joined, joining, or syncing with N of M devices (#120). */
+  private statusText(): string {
+    const p = this.plugin;
+    const s = p.sync.status;
+    const account = p.accountDoc();
+    const devices = account ? [...readDevices(account.doc).values()].filter((d) => !d.removed && !d.left).length : 0;
+    const phase = p.keys.join?.phase;
+    return syncStatusLine({
+      joined: s.paired,
+      joining: phase === 'asking' || phase === 'compare',
+      connected: s.peers.filter((x) => x.state === 'connected').length,
+      devices,
+    });
+  }
+
   display(): void {
     const el = this.containerEl;
+    this.off?.();
     el.textContent = '';
     let code = '';
-    const heading = document.createElement('h3');
-    heading.textContent = 'Where Yak keeps your data';
-    el.append(heading);
-    for (const line of [...STORAGE_NOTES, ...keyNotes(this.plugin)]) {
-      const p = document.createElement('p');
-      p.textContent = line;
-      el.append(p);
-    }
+    const joined = this.plugin.sync.status.paired;
+    const status = new Setting(el).setName('Sync status').setDesc(this.statusText());
+    this.off = this.plugin.sync.subscribe(() => {
+      status.setDesc(this.statusText());
+    });
     new Setting(el)
-      .setName('Keep documents in the vault')
-      .setDesc('Off: documents are kept in this app\'s own database (IndexedDB) and vault sync never copies them. Takes effect after you reload Obsidian. Turn it on again only if the database is cleared often.')
-      .addToggle((t) =>
-        t.setValue(this.plugin.data.docsInVault).onChange((v) => {
-          this.plugin.data.docsInVault = v;
-          void this.plugin.saveData(this.plugin.data);
-          new Notice('Reload Obsidian to apply.');
-        }),
-      );
-    new Setting(el)
-      .setName('Root folder')
-      .setDesc('The one folder in this vault that Yak reads and writes. Each space is a folder inside it.')
-      .addText((t) =>
-        t.setValue(this.plugin.data.root).onChange((v) => {
-          const root = v.trim();
-          if (rootProblem(root) || root === this.plugin.data.root) return;
-          void this.plugin.setRoot(root);
-        }),
-      );
-    new Setting(el)
-      .setName('Files in notes')
-      .setDesc('Files go in <root>/<space>/attachments/, one folder per space. Yak ignores Obsidian\'s "Default location for new attachments", including "Same folder as current file". A file Obsidian saves elsewhere in a space folder still works by name; Yak copies it into attachments/. Deleting a file there deletes it on every device.');
-    new Setting(el)
-      .setName('Signaling server')
-      .setDesc('Relay (wss://…) or ntfy address. Pairing and reconnecting go through it; documents never do.')
-      .addText((t) =>
-        t.setValue(this.plugin.data.relay).onChange((v) => {
-          this.plugin.data.relay = v.trim() || DEFAULT_RELAY;
-          void this.plugin.saveData(this.plugin.data);
-        }),
-      );
+      .setName('Device name')
+      .setDesc('How this vault appears on the Devices page. Leave it empty for the default: vault, phone or desktop, and a short id.')
+      .addText((t) => {
+        t.setPlaceholder(this.plugin.deviceNameNow())
+          .setValue(this.plugin.shownDeviceName())
+          .onChange((v) => {
+            void this.plugin.renameDevice(v);
+          });
+      });
     const keys = this.plugin.keys.keys;
     if (keys) {
+      let shown = '';
       const fp = new Setting(el).setName('This vault\'s fingerprint').setDesc('Compare it with the one the app shows for this vault before you approve it.');
+      fp.addButton((b) =>
+        b.setButtonText('Copy').onClick(() => {
+          if (!shown) return;
+          navigator.clipboard?.writeText(shown).then(
+            () => {
+              new Notice('Fingerprint copied.');
+            },
+            () => {
+              new Notice('Could not copy. Select the fingerprint and copy it.');
+            },
+          );
+        }),
+      );
       void deviceFingerprint({ deviceId: this.plugin.data.deviceId, ...keys.publicKeys }).then((f) => {
         // A block body: Obsidian 1.14's Setting is a thenable, so a promise must never resolve with it (#91).
-        fp.setDesc(`${formatFingerprint(f, 2)}. Compare it with the one the app shows for this vault before you approve it.`);
+        shown = formatFingerprint(f, 2);
+        fp.setDesc(`${shown}. Compare it with the one the app shows for this vault before you approve it.`);
       });
     }
     const join = this.plugin.keys.join;
@@ -446,13 +484,61 @@ class YakSettings extends PluginSettingTab {
             );
           }),
       );
+    if (joined)
+      new Setting(el)
+        .setName('Leave')
+        .setDesc('Forget the sync code on this device. Notes already in the folder stay.')
+        .addButton((b) =>
+          b.setButtonText('Forget sync code').onClick(() => {
+            this.plugin.sync.unpair();
+            new Notice('Sync code forgotten.');
+            this.display();
+          }),
+        );
+    new Setting(el).setName('Advanced').setHeading();
     new Setting(el)
-      .setName('Leave')
-      .setDesc('Forget the sync code on this device. Notes already in the folder stay.')
-      .addButton((b) =>
-        b.setButtonText('Forget sync code').onClick(() => {
-          this.plugin.sync.unpair();
-          new Notice('Sync code forgotten.');
+      .setName('Root folder')
+      .setDesc('The one folder in this vault that Yak reads and writes. Each space is a folder inside it.')
+      .addText((t) =>
+        t.setValue(this.plugin.data.root).onChange((v) => {
+          const root = v.trim();
+          if (rootProblem(root) || root === this.plugin.data.root) return;
+          void this.plugin.setRoot(root);
+        }),
+      );
+    new Setting(el)
+      .setName('Files in notes')
+      .setDesc('Files go in <root>/<space>/attachments/, one folder per space. Yak ignores Obsidian\'s "Default location for new attachments", including "Same folder as current file". A file Obsidian saves elsewhere in a space folder still works by name; Yak copies it into attachments/. Deleting a file there deletes it on every device.');
+    new Setting(el)
+      .setName('Signaling server')
+      .setDesc('Relay (wss://…) or ntfy address. Pairing and reconnecting go through it; documents never do.')
+      .addText((t) => {
+        t.inputEl.style.width = '100%';
+        t.inputEl.style.minWidth = '22em';
+        t.setValue(this.plugin.data.relay).onChange((v) => {
+          this.plugin.data.relay = v.trim() || DEFAULT_RELAY;
+          void this.plugin.saveData(this.plugin.data);
+        });
+      });
+    const where = document.createElement('details');
+    where.setAttribute('data-where-data', '');
+    const summary = document.createElement('summary');
+    summary.textContent = 'Where Yak keeps your data';
+    where.append(summary);
+    el.append(where);
+    for (const line of [...STORAGE_NOTES, ...keyNotes(this.plugin)]) {
+      const p = document.createElement('p');
+      p.textContent = line;
+      where.append(p);
+    }
+    new Setting(where)
+      .setName('Keep documents in the vault')
+      .setDesc('Off: documents are kept in this app\'s own database (IndexedDB) and vault sync never copies them. Takes effect after you reload Obsidian. Turn it on again only if the database is cleared often.')
+      .addToggle((t) =>
+        t.setValue(this.plugin.data.docsInVault).onChange((v) => {
+          this.plugin.data.docsInVault = v;
+          void this.plugin.saveData(this.plugin.data);
+          new Notice('Reload Obsidian to apply.');
         }),
       );
   }

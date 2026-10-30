@@ -140,14 +140,22 @@ export function DescriptionField({ value, placeholder, onText, onCommit, onPick,
           return (
             <li key={`${c.spaceId}:${e.id}`} id={`${id}-${i}`} role="option" aria-selected={i === active} class={i === active ? 'combo-opt active' : 'combo-opt'} onMouseDown={(ev) => ev.preventDefault()} onClick={() => pick(c)}>
               <span class="tp-r-desc">{e.description}</span>
-              {project && (
-                <span class="tp-r-meta">
-                  · <Swatch color={project.color} /> {project.name}
-                  {client ? ` (${client.name})` : ''}
+              {(project || e.tags.length > 0 || catalogs.length > 1) && (
+                <span class="tp-r-meta combo-meta">
+                  {[
+                    project && (
+                      <span key="p">
+                        <Swatch color={project.color} /> {project.name}
+                        {client ? ` (${client.name})` : ''}
+                      </span>
+                    ),
+                    e.tags.length > 0 && <span key="t">{e.tags.join(', ')}</span>,
+                    catalogs.length > 1 && <span key="s">{spaceName(c.spaceId)}</span>,
+                  ]
+                    .filter(Boolean)
+                    .flatMap((part, k) => (k === 0 ? [part] : [' · ', part]))}
                 </span>
               )}
-              {e.tags.length > 0 && <span class="tp-r-meta">· {e.tags.join(', ')}</span>}
-              {catalogs.length > 1 && <span class="tp-r-meta">· {spaceName(c.spaceId)}</span>}
             </li>
           );
         })}

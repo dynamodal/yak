@@ -150,10 +150,10 @@ export function Tree(p: TreeProps) {
     </ul>
   );
 
-  if (p.root.folders.length === 0 && p.root.notes.length === 0 && p.creatingIn === null) return <p class="empty">No notes yet.</p>;
+  const isEmpty = p.root.folders.length === 0 && p.root.notes.length === 0 && p.creatingIn === null;
   return (
-    <div class={`tree-root${dropTarget === '' ? ' drop-target' : ''}`} {...dropProps('')}>
-      {renderFolder(p.root, 0)}
+    <div class={`tree-root${isEmpty ? ' tree-empty' : ''}${dropTarget === '' ? ' drop-target' : ''}`} {...dropProps('')}>
+      {isEmpty ? <p class="empty">No notes yet.</p> : renderFolder(p.root, 0)}
     </div>
   );
 }

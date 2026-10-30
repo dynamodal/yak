@@ -13,6 +13,7 @@ import { settingsParts } from '../app/settings-parts';
 import { linkKind, linkShape, overallShape } from '../app/sync-state';
 import { Button, DataLine } from '../app/ui';
 import { SyncDot } from '../app/views/SyncDot';
+import { shortDeviceId } from './device-id';
 import { UndecidedNotice } from '../app/views/UndecidedNotice';
 import { deviceName, devicesMap, readDevices, setDeviceName, setRemoved, suggestedName } from '../core/devices';
 import { keeps } from '../core/keeps';
@@ -20,7 +21,7 @@ import { deviceStatus, peerStatus } from '../sync/device-status';
 import { dropOwnDeviceKeys } from '../sync/key-store';
 import { KeepChip, keptNames, OpenRow, useOpenRow } from './OpenRow';
 
-const shortId = (id: string): string => id.slice(0, 8);
+const shortId = shortDeviceId;
 
 type Confirming = { kind: 'remove'; id: string } | { kind: 'rejoin' } | { kind: 'leave' } | undefined;
 
@@ -122,7 +123,12 @@ export function DevicesSection(props: { target?: string }) {
                   {named ? null : <span class="hint"> · Rename</span>}
                 </>
               }
-              sub={sub}
+              sub={
+                <>
+                  {sub} ·{' '}
+                  <code title={`Device ID ${c.id}`}>{shortId(c.id)}</code>
+                </>
+              }
               aside={st && peer ? <SyncDot shape={linkShape(linkKind(peer))} label={st.label} /> : undefined}
             >
               <fieldset class="st-keeps-set">
@@ -313,7 +319,10 @@ export function DevicesSection(props: { target?: string }) {
           <ul>
             {removed.map(([id, d]) => (
               <li key={id}>
-                {d.name ?? 'Unnamed device'} <code class="hint">{shortId(id)}</code>{' '}
+                {d.name ?? 'Unnamed device'}{' '}
+                <code class="hint" title={`Device ID ${id}`}>
+                  {shortId(id)}
+                </code>{' '}
                 {required ? (
                   <span class="hint">To use it again, choose "Join again" on it and approve it with a new one-time code.</span>
                 ) : (

@@ -48,6 +48,7 @@ import { captureErrors } from './error-capture';
 import { toast } from './ui/Toast';
 import { REPORT_HASH } from '../constants';
 import { checkStorage, describeProblem, renderBootFailure } from './boot-failure';
+import { installLightDarkFallback } from './theme/light-dark';
 
 declare const __APP_VERSION__: string | undefined;
 import './modules';
@@ -360,6 +361,8 @@ function rawStorage(): EraseStorage | undefined {
 async function start(): Promise<void> {
   const root = document.getElementById('app');
   if (!root) return;
+  // Theme colours in browsers without CSS light-dark() (Safari before 17.5, #7).
+  installLightDarkFallback();
   let done = false;
   let watchdog: ReturnType<typeof setTimeout> | undefined;
   const fail = (problem: 'no-storage' | 'slow' | 'error', detail: string): void => {

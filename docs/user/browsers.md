@@ -11,6 +11,8 @@ Add Yak to the Home Screen (below) and keep a downloaded backup.
 | Backup to a folder | yes | no: use **Download backup** |
 | Mirror to a folder | yes | no: says it is not available |
 
+Yak needs Safari 16.4 or later on iPhone, iPad and Mac (Settings › General › Software Update on iPhone), or a current Chrome, Edge or Firefox.
+
 Why no folders: Safari and Firefox do not let a web page write to a folder you pick.
 Download a backup file regularly instead (**Settings › Backup and safety**, then **Backup & restore**).
 

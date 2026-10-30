@@ -216,11 +216,11 @@ export async function startSelecting(page) {
 /** Pick an item from a Notes sidebar menu ("New…" or "Notes menu"). */
 export async function notesMenu(page, label, item) {
   await page.getByRole('toolbar', { name: 'Notes' }).getByRole('button', { name: label, exact: true }).click();
-  await page.getByRole('menuitem', { name: item, exact: true }).click();
+  await page.getByRole('menuitem', typeof item === 'string' ? { name: item, exact: true } : { name: item }).click();
 }
 
 /** A new note from the Notes sidebar's "New…" menu. */
-export const newNote = (page) => notesMenu(page, 'New…', 'New note');
+export const newNote = (page) => notesMenu(page, 'New…', /^New note( in .+)?$/);
 
 /**
  * Opens what hides the join form and the connection server field: on the Welcome screen the "Already use Yak?" line,

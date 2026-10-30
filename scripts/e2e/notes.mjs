@@ -653,6 +653,16 @@ try {
   check((await until(async () => (await inSpace(a, 'space/personal')).some((x) => x.endsWith('Acme.md')))) >= 0, 'Undo brings the dragged note back');
   acmeId = (await byPath(a, 'Projects/Acme.md'))[0];
 
+  // In All spaces the new note's space is chosen beside "New…" and named on the item (#101).
+  await a.goto(BASE + '?test#/notes');
+  await a.getByLabel('Space', { exact: true }).selectOption({ label: 'All spaces' });
+  await a.getByLabel('Space for the new note').selectOption({ label: 'Work' });
+  await a.getByRole('toolbar', { name: 'Notes' }).getByRole('button', { name: 'New…', exact: true }).click();
+  check((await a.getByRole('menuitem', { name: 'New note in Work', exact: true }).count()) === 1, 'the New note item names the chosen space');
+  const workBefore = (await inSpace(a, 'space/work')).length;
+  await a.getByRole('menuitem', { name: 'New note in Work', exact: true }).click();
+  check((await until(async () => (await inSpace(a, 'space/work')).length === workBefore + 1)) >= 0, 'a note made in All spaces goes to the chosen space');
+
   // Outline, unlinked mentions, bookmarks, weekly and monthly notes.
   await a.goto(BASE + `?test#/notes/${acmeId}`);
   await a.locator('.cm-content').waitFor();

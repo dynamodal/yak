@@ -35,13 +35,15 @@ export interface PageHeaderProps {
   menu?: readonly MenuItem[];
   /** The page's one primary action. */
   primary?: ComponentChildren;
+  /** Keep the header at list width, centred, on a page whose width changes with the view (Time, Tasks), so the view switch stays put. */
+  anchor?: boolean;
 }
 
 /**
  * Same slots on every page, in this order: title, view switch, filters, space, Select, "…" menu, primary action.
  * A slot with nothing in it takes no room.
  */
-export function PageHeader({ title, hideTitle, filters, views, space, menu = [], primary }: PageHeaderProps) {
+export function PageHeader({ title, hideTitle, filters, views, space, menu = [], primary, anchor }: PageHeaderProps) {
   const [added, setAdded] = useState(pageMenuItems);
   useEffect(() => {
     const sync = (): void => setAdded(pageMenuItems());
@@ -50,7 +52,7 @@ export function PageHeader({ title, hideTitle, filters, views, space, menu = [],
   }, []);
   const items = [...added, ...menu];
   return (
-    <header class="page-header">
+    <header class={cx('page-header', anchor && 'page-header-anchor')}>
       <h1 class={hideTitle ? 'visually-hidden' : undefined}>{title}</h1>
       <div class="page-header-tools toolbar">
         {views}

@@ -42,15 +42,15 @@ try {
   await a.keyboard.press('Enter');
   check((await until(async () => (await byPath(a, 'Projects/Acme.md')) !== undefined)) >= 0, 'Move to… put it in a new folder Projects');
   check((await a.locator('.note-crumbs').innerText()).includes('Projects'), 'breadcrumbs show the folder');
-  // The editor sits on the page without a form-style border; clicking it still focuses the text.
+  // The editor shows a faint outline and tint at rest (#103); clicking it still focuses the text.
   // Focus may still be leaving the editor (the title's Enter put it there, then the dialog took it),
   // and box-shadow and background fade over 0.12 s: wait for the resting style, not a mid-fade value (#30).
   const restingSurface = () =>
     a.evaluate(() => {
       const s = getComputedStyle(document.querySelector('.note-editor'));
-      return s.borderTopWidth === '0px' && s.boxShadow === 'none';
+      return s.borderTopWidth === '1px' && s.boxShadow === 'none' && s.backgroundColor !== 'rgba(0, 0, 0, 0)';
     });
-  check((await until(restingSurface)) >= 0, 'the note editor has no border');
+  check((await until(restingSurface)) >= 0, 'the note editor shows its area at rest (border and tint)');
   const lit = () => a.evaluate(() => getComputedStyle(document.querySelector('.note-editor')).boxShadow);
   await a.locator('.cm-content').click();
   check((await lit()) !== 'none', 'the note editor shows an accent line while it has focus');
@@ -651,6 +651,22 @@ try {
   check(!(await inSpace(a, 'space/personal')).some((x) => x.endsWith('Acme.md')), 'and removes it from the first space');
   await a.locator('.toast', { hasText: 'Moved to Work' }).getByRole('button', { name: 'Undo' }).click();
   check((await until(async () => (await inSpace(a, 'space/personal')).some((x) => x.endsWith('Acme.md')))) >= 0, 'Undo brings the dragged note back');
+  acmeId = (await byPath(a, 'Projects/Acme.md'))[0];
+
+  // A space with no notes is a drop target too (#102).
+  await a.goto(BASE + '?test#/settings');
+  await a.getByRole('button', { name: '+ New space' }).click();
+  await a.getByLabel('New space name').fill('Blank');
+  await a.getByRole('button', { name: 'Create space' }).click();
+  await a.locator('[data-space] .st-row-title', { hasText: /^\s*Blank\s*$/ }).waitFor();
+  await a.goto(BASE + '?test#/notes');
+  await a.getByLabel('Space', { exact: true }).selectOption({ label: 'All spaces' });
+  const blank = a.locator('.notes-space', { hasText: 'Blank' });
+  check((await blank.locator('.tree-root.tree-empty').count()) === 1, 'a space with no notes shows its empty tree');
+  await a.locator('.notes-space', { hasText: 'Personal' }).locator('a.tree-note', { hasText: 'Acme' }).dragTo(blank.locator('.tree-root'));
+  check((await until(async () => (await blank.locator('a.tree-note', { hasText: 'Acme' }).count()) === 1)) >= 0, 'dragging a note into an empty space moves it there');
+  await a.locator('.toast', { hasText: 'Moved to Blank' }).getByRole('button', { name: 'Undo' }).click();
+  check((await until(async () => (await inSpace(a, 'space/personal')).some((x) => x.endsWith('Acme.md')))) >= 0, 'Undo brings it back');
   acmeId = (await byPath(a, 'Projects/Acme.md'))[0];
 
   // Outline, unlinked mentions, bookmarks, weekly and monthly notes.

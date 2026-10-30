@@ -1,15 +1,15 @@
 import { dayKey, startOfDay } from './dates';
 
-export type HoursFormat = 'decimal' | 'hm';
+export type HoursFormat = 'decimal' | 'decimal1' | 'decimal0' | 'hm';
 
-/** Decimal hours (`1.25 h`, the default) or `h:mm`, rounded to the nearest minute. */
+/** Decimal hours (`1.25 h` by default; `decimal1` and `decimal0` show one place or none) or `h:mm`, rounded to the nearest minute. */
 export function formatHours(seconds: number, format: HoursFormat = 'decimal'): string {
   const s = Math.max(0, Math.round(seconds));
   if (format === 'hm') {
     const minutes = Math.round(s / 60);
     return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
   }
-  return `${(s / 3600).toFixed(2)} h`;
+  return `${(s / 3600).toFixed(format === 'decimal0' ? 0 : format === 'decimal1' ? 1 : 2)} h`;
 }
 
 /** `H:MM:SS` for the running timer. */

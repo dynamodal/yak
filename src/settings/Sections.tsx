@@ -77,10 +77,13 @@ export function DisplaySection() {
       </Field>
       <Field layout="split" class="st-field" label="Hours shown as">
         <select value={settings.hours_format} onChange={(e) => set('hours_format', parseHoursFormat((e.target as HTMLSelectElement).value) as HoursFormat)}>
-          <option value="decimal">Decimal (1.25 h)</option>
+          <option value="decimal">Decimal, 2 places (1.25 h)</option>
+          <option value="decimal1">Decimal, 1 place (1.3 h)</option>
+          <option value="decimal0">Decimal, whole hours (1 h)</option>
           <option value="hm">Hours and minutes (1:15)</option>
         </select>
       </Field>
+      {settings.hours_format !== 'hm' && <p class="hint">Only the display is rounded, so totals may not add up exactly.</p>}
       <Field layout="split" class="st-field" label="Theme">
         <select
           value={theme}

@@ -492,6 +492,7 @@ const addTag = async (p, scope, name) => {
   const opts = suggestions(d);
   check(await poll(async () => (await opts.count()) === 1), 'typing "rev onb" offers one suggestion');
   const text = await opts.first().innerText();
+  check(await d.locator('.tp-recent').evaluateAll((els) => els.every((e) => getComputedStyle(e).visibility === 'hidden')), 'the recent list is hidden while suggestions are open, so nothing shows through (#106)');
   check(text.includes('Review onboarding') && text.includes('Website') && text.includes('ux'), `the suggestion shows description, project and tags (${text.replace(/\s+/g, ' ')})`);
   check((await box.getAttribute('aria-expanded')) === 'true' && (await box.getAttribute('aria-controls')) === (await d.getByRole('listbox').getAttribute('id')), 'aria-expanded and aria-controls point at the open listbox');
   await box.fill('reveiw onbaording');

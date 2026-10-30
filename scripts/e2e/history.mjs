@@ -41,7 +41,7 @@ await h('flush');
 
 // Review opens History at the moment before and lists what was deleted since.
 await p.getByRole('button', { name: 'Review' }).click();
-check((await until(async () => /#\/settings\/backup\/\d+/.test(p.url()))) >= 0, 'Review opens Go back in time');
+check((await until(async () => /#\/settings\/version-history\/\d+/.test(p.url()))) >= 0, 'Review opens Go back in time');
 await p.locator('.history-row').first().waitFor();
 check((await p.locator('.history-row').count()) === 12, 'it lists the 12 entries as deleted since');
 check((await p.locator('.history-kind', { hasText: 'Deleted since' }).count()) === 12, 'each marked "Deleted since"');
@@ -73,13 +73,13 @@ check((await until(async () => (await p.getByText('before this device began reco
 
 // Opened without a time, the page starts where the log begins (a week ago would read as an error on a new device).
 await p.evaluate(() => { location.hash = '#/settings'; });
-await p.evaluate(() => { location.hash = '#/settings/backup'; });
+await p.evaluate(() => { location.hash = '#/settings/version-history/open'; });
 await p.getByText('Recorded on: This device, from').waitFor();
 check((await until(async () => (await p.getByText('before this device began recording').count()) === 0)) >= 0, 'by default the page does not say the time is before the log begins');
 
 // Thresholds are settings: with 3 as the limit, three deletions warn.
-await p.evaluate(() => { location.hash = '#/settings'; });
-await p.locator('details > summary', { hasText: 'History warnings' }).click();
+await p.evaluate(() => { location.hash = '#/settings/version-history'; });
+await p.locator('details > summary', { hasText: 'Warnings when many' }).click();
 await p.getByLabel('Warn when this many entries are deleted within a minute').fill('3');
 await p.getByLabel('Warn when this many entries are deleted within a minute').blur();
 // The watch reads the limit when entries are deleted: be sure it is stored first (a loaded machine can lag).
@@ -145,7 +145,7 @@ await h('setOffset', 60 * 60_000);
 await p.getByRole('button', { name: 'More actions for this note' }).click();
 await p.getByRole('menuitem', { name: 'Delete note' }).click();
 await h('flush');
-await p.evaluate((ms) => { location.hash = `#/settings/backup/${ms}`; }, histMark);
+await p.evaluate((ms) => { location.hash = `#/settings/version-history/${ms}`; }, histMark);
 await p.locator('.history-notes .history-row').first().waitFor();
 check((await p.locator('.history-notes .history-row', { hasText: 'Plan.md' }).innerText()).includes('Deleted since'), 'History lists a note deleted since');
 check(/notes and tasks/i.test(await p.locator('.history-page .hint').first().innerText()), 'the page says it covers notes and tasks');

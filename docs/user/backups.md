@@ -22,7 +22,7 @@ They cover everything: entries, notes and tasks, projects, clients, tags, settin
 
 ### Set up
 
-1. Open **Settings › Backup and safety**, choose **Backup** to open **Backup & restore**, and press **Choose folder…**. Pick or create an empty folder.
+1. Open **Settings › Backups**, open **Where backups go, encryption, restore**, and press **Choose folder…**. Pick or create an empty folder.
 2. The first backup is written straight away.
 3. If the browser asks whether the app may keep access, choose **Allow on every visit**.
 
@@ -41,14 +41,14 @@ A banner appears, and the **Settings** tab gets an amber **!** badge, when the l
 
 You do not need to back up every space on every device.
 When your devices sync, a recent backup made by another device counts for this one if it holds everything this device holds.
-**Settings › Backup and safety** then says **Backed up by** that device and when, and no warning appears.
+**Settings › Backups** then says **Backed up by** that device and when, and no warning appears.
 If you change something here that no recent backup holds yet, nothing happens at first: open the device that backs up (so it syncs and backs up), or download a backup.
 Once the backup is older than the limit you chose, the warning names that device.
 Only spaces a device keeps are affected, and a device that never syncs warns exactly as before.
 
 ### Restore from a backup
 
-On **Backup & restore** choose a backup from the list, **Restore from a backup file…** (a `.zip` or `.json`) or **Restore from a folder…**.
+In **Settings › Backups** choose a backup from the list, **Restore from a backup file…** (a `.zip` or `.json`) or **Restore from a folder…**.
 Every file's checksum is checked first, and you see what the backup holds before anything changes.
 A damaged backup is shown with its problems and cannot be restored; pick an older one.
 
@@ -62,7 +62,7 @@ Replace keeps what it replaces:
 - The current data also stays on this device.
 - The confirmation names both and the way back.
 
-To undo a Replace, press **Merge it back** on **Backup & restore**.
+To undo a Replace, press **Merge it back** in **Settings › Backups**.
 It stays visible for 45 days or until you dismiss it, and adds back everything the Replace removed.
 Dismissing it hides the prompt only; the earlier data stays on the device.
 The folder backup written before the Replace stays in the folder.
@@ -72,12 +72,12 @@ Your other devices send their data back when they connect, so you may see the re
 
 ### Encrypted backups
 
-Set a passphrase (the **Passphrase** line on **Settings**, or the sheet that opens when Yak needs it) for a folder others can read, then tick **Write only encrypted backups** on **Backup & restore**. It covers the files in your notes too.
+Set a passphrase (the **Passphrase** line on **Settings**, or the sheet that opens when Yak needs it) for a folder others can read, then tick **Write only encrypted backups** in **Settings › Backups**. It covers the files in your notes too.
 **If you forget the passphrase, nobody can open those backups.**
 
 The folder layout is documented for developers in `docs/backups.md`.
 
-Before you erase a device (**Settings › Advanced › Erase everything on this device**), save the zip backup it offers: it holds your files too. Restore it on **Backup & restore**. See Devices and sync.
+Before you erase a device (**Settings › Advanced › Erase everything on this device**), save the zip backup it offers: it holds your files too. Restore it in **Settings › Backups**. See Devices and sync.
 
 ## Version history
 
@@ -86,7 +86,7 @@ Yak records every change in a log kept in a separate database in this browser.
 For now each device records its own, so the list shows versions recorded on this device, and it cannot see further back than when this device started recording.
 Every point says where it was recorded: **Recorded on: This device**.
 
-On **Backup & restore**, **Version history** lists days with changes, then the points of a day.
+In **Settings › Version history**, **Go back in time** lists days with changes, then the points of a day.
 Choose a point to see what changed or was deleted since, tick what you want back, and press **Restore selected**.
 
 - Old values come back as new edits. Later work stays; nothing is rolled back.

@@ -5,7 +5,10 @@ import type { SettingsSection } from './nav';
 /** The headings of the Settings page's sections; the page and the palette both read them. */
 export const SETTINGS_TITLES: Readonly<Record<SettingsSection, string>> = {
   'needs-you': 'Needs you',
-  'backup-safety': 'Backup and safety',
+  backups: 'Backups',
+  'version-history': 'Version history',
+  'recently-deleted': 'Recently deleted',
+  passphrase: 'Passphrase and import',
   'devices-sync': 'Devices and sync',
   spaces: 'Spaces',
   sharing: 'Sharing',
@@ -40,10 +43,12 @@ const section = (s: SettingsSection, keywords: string[], features?: FeatureId[])
 
 /** Sections and rows by title plus the words people search by (F-55). Rows with a `row` scroll to that part of the section. */
 export const SETTINGS_ENTRIES: readonly SettingsEntry[] = [
-  section('backup-safety', ['backup', 'backups', 'passphrase', 'password', 'safety', 'restore', 'encrypt', 'folder']),
-  { id: 'passphrase', title: 'Passphrase', section: 'backup-safety', keywords: ['password', 'unlock', 'encryption', 'key', 'backup'] },
-  { id: 'backup-restore', title: 'Backup and restore', section: 'backup-safety', href: '#/settings/backup', keywords: ['backup', 'restore', 'history', 'earlier version', 'undo', 'folder'] },
-  { id: 'import', title: 'Import', section: 'backup-safety', href: '#/settings/import', keywords: ['toggl', 'csv', 'bring in'], features: ['import'] },
+  section('backups', ['backup', 'backups', 'restore', 'encrypt', 'folder', 'download', 'merge', 'replace', 'zip']),
+  section('version-history', ['history', 'earlier version', 'go back in time', 'undo', 'warn', 'deleted', 'changed']),
+  section('recently-deleted', ['trash', 'deleted', 'undelete', 'restore', 'bin']),
+  section('passphrase', ['passphrase', 'password', 'unlock', 'encryption', 'key', 'import', 'toggl', 'csv']),
+  { id: 'passphrase-manage', title: 'Passphrase › Manage', section: 'passphrase', row: 'manage', keywords: ['forget', 'unlock', 'account key', 'protect'] },
+  { id: 'import', title: 'Import', section: 'passphrase', href: '#/settings/import', keywords: ['toggl', 'csv', 'bring in'], features: ['import'] },
   section('devices-sync', ['devices', 'device', 'sync', 'relay', 'phone', 'pair', 'connect']),
   { id: 'add-device', title: 'Add a device', section: 'devices-sync', href: '#/settings/devices/add', keywords: ['pair', 'join', 'code', 'qr', 'link', 'phone', 'sync'] },
   section('spaces', ['space', 'workspace', 'keep', 'archive']),

@@ -3,7 +3,7 @@ import { FEATURES, effectiveHidden, featureBlock, setHiddenModules, useHiddenMod
 import { useSettings } from '../app/hooks';
 import { settingsParts } from '../app/settings-parts';
 import { useNeeds } from '../app/needs';
-import { Field } from '../app/ui';
+import { Field, OpenDetails } from '../app/ui';
 import { lazyView } from '../app/lazy';
 import { Sections } from '../app/views/Sections';
 import { FilesCard } from './FilesCard';
@@ -11,7 +11,6 @@ import { LinksCard } from './LinksCard';
 import { PeriodicNotesTable } from './DailyCard';
 import { APP_NAME } from '../constants';
 import { type HoursFormat, parseHoursFormat, parseWeekStart } from '../core/settings';
-import { HistoryCard } from './HistoryCard';
 import { DataLines } from './DataLines';
 import { applyTheme, parseTheme, readTheme, saveTheme, type Theme } from './theme';
 
@@ -23,16 +22,49 @@ declare const __APP_VERSION__: string | undefined;
 export { NeedsSection } from './NeedsList';
 export { useNeeds };
 
-/** Backup and safety: the Backup, Passphrase and Import lines, always shown, each ending in the place to change it. */
-export function BackupSection() {
+/**
+ * Passphrase and import: the Passphrase and Import lines, always shown. The passphrase is its own line, not part of Backups, because it also approves
+ * devices and shares (F-309, F-324); Manage opens what it protects and its state on this device (a part the backup module adds).
+ */
+export function PassphraseSection(props: { open: boolean }) {
+  const parts = settingsParts('passphrase');
   return (
     <>
-      <p class="hint">Backups copy everything to a folder you choose. The passphrase protects backups and approves devices and shares.</p>
       <DataLines />
-      <p class="hint">
-        <a href="#/settings/backup">Backup and restore</a> also holds the history: go back in time to an earlier version.
-      </p>
+      <OpenDetails class="st-manage" summary="Manage passphrase" open={props.open}>
+        {parts.map((p) => (
+          <p.component key={p.id} />
+        ))}
+      </OpenDetails>
     </>
+  );
+}
+
+/** Backups and Version history: parts the modules that own them add (`registerSettingsPart`), so this page names no feature module. */
+export function PartsSection(props: { section: 'backups' | 'version-history' }) {
+  return (
+    <>
+      {settingsParts(props.section).map((p) => (
+        <p.component key={p.id} />
+      ))}
+    </>
+  );
+}
+
+/** Recently deleted: what can be brought back today, where, and for how long. The lists themselves stay where the items live; the model is in the user guide. */
+export function RecentlyDeletedSection() {
+  return (
+    <ul class="st-links" data-recently-deleted>
+      <li>
+        <strong>Time entries:</strong> restorable for 45 days from <a href="#/time/list">Time › Recently deleted</a>, or with Undo right after deleting.
+      </li>
+      <li>
+        <strong>Notes and tasks:</strong> restorable for 45 days from <a href="#/notes">Notes › Recently deleted</a>.
+      </li>
+      <li>
+        <strong>Projects, clients, tags and files in notes:</strong> not listed yet; a delete is final for now. <a href="#/help/backups">How the three layers fit together</a>
+      </li>
+    </ul>
   );
 }
 
@@ -100,11 +132,6 @@ export function DisplaySection() {
         </select>
       </Field>
       <p class="hint">Week and hours sync with your other devices; the theme is for this device only.</p>
-      <details class="st-fold">
-        <summary>History warnings</summary>
-        <p class="hint">A warning appears when a lot of entries are deleted or changed at once, so a mistake or a bad sync can be undone from Backup &amp; restore while it is fresh. Shared across your devices.</p>
-        <HistoryCard />
-      </details>
     </div>
   );
 }
@@ -117,7 +144,7 @@ export function FeaturesSection() {
   return (
     <div class="st-tabs-shown">
       <p class="hint">Per device. Hiding only hides: your data is kept, keeps syncing and stays in backups.</p>
-      <p class="hint">The app opens on the first tab still shown. Settings, Backup &amp; restore and the sync status are always shown.</p>
+      <p class="hint">The app opens on the first tab still shown. Settings and the sync status are always shown.</p>
       <ul class="features-list">
         {FEATURES.map((f) => {
           const off = hidden.has(f.id);

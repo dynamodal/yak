@@ -158,7 +158,7 @@ try {
   check(await until(() => page.locator('.update-banner').isVisible(), 15000), 'update banner appears after the new deploy');
   check((await page.locator('.update-banner').innerText()).includes('A new version is available'), 'banner text');
   check((await page.locator('.update-banner').innerText()).includes('Make a backup before reloading'), 'the banner asks for a backup first when the waiting version says so (#283)');
-  check((await page.locator('.update-banner a[href="#/settings/backup"]').count()) === 1, 'and links to Backups');
+  check((await page.locator('.update-banner a[href="#/settings/backups"]').count()) === 1, 'and links to Backups');
   check((await controllerVersion()) === V1, 'the old version stays in charge until Reload is pressed');
 
   let navigations = 0;

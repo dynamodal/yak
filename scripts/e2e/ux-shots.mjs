@@ -127,7 +127,7 @@ for (const route of ['notes', 'tasks', 'help']) {
   await shot(w, 'single', route);
 }
 await shootManage(w, 'single');
-await go(w, '#/settings/backup');
+await go(w, '#/settings/backups/open');
 await w.getByRole('button', { name: 'Create a passphrase…' }).click();
 await w.getByRole('button', { name: 'Type my own' }).click();
 await w.getByLabel('New passphrase').fill('abc');

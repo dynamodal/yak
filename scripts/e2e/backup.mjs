@@ -27,7 +27,7 @@ async function profile(name) {
   const context = await browser.newContext({ acceptDownloads: true });
   const page = await context.newPage();
   watchPage(page, name, { consoleErrors: true });
-  await page.goto(`${BASE}?test#/settings/backup`);
+  await page.goto(`${BASE}?test#/settings/backups/open`);
   await ready(page);
   return page;
 }
@@ -89,12 +89,12 @@ check(await a.locator('.tab-badge.warn').count() === 1, 'never backed up: the Se
 await a.getByRole('button', { name: /^(Sync off|Synced|Via relay|Not connected)/ }).click();
 check(/No backup yet/.test(await a.locator('.status-panel').innerText()), 'the sync popover lists no backup yet under Other');
 await a.locator('.status-panel').getByRole('link', { name: 'Backups' }).first().click();
-check(await until(() => a.url().endsWith('#/settings/backup')), 'the panel links to Backups');
+check(await until(() => a.url().endsWith('#/settings/backups')), 'the panel links to Backups');
 await a.goto(`${BASE}?test#/devices`);
 await ready(a);
 
 await B(a, () => window.__backup.useOpfs('e2e-backups'));
-await a.goto(`${BASE}?test#/settings/backup`);
+await a.goto(`${BASE}?test#/settings/backups/open`);
 await ready(a);
 await a.getByText('Backing up to').waitFor();
 await a.getByRole('button', { name: 'Back up now' }).click();
@@ -213,8 +213,9 @@ await a.getByRole('button', { name: 'Cancel' }).last().click();
 const accountFiles = await B(a, () => window.__backup.exportAccount());
 
 // Encrypted mode: set a passphrase (Settings › Security), write only encrypted backups; a wrong passphrase is refused.
-check(await a.getByRole('button', { name: 'Create a passphrase…' }).isVisible(), 'Backup & restore offers to create a passphrase when none is set');
-await a.getByRole('button', { name: 'Create a passphrase…' }).click();
+check(await a.getByRole('link', { name: 'Set the passphrase' }).isVisible(), 'Backups links to the passphrase when none is set');
+await a.evaluate(() => (location.hash = '#/settings/passphrase'));
+await a.locator('[data-line="passphrase"]').getByRole('button', { name: 'Create…' }).click();
 const sheet = a.locator('[data-passphrase-sheet]');
 await sheet.getByRole('button', { name: 'Type my own' }).click();
 await sheet.getByLabel('New passphrase').fill('too short');
@@ -228,7 +229,7 @@ check(await until(async () => {
   const d = await dump(a);
   return Object.entries(d).some(([id, doc]) => /^account\/[a-f0-9]{24}$/.test(id) && Object.keys(doc.maps.keys ?? {}).some((k) => k.startsWith('sealed:')));
 }, 15000), 'setting the passphrase seals the account key into the account document');
-await a.evaluate(() => (location.hash = '#/settings/backup'));
+await a.evaluate(() => (location.hash = '#/settings/backups/open'));
 await a.getByLabel('Write only encrypted backups from this device').check();
 const mirror3 = await B(a, () => window.__backup.currentName());
 await a.getByRole('button', { name: 'Back up now' }).click();
@@ -238,7 +239,7 @@ check(await a.getByText(/^Backed up to /).waitFor({ timeout: 15000 }).then(() =>
 const enc = await B(a, () => window.__backup.encryptedState());
 check(enc.header === 'PDENC1', `the mirror is encrypted (${enc.header})`);
 check(enc.readable === 0, 'no readable export is left in current/');
-await a.evaluate(() => (location.hash = '#/settings/backup'));
+await a.evaluate(() => (location.hash = '#/settings/passphrase/manage'));
 await a.getByRole('button', { name: 'Forget the passphrase on this device' }).click();
 await a.getByRole('button', { name: 'Use my passphrase on this device…' }).click();
 await sheet.getByLabel('Passphrase', { exact: true }).fill('not the passphrase');
@@ -299,7 +300,7 @@ const c = await profile('C');
 await B(c, () => window.__backup.useOpfs('e2e-backups'));
 await B(c, ([n, f]) => window.__backup.importFolder(n, f), [atStop.name, folderCopy]);
 await c.goto(`${BASE}?test#/devices`);
-await c.goto(`${BASE}?test#/settings/backup`);
+await c.goto(`${BASE}?test#/settings/backups/open`);
 await ready(c);
 await c.locator(`tr[data-name="${atStop.name}"]`).waitFor();
 await B(c, () => window.__backup.idle());
@@ -316,7 +317,7 @@ const d = await profile('D');
 await B(d, () => window.__backup.useOpfs('e2e-backups-d'));
 await B(d, (f) => window.__backup.importAccount(f), accountFiles);
 await d.goto(`${BASE}?test#/devices`);
-await d.goto(`${BASE}?test#/settings/backup`);
+await d.goto(`${BASE}?test#/settings/backups/open`);
 await ready(d);
 await d.getByRole('button', { name: 'Restore to a time…' }).click();
 await d.getByLabel('Restore as of').fill(later());

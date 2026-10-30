@@ -8,6 +8,7 @@ export { FiltersButton, type FiltersButtonProps } from './Filters';
 export * from './icons';
 export { Page, PageHeader, PageSelectButton, usePageMenu, usePageSelect, type PageHeaderProps, type PageProps, type PageWidth } from './Page';
 export { PassphraseInput, type PassphraseInputProps } from './PassphraseInput';
+export { OpenDetails } from './OpenDetails';
 export { Pill, type PillTone } from './Pill';
 export { Sheet, SHEET_MEDIA, useMedia, type SheetProps } from './Sheet';
 export { Menu, MenuButton, Popover, type MenuItem } from './Popover';

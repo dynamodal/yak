@@ -49,7 +49,7 @@ function show(v: unknown): string {
   return String(v);
 }
 
-/** "Go back in time" on Backup & restore: time entries, notes and tasks as they were at a chosen time, what changed since, and a way to bring chosen ones back. */
+/** "Go back in time" in the Version history section of Settings: time entries, notes and tasks as they were at a chosen time, what changed since, and a way to bring chosen ones back. */
 export function HistorySection({ params }: ViewProps) {
   const { spaces, spaceDocs, privateDocs } = useApp();
   const fromAlert = Number(params[0]);
@@ -157,7 +157,7 @@ export function HistorySection({ params }: ViewProps) {
 
   return (
     <section ref={top} class="history-page" id="history" aria-labelledby="history-h">
-      <h2 id="history-h">Version history</h2>
+      <h3 id="history-h">Go back in time</h3>
       <p class="hint">
         Earlier versions of your time entries, notes and tasks. For now each device records its own; this list shows versions recorded on this device, and it cannot see further back than when this device started recording. Choose what changed or was deleted since a point and bring it back as new edits; everything else stays as it is now. Projects, clients, tags and settings are not covered here: an edit to one of them, such as a rename, cannot be undone from this list. Version history is stored in a separate database in this browser, not in a backup.
       </p>

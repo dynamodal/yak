@@ -18,7 +18,8 @@ describe('Settings in the palette (F-55)', () => {
     const href = (id: string): string => settingsHref(SETTINGS_ENTRIES.find((e) => e.id === id)!);
     expect(href('notes')).toBe('#/settings/notes');
     expect(href('notes-mirror')).toBe('#/settings/notes/mirror');
-    expect(href('backup-restore')).toBe('#/settings/backup');
+    expect(href('backups')).toBe('#/settings/backups');
+    expect(href('passphrase-manage')).toBe('#/settings/passphrase/manage');
     expect(href('add-device')).toBe('#/settings/devices/add');
   });
   it('finds Mirror by mirror, folder and obsidian', () => {
@@ -26,7 +27,7 @@ describe('Settings in the palette (F-55)', () => {
   });
   it('finds the other places by what people call them', () => {
     expect(find('passphrase')).toContain('settings.passphrase');
-    expect(find('backup')).toContain('settings.backup-safety');
+    expect(find('backup')).toContain('settings.backups');
     expect(find('sync')).toContain('settings.devices-sync');
     expect(find('theme')).toContain('settings.theme');
     expect(find('dark')).toContain('settings.display');

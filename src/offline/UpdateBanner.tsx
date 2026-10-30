@@ -23,7 +23,7 @@ export function UpdateBanner() {
         {backupFirst ? (
           <>
             {' '}
-            <strong>Make a backup before reloading.</strong> <a href="#/settings/backup">Open Backup &amp; restore</a>.
+            <strong>Make a backup before reloading.</strong> <a href="#/settings/backups">Open Backups</a>.
           </>
         ) : null}
       </span>

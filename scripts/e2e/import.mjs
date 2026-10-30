@@ -26,7 +26,7 @@ const tab = (name) => ({
       await page.getByRole('link', { name: 'Import…', exact: true }).click();
     } else if (['Backups', 'History'].includes(name)) {
       await page.locator('.tabs a', { hasText: /^Settings$/ }).click();
-      await page.getByRole('link', { name: 'Backup & restore', exact: true }).click();
+      await page.evaluate(() => { location.hash = name === 'History' ? '#/settings/version-history/open' : '#/settings/backups/open'; });
     } else if (name === 'Devices') {
       await page.locator('.tabs a', { hasText: /^Settings$/ }).click();
       await page.locator('table.st-keeps thead').getByRole('link', { name: 'This device' }).click();

@@ -36,20 +36,23 @@ const FOLDED: Readonly<Record<string, string | undefined>> = {
   spaces: 'spaces',
   'spaces-settings': 'spaces',
   sharing: 'sharing',
-  security: 'backup-safety',
+  security: 'passphrase',
   features: 'features',
 };
 
 /** The sections of the Settings page, in order (`#/settings/<section>` scrolls to one). Detail routes must not reuse these names. */
-export const SETTINGS_SECTIONS = ['needs-you', 'backup-safety', 'devices-sync', 'spaces', 'sharing', 'organize', 'notes', 'display', 'features', 'help', 'advanced'] as const;
+export const SETTINGS_SECTIONS = ['needs-you', 'backups', 'version-history', 'recently-deleted', 'passphrase', 'devices-sync', 'spaces', 'sharing', 'organize', 'notes', 'display', 'features', 'help', 'advanced'] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
+
+/** Names of the removed Backup & restore page, and the section each one went to (#97). `#/backups` is a section's own address. */
+const BACKUP_PAGES: Readonly<Record<string, readonly string[]>> = { backup: ['backups'], history: ['version-history'], 'backup-safety': ['backups'] };
 
 const folded = (name: string): string[] => ['settings', ...(FOLDED[name] ? [FOLDED[name] as string] : [])];
 
 /**
  * Where an old address now lives, or undefined when the route is current: `#/manage/<x>` and `#/<x>` (`#/devices`, …)
  * become `#/settings/<x>`; the pages Settings folded into one (General, Spaces, Sharing, Security, Features) become their section
- * of `#/settings`; Backups and History are one page, `#/settings/backup`. Pages that left Settings go to their new place (`MOVED`).
+ * of `#/settings`; `#/backup` and `#/settings/backup` open the Backups section, `#/history` Version history. Pages that left Settings go to their new place (`MOVED`).
  * The detail views of a device, a space and an account (F-33) open that row on the page: `#/settings/devices-sync/<id>`,
  * `…/spaces/<id>`, `…/sharing/<fingerprint>`. `#/settings/devices` and `…/devices/add` stay: they are the Add a device flow.
  */
@@ -65,9 +68,12 @@ export function legacyRoute(route: readonly string[], views: readonly ViewDef[])
   if (first === 'manage') {
     if (second === 'help') return ['help', ...rest];
     if (second === undefined || Object.hasOwn(FOLDED, second)) return folded(second ?? 'home');
-    return ['settings', second === 'backups' || second === 'history' ? 'backup' : second, ...rest];
+    return ['settings', ...(BACKUP_PAGES[second ?? ''] ?? [second as string]), ...rest];
   }
   if (first === 'settings') {
+    // The Backup & restore page is gone (#97): its parts are sections of the page. Its passphrase part is the Passphrase section's Manage row.
+    if (second === 'backup') return rest[0] === 'passphrase' ? ['settings', 'passphrase', 'manage'] : ['settings', 'backups', ...rest];
+    if (second === 'history' || second === 'backup-safety') return ['settings', ...(BACKUP_PAGES[second] ?? []), ...rest];
     if (second === 'devices' && rest[0] !== undefined && rest[0] !== 'add') return ['settings', 'devices-sync', ...rest];
     if (second === 'space') return ['settings', 'spaces', ...rest];
     if (second === 'account') return ['settings', 'sharing', ...rest];
@@ -79,7 +85,8 @@ export function legacyRoute(route: readonly string[], views: readonly ViewDef[])
   const parent = joined ? views.find((v) => v.id === joined.joins) : undefined;
   if (parent) return [parent.path, first as string, ...route.slice(1)];
   if (first !== undefined && Object.hasOwn(FOLDED, first) && first !== 'settings' && first !== 'home') return folded(first); // bare #/home is the Home page (F-33p); #/manage/home and #/settings/home still reach Settings
-  if (first === 'backups' || first === 'history') return ['settings', 'backup', ...route.slice(1)];
+  if (first === 'backup' || first === 'history') return ['settings', ...(BACKUP_PAGES[first] ?? []), ...route.slice(1)];
+  if (first === 'backups') return ['settings', 'backups', ...route.slice(1)];
   return views.some((v) => v.group === 'settings' && v.path === first) ? ['settings', ...route] : undefined;
 }
 

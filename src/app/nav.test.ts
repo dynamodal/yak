@@ -128,16 +128,22 @@ describe('legacyRoute', () => {
     expect(legacyRoute(['settings', 'account', 'FP'], views)).toEqual(['settings', 'sharing', 'FP']);
   });
   it('sends the pages folded into the Settings page, and the old Backups and History routes, to their new place', () => {
-    const section: Record<string, string[]> = { general: ['settings', 'display'], spaces: ['settings', 'spaces'], sharing: ['settings', 'sharing'], security: ['settings', 'backup-safety'], features: ['settings', 'features'], home: ['settings'] };
+    const section: Record<string, string[]> = { general: ['settings', 'display'], spaces: ['settings', 'spaces'], sharing: ['settings', 'sharing'], security: ['settings', 'passphrase'], features: ['settings', 'features'], home: ['settings'] };
     for (const [old, to] of Object.entries(section)) {
       expect(legacyRoute(['settings', old], views)).toEqual(to[1] === old ? undefined : to);
       expect(legacyRoute(['manage', old], views)).toEqual(to);
       // A bare `#/home` is the Home page now (F-33p).
       expect(legacyRoute([old], views)).toEqual(old === 'home' ? undefined : to);
     }
-    expect(legacyRoute(['backups'], views)).toEqual(['settings', 'backup']);
-    expect(legacyRoute(['history', '1700000000000'], views)).toEqual(['settings', 'backup', '1700000000000']);
-    expect(legacyRoute(['manage', 'history'], views)).toEqual(['settings', 'backup']);
+    expect(legacyRoute(['backups'], views)).toEqual(['settings', 'backups']);
+    expect(legacyRoute(['backup'], views)).toEqual(['settings', 'backups']);
+    expect(legacyRoute(['settings', 'backup'], views)).toEqual(['settings', 'backups']);
+    expect(legacyRoute(['settings', 'backup', 'passphrase'], views)).toEqual(['settings', 'passphrase', 'manage']);
+    expect(legacyRoute(['settings', 'history'], views)).toEqual(['settings', 'version-history']);
+    expect(legacyRoute(['history', '1700000000000'], views)).toEqual(['settings', 'version-history', '1700000000000']);
+    expect(legacyRoute(['manage', 'history'], views)).toEqual(['settings', 'version-history']);
+    expect(legacyRoute(['manage', 'backup'], views)).toEqual(['settings', 'backups']);
+    expect(legacyRoute(['settings', 'backup-safety'], views)).toEqual(['settings', 'backups']);
   });
   it('leaves current routes alone', () => {
     expect(legacyRoute(['settings'], views)).toBeUndefined();

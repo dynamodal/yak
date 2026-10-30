@@ -41,8 +41,8 @@ const [idA, idB, idH] = [await idOf(a), await idOf(b), await idOf(h)];
 (await until(async () => (await keys(b)).certified && (await keys(h)).certified, 30000)) >= 0 ? ok('both certified on first use') : fail('no first-use certificates');
 
 // The passphrase protects the account key; the switch needs it.
-await a.goto(BASE + '?test#/settings/backup');
-await a.getByRole('button', { name: 'Create a passphrase…' }).click();
+await a.goto(BASE + '?test#/settings/passphrase');
+await a.locator('[data-line="passphrase"]').getByRole('button', { name: 'Create…' }).click();
 await fillSheet(a, PASS);
 await a.goto(BASE + '?test#/devices');
 await a.waitForFunction(() => window.__app);

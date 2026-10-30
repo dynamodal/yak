@@ -3,7 +3,8 @@ import type * as Y from 'yjs';
 /** Shared display settings live in the Personal space document's `settings` map. */
 
 export type WeekStart = 'monday' | 'sunday';
-export type HoursFormat = 'decimal' | 'hm';
+/** `decimal` is two places (1.25 h, the original), `decimal1` one, `decimal0` whole hours; `hm` is h:mm. Only the display rounds (#99). */
+export type HoursFormat = 'decimal' | 'decimal1' | 'decimal0' | 'hm';
 
 export interface SharedSettings {
   week_start: WeekStart;
@@ -16,9 +17,10 @@ export function parseWeekStart(value: unknown): WeekStart {
   return value === 'sunday' ? 'sunday' : 'monday';
 }
 
-/** `hm` is the stored form; `h:mm` is accepted because the reports module once wrote it. Anything else is decimal. */
+/** `hm` is the stored form; `h:mm` is accepted because the reports module once wrote it. Anything else is two-place decimal. */
 export function parseHoursFormat(value: unknown): HoursFormat {
-  return value === 'hm' || value === 'h:mm' ? 'hm' : 'decimal';
+  if (value === 'hm' || value === 'h:mm') return 'hm';
+  return value === 'decimal1' || value === 'decimal0' ? value : 'decimal';
 }
 
 export function readSettings(doc: Y.Doc | undefined): SharedSettings {

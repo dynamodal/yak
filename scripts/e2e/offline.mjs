@@ -18,7 +18,8 @@ const DIST = process.env.DIST_DIR || join(process.cwd(), 'dist');
 const SW = join(DIST, 'sw.js');
 
 const original = readFileSync(SW, 'utf8');
-const manifestOf = (src) => JSON.parse(/\{version:"[^"]*",pages:\[[^\]]*\],assets:\[[^\]]*\](?:,backupFirst:!0)?\}/.exec(src)[0].replace(/(\w+):/g, '"$1":').replace(/:!0/g, ':true'));
+// The manifest is the minified object literal `{version:…,pages:[…],assets:…}` in our own build output; the minifier may quote it with `"` or a backtick and write the file list as a string split on commas, so evaluate the literal.
+const manifestOf = (src) => new Function(`return (${/\{version:[^}]*\}/.exec(src)[0]})`)();
 const manifest = manifestOf(original);
 const V1 = manifest.version;
 const V2 = 'e2e' + Date.now().toString(16).slice(-9);
@@ -158,7 +159,7 @@ try {
   check(await until(() => page.locator('.update-banner').isVisible(), 15000), 'update banner appears after the new deploy');
   check((await page.locator('.update-banner').innerText()).includes('A new version is available'), 'banner text');
   check((await page.locator('.update-banner').innerText()).includes('Make a backup before reloading'), 'the banner asks for a backup first when the waiting version says so (#283)');
-  check((await page.locator('.update-banner a[href="#/settings/backup"]').count()) === 1, 'and links to Backups');
+  check((await page.locator('.update-banner a[href="#/settings/backups"]').count()) === 1, 'and links to Backups');
   check((await controllerVersion()) === V1, 'the old version stays in charge until Reload is pressed');
 
   let navigations = 0;

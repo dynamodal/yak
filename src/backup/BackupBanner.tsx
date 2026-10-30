@@ -37,7 +37,7 @@ export function BackupBanner() {
     return testMode() && !new URLSearchParams(location.search).has('backupbar') ? null : (
       <div class="backup-banner warn" role="alert" data-backup-never>
         <span>No backup yet · clearing this site's data in the browser deletes everything here.</span>
-        <Button variant="primary" onClick={() => navigate('settings', 'backup')}>
+        <Button variant="primary" onClick={() => navigate('settings', 'backups')}>
           Set up
         </Button>
       </div>
@@ -58,7 +58,7 @@ export function BackupBanner() {
           Allow access
         </Button>
       ) : null}
-      <Button onClick={() => navigate('settings', 'backup')}>
+      <Button onClick={() => navigate('settings', 'backups')}>
         Open backups
       </Button>
       <Button variant="quiet" onClick={() => setUntil(remindTomorrow())}>

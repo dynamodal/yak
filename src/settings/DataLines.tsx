@@ -9,7 +9,7 @@ import { keyPrompt, withKey } from '../app/key-prompt';
 import { Button, DataLine } from '../app/ui';
 import { readAccountEncryption } from '../core/account-encryption';
 
-/** The passphrase line: "Not set", locked, or unlocked with the minutes left (the unlock slides, F-324). Always shown (F-33); "Manage" opens its section in Backup & restore. */
+/** The passphrase line: "Not set", locked, or unlocked with the minutes left (the unlock slides, F-324). Always shown (F-33); "Manage" opens it in the Passphrase section. */
 function PassphraseLine() {
   const { account } = useApp();
   useYVersion(account.getMap('settings') as unknown as Y.AbstractType<unknown>);
@@ -42,7 +42,7 @@ function PassphraseLine() {
               {' · '}
             </>
           )}
-          <a href="#/settings/backup/passphrase">Manage</a>
+          <a href="#/settings/passphrase/manage">Manage</a>
         </>
       )}
     </DataLine>
@@ -51,7 +51,7 @@ function PassphraseLine() {
 
 const OWN: { id: string; order: number; component: ComponentType }[] = [{ id: 'passphrase', order: 20, component: PassphraseLine }];
 
-/** The status lines of Backup and safety: backup, passphrase and whatever modules registered (`registerDataLine`: Import), each ending in a link. The Sync line is the Devices and sync section's. */
+/** The status lines of Passphrase and import: the passphrase and whatever modules registered (`registerDataLine`: Import), each ending in a link. The Sync line is the Devices and sync section's. */
 export function DataLines() {
   const all = [...dataLines(), ...OWN].sort((a, b) => a.order - b.order);
   return (

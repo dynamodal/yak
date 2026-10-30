@@ -135,12 +135,12 @@ export class PluginKeys {
     }
   }
 
-  private last: { code: string; relay: string; vaultName: string } | undefined;
+  private last: { code: string; relay: string; name: string } | undefined;
 
   /** Join with a code, and ask to be approved in case it is a one-time invite (#257). */
-  async joinWithCode(code: string, relay: string, vaultName: string): Promise<void> {
+  async joinWithCode(code: string, relay: string, name: string): Promise<void> {
     await this.o.sync.join(code, relay);
-    this.last = { code, relay, vaultName };
+    this.last = { code, relay, name };
     await this.ask();
   }
 
@@ -157,13 +157,13 @@ export class PluginKeys {
 
   private async ask(): Promise<void> {
     if (!this.last) return;
-    const { code, relay, vaultName } = this.last;
+    const { code, relay, name: given } = this.last;
     await this.ready;
     const keys = this.keys;
     if (!keys) return;
     this.guest?.stop();
     this.setJoin({ phase: 'asking' });
-    const name = (this.doc && deviceName(this.doc, this.o.me)) ?? `Obsidian (${vaultName})`;
+    const name = (this.doc && deviceName(this.doc, this.o.me)) ?? given;
     const guest = new InviteGuest(code, createTransport(relay), { deviceId: this.o.me, name, ...keys.publicKeys, v: KEYS_REQUIRED_LEVEL }, {
       onSeen: (_a, _k, compare) => this.setJoin({ phase: 'compare', compare }),
       onApproved: (a) => void this.adopt(a, keys).catch((e: unknown) => this.setJoin({ phase: 'failed', error: e instanceof Error ? e.message : String(e) })),

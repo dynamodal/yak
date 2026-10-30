@@ -35,11 +35,11 @@ await page.locator('h1', { hasText: 'Settings' }).waitFor();
 check((await page.getByLabel('Week starts on').inputValue()) === 'monday', 'week starts on Monday by default');
 check((await page.getByLabel('Hours shown as').inputValue()) === 'decimal', 'hours shown as decimal by default');
 check((await page.getByRole('link', { name: 'Import from Toggl' }).count()) === 0, 'Settings does not repeat the Toggl import in Preferences');
-check((await page.locator('details > summary', { hasText: 'History warnings' }).count()) === 1, 'Settings folds the history warnings');
+check((await page.locator('[data-section="version-history"] details > summary', { hasText: 'Warnings when many' }).count()) === 1, 'Version history folds the warning thresholds');
 check((await page.locator('.manage-list, .manage-tabs').count()) === 0, 'Settings has no sub-menu');
-check((await page.locator('section.st-section > h2').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backup and safety|Devices and sync|Spaces|Sharing|Organize|Notes|Display|Features|Help|Advanced', 'Settings sections in order (no Needs you while nothing waits)');
-check((await page.locator('nav.st-toc a').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backup and safety|Devices and sync|Spaces|Sharing|Organize|Notes|Display|Features|Help|Advanced', 'the contents row has one chip per section');
-check((await page.locator('[data-line="sync"], [data-line="backup"], [data-line="passphrase"]').count()) === 3, 'Sync, Backup and Passphrase lines are shown on a device that never synced');
+check((await page.locator('section.st-section > h2').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backups|Version history|Recently deleted|Passphrase and import|Devices and sync|Spaces|Sharing|Organize|Notes|Display|Features|Help|Advanced', 'Settings sections in order (no Needs you while nothing waits)');
+check((await page.locator('nav.st-toc a').allInnerTexts()).map((t) => t.trim()).join('|') === 'Backups|Version history|Recently deleted|Passphrase and import|Devices and sync|Spaces|Sharing|Organize|Notes|Display|Features|Help|Advanced', 'the contents row has one chip per section');
+check((await page.locator('[data-line="sync"], [data-line="passphrase"]').count()) === 2, 'Sync and Passphrase lines are shown on a device that never synced');
 check(/Off/.test(await page.locator('[data-line="sync"]').innerText()) && /Not set/.test(await page.locator('[data-line="passphrase"]').innerText()), 'the lines say "Off" and "Not set"');
 check((await page.locator('section.st-section:not([data-section="notes"]) table').count()) === 0, 'no spaces-by-devices table (the periodic notes table is in Notes)');
 // A section link scrolls to the section; a row link opens the row.
@@ -98,6 +98,8 @@ check((await page.getByLabel('Hours format').count()) === 0, 'timer: no hours se
 // ---- Change both on Settings
 await go('#/settings', 'h1');
 await page.getByLabel('Week starts on').selectOption('sunday');
+await page.getByLabel('Hours shown as').selectOption('decimal1');
+check((await stored()).hours_format === 'decimal1' && (await page.locator('.hint', { hasText: 'totals may not add up' }).count()) === 1, 'one decimal place is stored and the rounding hint shows (#99)');
 await page.getByLabel('Hours shown as').selectOption('hm');
 check((await stored()).week_start === 'sunday' && (await stored()).hours_format === 'hm', 'settings map holds sunday and hm');
 

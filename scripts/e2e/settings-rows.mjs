@@ -21,7 +21,7 @@ const mk = async (name, size = { width: 1100, height: 900 }) => {
   check((await p.locator('[data-device-row]').count()) === 1, 'local-only: one device row');
   check((await p.getByRole('link', { name: /Add a device/ }).count()) >= 1 && (await p.getByRole('button', { name: '+ New space' }).count()) === 1, 'local-only: "+ Add a device" beside "+ New space"');
   check((await p.getByRole('button', { name: '+ Share with an account' }).count()) === 1, 'local-only: one "+ Share with an account" button');
-  check((await p.locator('[data-line="backup"], [data-line="passphrase"], [data-line="sync"]').count()) === 3, 'local-only: the backup, passphrase and sync lines are all there');
+  check((await p.locator('[data-line="passphrase"], [data-line="sync"]').count()) === 2 && (await p.locator('[data-backups] .backup-health').count()) === 1, 'local-only: the backup summary, passphrase and sync lines are all there');
   const text = await p.locator('.st-home').innerText();
   check(!/fingerprint|device id|\bid [0-9a-f]{8}\b/i.test(text), 'local-only: no fingerprint or device id on the page until Advanced is opened');
   const row = await openRow(p, 'This device');
@@ -105,7 +105,7 @@ const mk = async (name, size = { width: 1100, height: 900 }) => {
   await p.evaluate(() => { location.hash = '#/devices'; });
   await startSyncing(p);
   const fits = () => p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
-  for (const slug of ['needs-you', 'backup-safety', 'devices-sync', 'spaces', 'sharing', 'organize', 'notes', 'display', 'features', 'help']) {
+  for (const slug of ['needs-you', 'backups', 'version-history', 'recently-deleted', 'passphrase', 'devices-sync', 'spaces', 'sharing', 'organize', 'notes', 'display', 'features', 'help']) {
     await p.evaluate((h) => { location.hash = h; }, `#/settings/${slug}`);
     await p.waitForTimeout(150);
     check(await fits(), `360 px: Settings › ${slug} fits the screen`);

@@ -34,7 +34,7 @@ export function AccountKeyHint(props: { account: Y.Doc }) {
   if (!key || !readAccountEncryption(props.account)) return null;
   return (
     <p class="hint" data-keys="unsealed">
-      Your account key is not protected by your passphrase yet. <a href="#/settings/backup">Protect it in Backup &amp; restore</a>.
+      Your account key is not protected by your passphrase yet. <a href="#/settings/passphrase">Set the passphrase</a>.
     </p>
   );
 }

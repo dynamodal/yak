@@ -29,7 +29,7 @@ function buildVersion(): string {
 export default defineConfig({
   define: { __TEST_BUILD__: JSON.stringify(process.env.YAK_TEST_BUILD === '1'), __APP_VERSION__: JSON.stringify(buildVersion()), __OFFLINE_MODE__: JSON.stringify(OFFLINE) },
   base: './',
-  esbuild: { jsx: 'automatic', jsxImportSource: 'preact' },
+  oxc: { jsx: { runtime: 'automatic', importSource: 'preact' } },
   plugins: [licensesPlugin(APP_NAME), offlinePlugin(OFFLINE)],
   build: {
     outDir: 'dist',

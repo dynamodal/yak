@@ -5,7 +5,7 @@
 //   npm run e2e tasks-no-notes
 //
 import { createRequire } from 'node:module';
-import { BASE, launch, check, watchPage, until, finish, newNote } from './lib.mjs';
+import { BASE, launch, check, watchPage, until, finish, newNote, sleep } from './lib.mjs';
 
 const SPACE = 'space/personal';
 const browser = await launch();
@@ -121,10 +121,13 @@ await p.locator('.cm-content').click();
 await p.keyboard.press('Control+End');
 await p.keyboard.type(' Done soon.');
 await p.locator('select[aria-label="Property status"]').selectOption('in-progress');
-await until(async () => {
+const edited = await until(async () => {
   const t = (await byPath(task[1].path))?.[1].text ?? '';
   return t.includes('Done soon.') && /status: in-progress/.test(t);
-});
+}, 15000);
+check(edited >= 0, 'the text and status edits reach the document');
+// The document writes each change to IndexedDB right after it; a reload in that moment can drop the last write (#30).
+await sleep(500);
 await reload();
 await p.locator('.cm-content').waitFor();
 const afterText = (await byPath(task[1].path))[1].text;
@@ -166,6 +169,8 @@ for (const [scheme, width] of [['light', 1280], ['dark', 1280], ['light', 375], 
   await q.getByRole('button', { name: 'Add task' }).click();
   await q.getByRole('link', { name: 'Axe check' }).waitFor();
   await q.evaluate(() => localStorage.setItem('hidden_modules', '["notes"]'));
+  // As above: let the new task reach IndexedDB before the reload (#30).
+  await sleep(500);
   await q.reload();
   await q.getByRole('link', { name: 'Axe check' }).click();
   await q.locator('.cm-content').waitFor();

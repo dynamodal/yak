@@ -41,7 +41,7 @@ await h('flush');
 
 // Review opens History at the moment before and lists what was deleted since.
 await p.getByRole('button', { name: 'Review' }).click();
-check((await until(async () => /#\/settings\/backup\/\d+/.test(p.url()))) >= 0, 'Review opens Go back in time');
+check((await until(async () => /#\/settings\/version-history\/\d+/.test(p.url()))) >= 0, 'Review opens Go back in time');
 await p.locator('.history-row').first().waitFor();
 check((await p.locator('.history-row').count()) === 12, 'it lists the 12 entries as deleted since');
 check((await p.locator('.history-kind', { hasText: 'Deleted since' }).count()) === 12, 'each marked "Deleted since"');
@@ -51,6 +51,7 @@ check((await p.locator('.history-banner').count()) === 0, 'the banner is gone on
 await p.getByLabel('Restore Bulk 3').check();
 await p.getByLabel('Restore Bulk 4').check();
 await p.getByRole('button', { name: /^Restore selected \(2\)/ }).click();
+await p.getByRole('group', { name: 'Confirm restore' }).getByRole('button', { name: 'Restore', exact: true }).click();
 check((await until(async () => (await live('Bulk')) === 2)) >= 0, 'only the two chosen entries are back');
 const back = (await entries()).find((e) => e.description === 'Bulk 3');
 check(back && back.deleted === false && !('deleted_at' in back) && typeof back.restored_at === 'string', 'a restored entry says it came from history');
@@ -60,7 +61,8 @@ check((await until(async () => (await p.locator('.history-row').count()) === 10)
 await p.locator('.history-day').first().click();
 await p.locator('.history-point').first().waitFor();
 const pointTexts = await p.locator('.history-point').allInnerTexts();
-check(pointTexts.some((t) => t.includes('12 entries') && t.includes('this device')), `a day lists its points with a summary and the device (${pointTexts.join(' | ')})`);
+check(pointTexts.some((t) => t.includes('12 entries') && t.includes('This device')), `a day lists its points with a summary and the device (${pointTexts.join(' | ')})`);
+check(pointTexts.some((t) => t.includes('Before restore')), 'a restore leaves a "Before restore" point');
 await p.locator('.history-point', { hasText: '12 entries' }).first().click();
 check(await p.locator('.history-point.active').count() === 1, 'choosing a point marks it');
 check((await until(async () => (await p.locator('.history-row').count()) === 10)) >= 0, 'a point shows what differed then versus now');
@@ -71,13 +73,13 @@ check((await until(async () => (await p.getByText('before this device began reco
 
 // Opened without a time, the page starts where the log begins (a week ago would read as an error on a new device).
 await p.evaluate(() => { location.hash = '#/settings'; });
-await p.evaluate(() => { location.hash = '#/settings/backup'; });
-await p.getByText('History on this device begins').waitFor();
+await p.evaluate(() => { location.hash = '#/settings/version-history/open'; });
+await p.getByText('Recorded on: This device, from').waitFor();
 check((await until(async () => (await p.getByText('before this device began recording').count()) === 0)) >= 0, 'by default the page does not say the time is before the log begins');
 
 // Thresholds are settings: with 3 as the limit, three deletions warn.
-await p.evaluate(() => { location.hash = '#/settings'; });
-await p.locator('details > summary', { hasText: 'History warnings' }).click();
+await p.evaluate(() => { location.hash = '#/settings/version-history'; });
+await p.locator('details > summary', { hasText: 'Warnings when many' }).click();
 await p.getByLabel('Warn when this many entries are deleted within a minute').fill('3');
 await p.getByLabel('Warn when this many entries are deleted within a minute').blur();
 // The watch reads the limit when entries are deleted: be sure it is stored first (a loaded machine can lag).
@@ -143,12 +145,13 @@ await h('setOffset', 60 * 60_000);
 await p.getByRole('button', { name: 'More actions for this note' }).click();
 await p.getByRole('menuitem', { name: 'Delete note' }).click();
 await h('flush');
-await p.evaluate((ms) => { location.hash = `#/settings/backup/${ms}`; }, histMark);
+await p.evaluate((ms) => { location.hash = `#/settings/version-history/${ms}`; }, histMark);
 await p.locator('.history-notes .history-row').first().waitFor();
 check((await p.locator('.history-notes .history-row', { hasText: 'Plan.md' }).innerText()).includes('Deleted since'), 'History lists a note deleted since');
 check(/notes and tasks/i.test(await p.locator('.history-page .hint').first().innerText()), 'the page says it covers notes and tasks');
 await p.getByLabel('Restore Plan.md').check();
 await p.getByRole('button', { name: /^Restore selected \(1\)/ }).click();
+await p.getByRole('group', { name: 'Confirm restore' }).getByRole('button', { name: 'Restore', exact: true }).click();
 check((await until(async () => (await noteText()).includes('second part'))) >= 0, 'restoring a note from History brings it back with its text');
 
 await finish(browser);

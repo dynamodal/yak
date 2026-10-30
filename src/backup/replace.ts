@@ -43,6 +43,24 @@ export interface BeforeReplace {
   at: string;
   backupName: string;
   docs: DocUpdate[];
+  /** The person dismissed "Merge it back". The copy stays on the device; only the prompt goes. Absent in records made before this field. */
+  dismissed_at?: string;
+}
+
+/** How long "Merge it back" stays visible after a replace. */
+export const MERGE_BACK_DAYS = 45;
+
+/** Whether "Merge it back" is still offered: not dismissed and younger than 45 days. */
+export function mergeBackOffered(before: BeforeReplace | undefined, now = Date.now()): before is BeforeReplace {
+  if (!before || before.dismissed_at) return false;
+  const at = Date.parse(before.at);
+  return Number.isFinite(at) && now - at < MERGE_BACK_DAYS * 86_400_000;
+}
+
+/** Hide "Merge it back". Nothing is deleted: the earlier data stays on the device. */
+export async function dismissMergeBack(): Promise<void> {
+  const before = await kvGet<BeforeReplace>(BEFORE);
+  if (before) await kvSet(BEFORE, { ...before, dismissed_at: new Date().toISOString() });
 }
 
 export function replaceSupported(): boolean {

@@ -137,7 +137,7 @@ export function SyncStatus({ pendingNotices }: SyncStatusProps) {
         )}
         <div class="status-links">
           {shape === 'off' ? link('#/settings/devices/add', status.paired ? 'Add a device' : 'Set up sync', true) : link('#/settings/devices-sync', 'Devices')}
-          {link('#/settings/backup', 'Backups')}
+          {link('#/settings/backups', 'Backups')}
           {errors && link('#/help/report', 'Report a problem')}
         </div>
       </Popover>

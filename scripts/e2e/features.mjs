@@ -64,10 +64,10 @@ const hash = (p) => p.evaluate(() => location.hash);
   await p.evaluate(() => (location.hash = '#/settings/import'));
   await p.waitForFunction(() => location.hash === '#/settings', null, { timeout: 5000 }).catch(() => {});
   check((await hash(p)) === '#/settings', `a hidden Settings page lands on Settings (${await hash(p)})`);
-  // Backup & restore cannot be hidden: no switch for it, and the page still opens.
-  await p.evaluate(() => (location.hash = '#/settings/backup'));
-  await p.getByRole('heading', { name: 'Backup & restore' }).waitFor();
-  check(true, 'Backup & restore still opens with Notes hidden');
+  // Backups cannot be hidden: no switch for it, and the page still opens.
+  await p.evaluate(() => (location.hash = '#/settings/backups/open'));
+  await p.getByRole('heading', { name: /^Backups Link/ }).waitFor();
+  check(true, 'Backups still opens with Notes hidden');
   await p.context().close();
 }
 
@@ -80,9 +80,8 @@ const hash = (p) => p.evaluate(() => location.hash);
   check((await hidden(p)) === '[]', 'the preset stores an empty list');
 
   // ---- Security: Show switch and live hint
-  await p.evaluate(() => (location.hash = '#/settings/backup'));
-  await p.getByRole('heading', { name: 'What your passphrase protects' }).waitFor();
-  await p.getByRole('button', { name: 'Create a passphrase…' }).click();
+  await p.evaluate(() => (location.hash = '#/settings/passphrase'));
+  await p.locator('[data-line="passphrase"]').getByRole('button', { name: 'Create…' }).click();
   const sheet = p.locator('[data-passphrase-sheet]');
   await sheet.getByRole('button', { name: 'Type my own' }).click();
   const field = sheet.getByLabel('New passphrase');
@@ -98,10 +97,10 @@ const hash = (p) => p.evaluate(() => location.hash);
   check(await p.getByText('This works, but four or more random words is best.').isVisible(), 'live hint: warned under 28');
   await field.fill('correct horse battery staple');
   check(await p.getByText('Long enough.').isVisible(), 'live hint: long enough');
-  // Backup & restore shows the same passphrase state.
-  await p.evaluate(() => (location.hash = '#/settings/backup'));
   await sheet.getByRole('button', { name: 'Cancel' }).click();
-  check(await p.getByRole('button', { name: 'Create a passphrase…' }).waitFor({ timeout: 5000 }).then(() => true, () => false), 'Backup & restore offers to create a passphrase');
+  // Backups links to the Passphrase section while none is set.
+  await p.evaluate(() => (location.hash = '#/settings/backups/open'));
+  check(await p.getByRole('link', { name: 'Set the passphrase' }).waitFor({ timeout: 5000 }).then(() => true, () => false), 'Backups links to the passphrase when none is set');
   await p.context().close();
 }
 

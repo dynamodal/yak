@@ -48,8 +48,10 @@ import { captureErrors } from './error-capture';
 import { toast } from './ui/Toast';
 import { REPORT_HASH } from '../constants';
 import { checkStorage, describeProblem, renderBootFailure } from './boot-failure';
+import { installLightDarkFallback } from './theme/light-dark';
 
 declare const __APP_VERSION__: string | undefined;
+declare const __TEST_BUILD__: boolean;
 import './modules';
 
 async function boot(root: HTMLElement, started: () => void): Promise<void> {
@@ -245,7 +247,8 @@ async function boot(root: HTMLElement, started: () => void): Promise<void> {
   if (import.meta.env.PROD) void startOffline();
 
   // Test hook for automated browsers, only with `?test` in the URL.
-  if (testMode()) {
+  // `__TEST_BUILD__` is spelled out so the bundler drops the whole block from a production build (it does not fold `testMode()` across modules).
+  if (__TEST_BUILD__ && testMode()) {
     (window as unknown as { __app: unknown }).__app = {
       state: () => sync.status.state,
       otherTab: () => sync.status.otherTab === true,
@@ -360,6 +363,8 @@ function rawStorage(): EraseStorage | undefined {
 async function start(): Promise<void> {
   const root = document.getElementById('app');
   if (!root) return;
+  // Theme colours in browsers without CSS light-dark() (Safari before 17.5, #7).
+  installLightDarkFallback();
   let done = false;
   let watchdog: ReturnType<typeof setTimeout> | undefined;
   const fail = (problem: 'no-storage' | 'slow' | 'error', detail: string): void => {

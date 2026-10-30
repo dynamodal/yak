@@ -11,7 +11,7 @@ import { usePassphraseState } from './passphrase-state';
 import { errText } from './store';
 
 /**
- * Backup & restore › Your passphrase: what the passphrase protects and its state on this device. Setting
+ * Passphrase and import › Manage: what the passphrase protects and its state on this device. Setting
  * and entering it happen in the passphrase sheet, which opens when an action needs it (F-324), or from the
  * passphrase line on Settings; this section forgets it on this device.
  */
@@ -25,10 +25,6 @@ export function PassphraseSection() {
     const t = setInterval(() => setTick((n) => n + 1), 15_000);
     return () => clearInterval(t);
   }, []);
-  // `#/settings/backup/passphrase` (the Passphrase line's Manage link) scrolls here.
-  useEffect(() => {
-    if (location.hash.endsWith('/passphrase')) document.getElementById('passphrase')?.scrollIntoView?.({ block: 'start' });
-  }, []);
   const left = Math.ceil(ownerKeys.current.unlockedLeft() / 60_000);
   const start = (verb: string, fresh: boolean): void => {
     setError('');
@@ -37,8 +33,7 @@ export function PassphraseSection() {
       .catch((e: unknown) => setError(errText(e)));
   };
   return (
-    <section aria-label="Your passphrase" id="passphrase">
-      <h2>Your passphrase</h2>
+    <section aria-label="Your passphrase" id="passphrase-manage">
       <div class="card" aria-label="What your passphrase protects">
         <h3>What your passphrase protects</h3>
         <ul>

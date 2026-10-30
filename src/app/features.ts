@@ -4,7 +4,7 @@ import { useEffect, useState } from 'preact/hooks';
  * Features this device can hide (F-309). The list is per device, in `localStorage` under `hidden_modules`;
  * when it is absent everything is on. Hiding only removes the pages, commands and search results: the data
  * stays and keeps syncing, so showing a feature again brings it all back (F39, no migration).
- * Settings, Backup & restore, Devices and the sync status are never hidden. Time can be hidden (F-33l):
+ * Settings, Devices and the sync status are never hidden. Time can be hidden (F-33l):
  * the tab, Reports, the timer pill, the timer commands and the running cue go; a running timer must be
  * stopped first (`setFeatureBlock`), so a timer is never left running out of sight on this device.
  */

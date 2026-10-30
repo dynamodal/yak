@@ -52,9 +52,9 @@ export function HistoryBrowser({ spaceIds, selected, onPick, refresh }: { spaceI
                   <li class="empty">Reading the day…</li>
                 ) : (
                   points.map((p) => (
-                    <li key={`${p.docId}:${p.seq}`}>
+                    <li key={p.mark ? `mark:${p.end}` : `${p.docId}:${p.seq}`}>
                       <button type="button" class={`history-point${selected === p.end ? ' active' : ''}`} aria-pressed={selected === p.end} onClick={() => onPick(p.end)}>
-                        <span>{clock(p.end)}</span> <span>{pointSummary(p)}</span> <span class="muted">· {p.local ? 'this device' : 'another device'}</span>
+                        <span>{clock(p.end)}</span> <span>{pointSummary(p)}</span> <span class="muted">· Recorded on: {p.source}</span>
                       </button>
                     </li>
                   ))

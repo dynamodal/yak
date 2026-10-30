@@ -107,6 +107,8 @@ export function NotesView({ params }: ViewProps) {
   const [error, setError] = useState('');
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [moving, setMoving] = useState<Moving | null>(null);
+  const [newSid, setNewSid] = useState<string | null>(null);
+  useEffect(() => setNewSid(null), [noteSid]); // the choice lasts until another note is open
   const [creatingIn, setCreatingIn] = useState<{ sid: string; parent: string } | null>(null);
   const [display, setDisplayState] = useState<PropertiesDisplay>(readDisplay);
   const [shortcuts, setShortcuts] = useState(false);
@@ -351,6 +353,9 @@ export function NotesView({ params }: ViewProps) {
     return { folderList, create, newNote, freeFolderName, newFolder, createFolder, removeEmptyFolder, moveAll, move, moveToSpace: moveToOtherSpace, remove, openLink, renameFolder };
   };
   const active = actionsFor(activeSid);
+  /** In All spaces a new note goes to the space picked beside "New…" (default: the open note's, else the last used). */
+  const newTarget = all && newSid && scopeDocs.has(newSid) ? newSid : activeSid;
+  const creator = newTarget === activeSid ? active : actionsFor(newTarget);
 
   const trees = useMemo(() => new Map([...indexes].map(([sid, ix]) => [sid, buildTree(ix.notes, ix.folders)] as const)), [indexes]);
   const scopedNotes = useMemo(() => [...indexes.values()].flatMap((ix) => ix.notes), [indexes]);
@@ -391,12 +396,21 @@ export function NotesView({ params }: ViewProps) {
           </a>
           <span class="notes-break" aria-hidden="true" />
           <SpacePicker all={all} onAll={setShowAll} />
+          {all && (
+            <select class="space-select" aria-label="Space for the new note" value={newTarget} onChange={(e) => setNewSid((e.target as HTMLSelectElement).value)}>
+              {spaces.map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {sp.name}
+                </option>
+              ))}
+            </select>
+          )}
           <MenuButton
             label="New…"
             icon={<IconPlus />}
             align="start"
             items={[
-              { label: 'New note', icon: <IconNotePlus />, onSelect: () => active.newNote() },
+              { label: all ? `New note in ${spaceName(newTarget)}` : 'New note', icon: <IconNotePlus />, onSelect: () => creator.newNote() },
               { label: 'New folder', icon: <IconFolderPlus />, onSelect: () => active.newFolder() },
               { label: "Today's note", icon: <IconCalendar />, onSelect: () => openTodaysNote(app) },
               { label: "This week's note", icon: <span class="menu-spacer" aria-hidden="true" />, onSelect: () => openPeriodNote(app, 'weekly') },
@@ -550,8 +564,8 @@ export function NotesView({ params }: ViewProps) {
           <div class="empty-state">
             <p class="empty">{scopedNotes.length === 0 ? 'Create your first note to get started.' : 'Pick a note, or create one. Press Ctrl+O (⌘O on a Mac) to find a note by name.'}</p>
             <div class="row">
-              <Button variant="primary" onClick={() => active.newNote()}>
-                New note
+              <Button variant="primary" onClick={() => creator.newNote()}>
+                {all ? `New note in ${spaceName(newTarget)}` : 'New note'}
               </Button>
               <Button onClick={() => openTodaysNote(app)}>Today's note</Button>
             </div>

@@ -75,7 +75,7 @@ Trust limits, in plain words:
 
 ## Passphrase
 
-Yak asks for your passphrase in one sheet, when an action needs it. The **Passphrase** line on **Settings** shows whether it is unlocked and opens the sheet; **Backup & restore** lets you forget it on this device.
+Yak asks for your passphrase in one sheet, when an action needs it. The **Passphrase** line on **Settings** shows whether it is unlocked and opens the sheet; **Manage** in **Settings › Passphrase and import** lets you forget it on this device.
 Yak shows a new passphrase once, when you create it. Write it down or keep it in a password manager: Yak cannot recover it and nobody can reset it for you.
 
 **If you lose the passphrase:**

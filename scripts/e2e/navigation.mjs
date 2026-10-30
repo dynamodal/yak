@@ -7,7 +7,7 @@ import { BASE, launch, check, watchPage, finish, openDetails, until } from './li
 
 const browser = await launch();
 const TABS = ['Home', 'Time', 'Notes', 'Tasks', 'Settings'];
-const CARDS = ['Backup and safety', 'Devices and sync', 'Spaces', 'Sharing', 'Organize', 'Notes', 'Display', 'Features', 'Help', 'Advanced'];
+const CARDS = ['Backups', 'Version history', 'Recently deleted', 'Passphrase and import', 'Devices and sync', 'Spaces', 'Sharing', 'Organize', 'Notes', 'Display', 'Features', 'Help', 'Advanced'];
 
 async function open(name, viewport, hash = '#/time') {
   const context = await browser.newContext({ viewport });
@@ -74,7 +74,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   check(cards.join('|') === CARDS.join('|'), `wide: the sections are ${CARDS.join(', ')} (${cards.join(', ')})`);
   const lefts = await p.evaluate(() => [...document.querySelectorAll('section.st-section')].map((c) => Math.round(c.getBoundingClientRect().left)));
   check(lefts.length === CARDS.length && new Set(lefts).size === 1, `wide: one column at 1100 px (${lefts.join(', ')})`);
-  for (const [old, to] of [['#/manage/settings', '#/settings'], ['#/settings/general', '#/settings/display'], ['#/settings/security', '#/settings/backup-safety'], ['#/settings/home', '#/settings'], ['#/general', '#/settings/display'], ['#/spaces', '#/settings/spaces'], ['#/sharing', '#/settings/sharing'], ['#/settings/space/abc', '#/settings/spaces/abc'], ['#/settings/account/fp1', '#/settings/sharing/fp1'], ['#/settings/devices/abc', '#/settings/devices-sync/abc'], ['#/manage', '#/settings'], ['#/backups', '#/settings/backup'], ['#/history', '#/settings/backup'], ['#/manage/backups', '#/settings/backup'], ['#/manage/history', '#/settings/backup'], ['#/devices', '#/settings/devices'], ['#/import', '#/settings/import'], ['#/manage/devices', '#/settings/devices']]) {
+  for (const [old, to] of [['#/manage/settings', '#/settings'], ['#/settings/general', '#/settings/display'], ['#/settings/security', '#/settings/passphrase'], ['#/settings/home', '#/settings'], ['#/general', '#/settings/display'], ['#/spaces', '#/settings/spaces'], ['#/sharing', '#/settings/sharing'], ['#/settings/space/abc', '#/settings/spaces/abc'], ['#/settings/account/fp1', '#/settings/sharing/fp1'], ['#/settings/devices/abc', '#/settings/devices-sync/abc'], ['#/manage', '#/settings'], ['#/backups', '#/settings/backups'], ['#/backup', '#/settings/backups'], ['#/settings/backup', '#/settings/backups'], ['#/settings/backup/passphrase', '#/settings/passphrase/manage'], ['#/history', '#/settings/version-history'], ['#/manage/backups', '#/settings/backups'], ['#/manage/history', '#/settings/version-history'], ['#/devices', '#/settings/devices'], ['#/import', '#/settings/import'], ['#/manage/devices', '#/settings/devices']]) {
     await p.evaluate((h) => { location.hash = h; }, old);
     await p.waitForFunction((h) => location.hash === h, to, { timeout: 3000 }).catch(() => {});
     check((await route(p)) === to, `wide: the old route ${old} redirects to ${to}`);
@@ -123,7 +123,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   check((await route(p)) === '#/settings' && (await tabs.isVisible()), '375 px: one tap on Settings opens the page and the tabs stay');
   check((await p.locator('.manage-tabs, .manage-menu, .manage-list').count()) === 0, '375 px: no phone page list');
   check((await overflow(p)) <= 0, `375 px: no horizontal scroll on Settings (${await overflow(p)})`);
-  for (const hash of ['#/settings/devices', '#/settings/backup', '#/settings/import']) {
+  for (const hash of ['#/settings/devices', '#/settings/backups/open', '#/settings/version-history/open', '#/settings/import']) {
     await p.evaluate((h) => { location.hash = h; }, hash);
     await p.locator('h1').first().waitFor();
     await p.waitForTimeout(300);

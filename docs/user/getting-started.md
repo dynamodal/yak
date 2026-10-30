@@ -18,14 +18,14 @@ The **Help** link in the header opens Help and About before you start.
 Already use Yak? The small line below opens two more ways:
 
 - **Join my other device** takes the account of a device you already use. On that device open **Settings**, choose **+ Add a device**, then **Make a one-time code**, and enter or scan it here. That device approves this one.
-- **Restore from a backup** opens **Backup & restore** to bring data back from a folder or file.
+- **Restore from a backup** opens the restore page to bring data back from a folder or file.
 
 ## Then
 
 1. Unless you chose **Time tracker**, Yak opens on **Home**: what needs you, this week's hours, tasks due soon and recent notes. See [Home](#/help/home).
 2. Type what you work on in the **Time** tab and press **Start**.
 3. Add a note or a task in **Notes** or **Tasks**.
-4. Set up a backup folder (**Settings › Backup and safety**, then **Backup & restore**). Do this early: a browser can lose its data.
+4. Set up a backup folder (**Settings › Backups**). Do this early: a browser can lose its data.
 5. Optional: add a second device with **+ Add a device** on **Settings**.
 
 ## Get it on your phone

@@ -26,7 +26,7 @@ export function AlphaNotice() {
         so a problem never costs you your work, and tell us when something goes wrong (Settings › <strong>Help</strong>).
       </p>
       <p class="row">
-        {backupBarUp ? null : <Button variant="primary" onClick={() => done('#/settings/backup')}>Turn on backups</Button>}
+        {backupBarUp ? null : <Button variant="primary" onClick={() => done('#/settings/backups')}>Turn on backups</Button>}
         <Button onClick={() => done('#/help/report')}>How to report a problem</Button>
         <Button variant="quiet" onClick={() => done()}>Got it</Button>
       </p>

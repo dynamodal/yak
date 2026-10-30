@@ -220,7 +220,7 @@ async function syncSpace(
       if (!fileThere) {
         // File deleted outside: the note follows unless it was edited.
         if (note.text === entry.text) {
-          doc.transact(() => updateRecord(doc, 'notes', id, { deleted: true }), MIRROR_ORIGIN);
+          doc.transact(() => updateRecord(doc, 'notes', id, { deleted: true, deleted_at: new Date().toISOString() }), MIRROR_ORIGIN);
           delete entries[id];
           continue;
         }

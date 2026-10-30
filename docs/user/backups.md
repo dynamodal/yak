@@ -101,6 +101,16 @@ The log is not a backup: clearing this browser's site data erases it. Backups ar
 
 When you delete an item it is only marked as deleted, so it can come back for 45 days.
 The mark lives inside your data, so it syncs: a delete on one device reaches the others, and so does a restore.
-Open **Recently deleted** on Notes or the Time page and press **Restore**.
-After 45 days it is gone for good, though older backups and Version history may still hold a copy.
-Deleted items of other kinds (projects, clients, tags) are not listed yet.
+Open **Settings › Recently deleted**: it lists every kind (time entries, notes and tasks, projects, clients, tags and files in notes), newest first, each with the day it was deleted and the day it goes.
+Press **Restore** to bring an item back, on every device.
+Notes and the Time page keep their own short **Recently deleted** lists, and a delete there also shows **Undo** for a moment.
+
+- Files in notes keep their contents for the 45 days too, so a restored file opens again. After that the contents are removed on every device.
+- Projects, clients, tags and files deleted before this list existed show "date unknown". They stay until you delete them for good.
+- Restoring a tag brings the tag back, not the tag on the entries it was taken off.
+- A file whose contents are not on this device can be restored on a device that has them, or from a backup.
+
+**Delete for good** (it asks first) removes the item's contents on all your devices; only a marker without contents stays, so the item cannot come back from another device.
+Older backups and this device's Version history may still hold a copy.
+
+**Delete files for good straight away** (in the files part of the list) is for all your devices: a deleted file and its contents are then removed at once instead of kept for 45 days.

@@ -1,5 +1,6 @@
 import type * as Y from 'yjs';
 import { collection, createRecord, liveRecords, type TimeEntry, updateRecord } from '../core/schema';
+import { TRASH_DAYS } from '../core/trash';
 import { isoToMs } from './dates';
 
 /** The user-editable fields of an entry. */
@@ -264,7 +265,7 @@ export function splitEntry(doc: Y.Doc, deviceId: string, id: string, atMs: numbe
  * monthly timesheet (owner decision 2026-10-16). After that the delete is permanent, as every soft
  * delete is.
  */
-export const RESTORE_WINDOW_DAYS: number = 45;
+export const RESTORE_WINDOW_DAYS: number = TRASH_DAYS;
 export const RESTORE_WINDOW_MS = RESTORE_WINDOW_DAYS * 24 * 3600_000;
 /** The window in words, for messages: "a day", "45 days". */
 export const RESTORE_WINDOW_TEXT = RESTORE_WINDOW_DAYS === 1 ? 'a day' : `${RESTORE_WINDOW_DAYS} days`;

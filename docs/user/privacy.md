@@ -14,6 +14,7 @@ Yak is alpha software with no warranty. Keep backups.
 - All notes, tasks, time entries and settings are stored in this browser. Nothing is uploaded unless you pair a device.
 - Backups and the folder mirror write to folders you choose.
 - Each backup also tells the devices that keep a space that the backup was made: your device's id, the time, whether it was a folder or a download, and the state vector of the space's documents (a short list of counters, no content). It travels only between your own devices that keep the space, in the space's log document, and is not part of any backup.
+- Something you delete stays in your data, marked deleted, for 45 days so it can be restored (Settings › Recently deleted); files in notes keep their contents for those days too, unless you turn on **Delete files for good straight away**. **Delete for good** removes the contents on all your devices and leaves only a marker without contents. Older backups and Version history may still hold a copy.
 - Debug-log switches, the shortcut list and similar choices stay on the device.
 
 ## Between your own devices

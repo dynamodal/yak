@@ -33,7 +33,7 @@ await b.evaluate(() => { location.hash = '#/settings/backups/open'; });
 await b.waitForFunction(() => window.__backup !== undefined, null, { timeout: 15000 });
 await b.evaluate(() => window.__backup.ready());
 
-const button = b.getByRole('button', { name: 'Back up now' });
+const button = b.getByRole('button', { name: 'Back up now', exact: true });
 const text = async () => (await b.locator('main').innerText()).replace(/\s+/g, ' ');
 const said = (re, ms = 30000) => b.locator('main').getByText(re).first().waitFor({ timeout: ms }).then(() => true, () => false);
 const note = () => b.locator('[data-backup-now-note]').innerText().catch(() => '');

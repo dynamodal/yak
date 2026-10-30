@@ -48,12 +48,19 @@ Only spaces a device keeps are affected, and a device that never syncs warns exa
 
 ### Restore from a backup
 
-In **Settings › Backups** choose a backup from the list, **Restore from a backup file…** (a `.zip` or `.json`) or **Restore from a folder…**.
-Every file's checksum is checked first, and you see what the backup holds before anything changes.
+In **Settings › Backups** pick a backup in the list of backups in the folder, or use **Restore from a backup file…** (a `.zip` or `.json`) or **Restore from a folder…**.
+Every file's checksum is checked first.
 A damaged backup is shown with its problems and cannot be restored; pick an older one.
 
-- **Merge into this device** adds what is missing and keeps everything else, including later edits. It is the safe choice, also on a new browser.
-- **Replace local data…** makes this device exactly like the backup. Everything made after the backup is removed from this device.
+Then the backup is compared with this device now, before anything changes:
+
+- **Merge adds**: what the backup holds that this device lacks.
+- **Replace removes**: what this device holds that the backup lacks, such as everything made after the backup.
+
+Each line counts by kind (time entries, notes and tasks, projects, clients, tags, files in notes, settings); open it to see the items by name.
+
+- **Merge into this device** adds what is missing and keeps everything else, including later edits. It is the safe choice, also on a new browser, and one click.
+- **Replace local data…** makes this device exactly like the backup. It appears only once the comparison is ready, and not at all when Replace would change nothing. Its confirmation repeats what it removes and needs a tick in a checkbox.
 - **Restore to a time…** rebuilds your data as it was at a moment you pick, then shows it like any backup.
 
 Replace keeps what it replaces:

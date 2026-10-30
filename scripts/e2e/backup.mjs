@@ -70,9 +70,19 @@ const descriptions = (d, space = 'space/personal/time') =>
     .map((e) => e.description)
     .sort();
 
+/** Pick a backup in the navigator; it opens beside the list with its comparison with now. */
 async function openRestore(page, name) {
-  await page.locator(`tr[data-name="${name}"] button`, { hasText: 'Restore…' }).click();
-  await page.locator('.restore-panel').waitFor();
+  await page.locator(`.bn-list li[data-name="${name}"] button`).click();
+  await page.locator('.bn-detail .restore-panel').waitFor();
+}
+
+/** The picked backup's comparison, once it is ready. */
+async function compare(page) {
+  await page.locator('.backup-compare').waitFor();
+  return {
+    merge: await page.locator('.bc-side[data-side="merge"] [data-counts]').innerText(),
+    replace: await page.locator('.bc-side[data-side="replace"] [data-counts]').innerText(),
+  };
 }
 
 // ---------- Profile A ----------
@@ -97,13 +107,13 @@ await B(a, () => window.__backup.useOpfs('e2e-backups'));
 await a.goto(`${BASE}?test#/settings/backups/open`);
 await ready(a);
 await a.getByText('Backing up to').waitFor();
-await a.getByRole('button', { name: 'Back up now' }).click();
+await a.getByRole('button', { name: 'Back up now', exact: true }).click();
 await a.getByText(/^Backed up to /).waitFor();
 check((await list(a)).length === 1, 'Back up now wrote one restore point to the folder');
 check((await B(a, () => window.__backup.currentName())).length > 0, 'the readable mirror (current/) was written');
 check((await a.locator('.backup-banner.warn').count()) === 0, 'banner gone after the backup');
 check(await a.locator('.tab-badge.warn').count() === 0, 'the Settings dot is gone after the backup');
-check((await a.locator('table.backup-history tbody tr').count()) === 1, 'history lists the backup');
+check((await a.locator('.bn-list li').count()) === 1, 'history lists the backup');
 
 const mirror0 = await B(a, () => window.__backup.currentName());
 await B(a, () => window.__backup.addEntry('personal', 'before timer stop'));
@@ -112,7 +122,7 @@ check(await until(async () => (await B(a, () => window.__backup.currentName())) 
 await B(a, () => window.__backup.idle());
 check((await list(a)).length === 1, 'a stopped timer adds no restore point (one per week)');
 const point0 = (await list(a))[0].name;
-await a.getByRole('button', { name: 'Back up now' }).click();
+await a.getByRole('button', { name: 'Back up now', exact: true }).click();
 check(await until(async () => (await list(a))[0].name !== point0), 'Back up now makes a restore point');
 check(await until(async () => (await list(a)).length === 1), 'the weekly thinning keeps one restore point per week');
 const [atStop] = await list(a);
@@ -128,7 +138,7 @@ await a.reload();
 await ready(a);
 await a.getByText('Backing up to').waitFor();
 check((await B(a, () => window.__backup.state())).folder.state === 'granted', 'folder access kept after reload');
-check((await poll(async () => (await a.locator('table.backup-history tbody tr').count()) === 1)), 'history still lists the restore point after reload');
+check((await poll(async () => (await a.locator('.bn-list li').count()) === 1)), 'history still lists the restore point after reload');
 
 // A corrupted backup is refused with its problem shown, and nothing is applied. The corrupted
 // file is a copy kept like an older full backup in the folder.
@@ -136,21 +146,36 @@ const COPY = '2026-01-01T00-00-00-000Z_copy0000';
 await B(a, ([n, f]) => window.__backup.importFolder(n, f), [COPY, folderCopy]);
 await a.reload();
 await ready(a);
-await a.locator(`tr[data-name="${COPY}"]`).waitFor();
+await a.locator(`.bn-list li[data-name="${COPY}"]`).waitFor();
 await B(a, (n) => window.__backup.corrupt(n, `docs/space~${window.__app.spaces().personal}/update.ybin`), COPY);
 const beforeCorrupt = await dump(a);
 await openRestore(a, COPY);
 const verify = await a.locator('.restore-panel .verify').innerText();
 check(/damaged/.test(verify) && /update\.ybin does not match its checksum/.test(verify), 'corrupted backup fails its checksum');
 check((await a.getByRole('button', { name: 'Merge into this device' }).count()) === 0, 'no restore offered for a damaged backup');
+check((await a.locator('.backup-compare').count()) === 0, 'a damaged backup is not compared');
 await a.getByRole('button', { name: 'Close' }).click();
 check(same(await dump(a), beforeCorrupt), 'nothing changed by opening a damaged backup');
+
+// A backup equal to now: the comparison says so and Replace is not offered.
+await openRestore(a, atStop.name);
+const same0 = await compare(a);
+check(same0.merge === 'nothing' && same0.replace === 'nothing', `a backup equal to now changes nothing (${JSON.stringify(same0)})`);
+check((await a.getByRole('button', { name: 'Replace local data…' }).count()) === 0, 'Replace is not offered when it would change nothing');
+check(await a.locator('.bn-list li[data-name] button[aria-current="true"]').count() === 1, 'the picked backup is marked in the list');
+await a.getByRole('button', { name: 'Cancel' }).click();
 
 // Merge into newer local data: nothing local is lost.
 await B(a, () => window.__backup.addEntry('personal', 'after the backup'));
 const beforeMerge = await dump(a);
 await openRestore(a, atStop.name);
 check(/All \d+ files match their checksums/.test(await a.locator('.restore-panel .verify').innerText()), 'good backup verifies');
+const diff1 = await compare(a);
+check(diff1.merge === 'nothing', `Merge would add nothing to newer data (${diff1.merge})`);
+check(diff1.replace === '1 time entry', `Replace would remove the later entry (${diff1.replace})`);
+await a.locator('.bc-side[data-side="replace"] summary', { hasText: 'What Replace removes' }).click();
+check(/after the backup/.test(await a.locator('.bc-side[data-side="replace"] .bc-items').first().innerText()), 'the items Replace removes are listed by name');
+check(await a.getByRole('button', { name: 'Merge into this device' }).evaluate((b) => b.classList.contains('primary')), 'Merge is the primary button');
 await a.getByRole('button', { name: 'Merge into this device' }).click();
 await a.getByText(/^Merged the backup/).waitFor();
 const afterMerge = await dump(a);
@@ -162,6 +187,7 @@ await openRestore(a, atStop.name);
 await a.getByRole('button', { name: 'Replace local data…' }).click();
 const confirmText = await a.locator('.confirm-replace').innerText();
 check(/exactly like the backup from/.test(confirmText) && /Merge it back/.test(confirmText), 'the replace confirmation names the backup time and the undo path');
+check(/Removed: 1 time entry\./.test(confirmText), 'the replace confirmation counts what it removes');
 check(!/Only this device changes/.test(confirmText), 'an unpaired device is not told about other devices');
 const replaceBtn = a.getByRole('button', { name: 'Replace and reload' });
 check(await replaceBtn.isDisabled(), 'replace needs the confirmation checkbox');
@@ -180,20 +206,20 @@ check(descriptions(await dump(a)).includes('after the backup'), 'data from befor
 
 // Segments are copied once: a second run writes no duplicates.
 await B(a, () => window.__backup.flushHistory());
-await a.getByRole('button', { name: 'Back up now' }).click();
+await a.getByRole('button', { name: 'Back up now', exact: true }).click();
 const seg0 = await B(a, () => window.__backup.currentName());
 check(await until(async () => (await B(a, () => window.__backup.currentName())) !== seg0), 'Back up now ran');
 const segs1 = await B(a, () => window.__backup.segmentFiles());
 check(segs1.length > 0 && new Set(segs1).size === segs1.length, `history segments are in the folder (${segs1.length})`);
 const mirror1 = await B(a, () => window.__backup.currentName());
-await a.getByRole('button', { name: 'Back up now' }).click();
+await a.getByRole('button', { name: 'Back up now', exact: true }).click();
 check(await until(async () => (await B(a, () => window.__backup.currentName())) !== mirror1), 'a second run happened');
 check(same(await B(a, () => window.__backup.segmentFiles()), segs1), 'the second run wrote no segment again');
 
 // Restore to a time: now (everything), and before anything was recorded (refused).
 await B(a, () => window.__backup.addEntry('personal', 'late entry'));
 await B(a, () => window.__backup.flushHistory());
-await a.getByRole('button', { name: 'Back up now' }).click();
+await a.getByRole('button', { name: 'Back up now', exact: true }).click();
 const mirror2 = mirror1;
 check(await until(async () => (await B(a, () => window.__backup.currentName())) !== mirror2 && (await B(a, () => window.__backup.state())).running === false), 'a backup with the late entry was made');
 const finalA = await dump(a);
@@ -206,6 +232,7 @@ await a.getByLabel('Restore as of').fill(later());
 await a.getByRole('button', { name: 'Show that time' }).click();
 await a.locator('.restore-panel').waitFor();
 const liveEntries = Object.values(finalA['space/personal/time'].maps.time_entries).filter((e) => !e.deleted).length;
+await a.locator('.restore-panel summary', { hasText: 'What the backup holds' }).click();
 const timeRow = (await a.locator('.restore-panel table tr', { hasText: /^\s*Personal · private/ }).innerText()).trim();
 check(new RegExp(`^Personal · private \\(time, rates\\)\\s+${liveEntries}\\b`).test(timeRow), `restore to a time: the rebuilt state holds the ${liveEntries} entries (${timeRow.replace(/\s+/g, ' ')})`);
 check(/Rebuilt for a chosen time/.test(await a.locator('.restore-panel').innerText()), 'the panel says it was rebuilt for a chosen time');
@@ -232,7 +259,7 @@ check(await until(async () => {
 await a.evaluate(() => (location.hash = '#/settings/backups/open'));
 await a.getByLabel('Write only encrypted backups from this device').check();
 const mirror3 = await B(a, () => window.__backup.currentName());
-await a.getByRole('button', { name: 'Back up now' }).click();
+await a.getByRole('button', { name: 'Back up now', exact: true }).click();
 check(await until(async () => (await B(a, () => window.__backup.currentName()).catch(() => '')) !== mirror3 || (await B(a, () => window.__backup.encryptedState())).header === 'PDENC1', 15000), 'an encrypted backup was made');
 // The click's run is over only when its message shows; reading current/ earlier races the rewrite.
 check(await a.getByText(/^Backed up to /).waitFor({ timeout: 15000 }).then(() => true, () => false), 'the encrypted backup run finished');
@@ -281,6 +308,7 @@ await b.getByLabel('Backup file').setInputFiles(file);
 await b.locator('.restore-panel').waitFor();
 check(/All \d+ files match their checksums/.test(await b.locator('.restore-panel .verify').innerText()), 'B: downloaded file verifies');
 // Rows are named by space; entries live in the space's private part.
+await b.locator('.restore-panel summary', { hasText: 'What the backup holds' }).click();
 const personalRow = await b.locator('.restore-panel table tr').filter({ has: b.locator('td', { hasText: /^Personal$/ }) }).innerText();
 check(/^Personal\s+0\s+2\s+1\s+1\s+1$/.test(personalRow.trim()), `B: panel shows what the backup holds (${personalRow.replace(/\s+/g, ' ')})`);
 const personalTimeRow = await b.locator('.restore-panel table tr', { hasText: /^\s*Personal · private/ }).innerText();
@@ -302,7 +330,7 @@ await B(c, ([n, f]) => window.__backup.importFolder(n, f), [atStop.name, folderC
 await c.goto(`${BASE}?test#/devices`);
 await c.goto(`${BASE}?test#/settings/backups/open`);
 await ready(c);
-await c.locator(`tr[data-name="${atStop.name}"]`).waitFor();
+await c.locator(`.bn-list li[data-name="${atStop.name}"]`).waitFor();
 await B(c, () => window.__backup.idle());
 await openRestore(c, atStop.name);
 // A fresh browser restoring a backup of another account switches to that account (one reload).

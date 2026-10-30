@@ -3,7 +3,7 @@ import { attachmentsMap } from './blobs/attachments';
 import { collection, nowIso, type CollectionName } from './schema';
 
 /**
- * Recently deleted (#107, docs/design/backup-history-model.md): every kind of record is kept for
+ * Recently deleted (#107, decision B-96f): every kind of record is kept for
  * `TRASH_DAYS` after a delete and can be restored until then; Delete for good clears it on every device.
  *
  * - A delete sets `deleted: true` and stamps `deleted_at` (ISO). A record deleted before the stamp existed

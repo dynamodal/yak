@@ -120,13 +120,15 @@ export function DevicesSection(props: { target?: string }) {
               title={
                 <>
                   {title}
-                  {named ? null : <span class="hint"> · Rename</span>}{' '}
-                  <code class="hint" title={`Device ID ${c.id}`}>
-                    {shortId(c.id)}
-                  </code>
+                  {named ? null : <span class="hint"> · Rename</span>}
                 </>
               }
-              sub={sub}
+              sub={
+                <>
+                  {sub} ·{' '}
+                  <code title={`Device ID ${c.id}`}>{shortId(c.id)}</code>
+                </>
+              }
               aside={st && peer ? <SyncDot shape={linkShape(linkKind(peer))} label={st.label} /> : undefined}
             >
               <fieldset class="st-keeps-set">

@@ -278,4 +278,18 @@ check((await page.locator('#rp-controls .rp-fold').getAttribute('aria-expanded')
 check(await page.locator('svg.rp-svg').count() === 0 && await page.locator('.rp-detail').count() === 1, 'a folded chart stays folded and an opened entries section stays open after a reload');
 check(await page.locator('[style]').evaluateAll((els) => els.filter((e) => e.closest('.rp') && !e.classList.contains('rp-dot') && !e.classList.contains('rp-share')).length) === 0, 'no unexpected inline style attributes in the module');
 
+// The view switch stays where it is across List, Week and Reports (#105), on desktop and at 375 px.
+for (const width of [1400, 375]) {
+  await page.setViewportSize({ width, height: 900 });
+  const lefts = [];
+  for (const view of ['list', 'week', 'reports']) {
+    await page.goto(BASE + `?test#/time/${view}`);
+    const seg = page.locator('nav.seg[aria-label="Time views"]');
+    await seg.waitFor();
+    const box = await seg.boundingBox();
+    lefts.push(Math.round(box.x), Math.round(box.y));
+  }
+  check(lefts[0] === lefts[2] && lefts[0] === lefts[4] && lefts[1] === lefts[3] && lefts[1] === lefts[5], `the Time view switch does not move between views at ${width} px (${lefts.join(', ')})`);
+}
+
 await finish(browser);

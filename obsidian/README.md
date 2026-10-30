@@ -22,10 +22,10 @@ By hand:
 Then:
 
 1. Settings, Community plugins: turn on "Yak Sync".
-2. Settings, Yak Sync: paste the sync code or a one-time code from the app (Settings › Devices and sync › + Add a device), Join.
+2. Settings, Yak Sync: the top line says whether the vault is joined and syncing. Paste the sync code or a one-time code from the app (Settings › Devices and sync › + Add a device), Join.
    - When your account requires device keys, use a one-time code (Make a one-time code).
      A notice in Obsidian shows a code. If the app shows the same, choose "The codes match" in the plugin's settings, then approve the vault in the app.
-3. In the app, Settings › Devices and sync: open the row "Obsidian (<vault name>)" and tick the spaces it keeps.
+3. In the app, Settings › Devices and sync: open the row named after the vault (default `Obsidian (<vault name>, desktop or mobile, <4 characters>)`; rename it with Device name in the plugin's settings) and tick the spaces it keeps.
    Nothing is written until you do.
 
 An account can require device keys only once every vault runs version 0.2.0 or later of the plugin: until then Settings › Devices and sync lists the vault as not ready.
@@ -50,7 +50,7 @@ An account can require device keys only once every vault runs version 0.2.0 or l
 - Documents (notes, tasks, projects, the account) and the mirror state are files under `<vault>/.obsidian/plugins/yak-sync/`.
   Vault sync (Obsidian Sync, iCloud, Syncthing, git…) copies them without encryption, so treat that folder as readable by whoever reads the vault.
 - Time entries never reach the plugin: the private part of a space is neither synced to it nor saved.
-- Setting "Keep documents in the vault", on by default.
+- Setting "Keep documents in the vault" (under "Where Yak keeps your data" in the settings), on by default.
   Off: documents go to the app's own database (IndexedDB) instead, and no document file is written in the vault.
   Reload Obsidian after changing it; files from before are imported once and removed at a later start.
 - The notes in the `Yak/` folder are ordinary Markdown files in the vault either way.

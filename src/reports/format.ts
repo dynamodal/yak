@@ -1,11 +1,12 @@
 import { type DateRange, dayKey } from './dates';
 import type { Amounts } from './aggregate';
 
-export type HoursFormat = 'decimal' | 'hm';
+export type HoursFormat = 'decimal' | 'decimal1' | 'decimal0' | 'hm';
 
-/** The shared setting `settings.hours_format` stores `decimal` or `h:mm`; anything else means decimal. */
+/** The shared setting `settings.hours_format` stores `decimal`, `decimal1`, `decimal0` or `hm` (`h:mm` reads as `hm`); anything else means `decimal`. */
 export function parseHoursFormat(value: unknown): HoursFormat {
-  return value === 'h:mm' || value === 'hm' ? 'hm' : 'decimal';
+  if (value === 'h:mm' || value === 'hm') return 'hm';
+  return value === 'decimal1' || value === 'decimal0' ? value : 'decimal';
 }
 
 const HOUR = 3_600_000;
@@ -17,7 +18,7 @@ export function formatDuration(ms: number, format: HoursFormat): string {
     const minutes = Math.round(safe / 60_000);
     return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
   }
-  return `${(safe / HOUR).toFixed(2)} h`;
+  return `${(safe / HOUR).toFixed(format === 'decimal0' ? 0 : format === 'decimal1' ? 1 : 2)} h`;
 }
 
 /** Decimal hours without the unit, for CSV. */
@@ -73,5 +74,5 @@ export function clockTime(ms: number, withSeconds = false): string {
 /** Duration without a unit, for narrow table cells: `1.25` or `1:15`. */
 export function formatCompact(ms: number, format: HoursFormat): string {
   const full = formatDuration(ms, format);
-  return format === 'decimal' ? full.replace(/ h$/, '') : full;
+  return format !== 'hm' ? full.replace(/ h$/, '') : full;
 }

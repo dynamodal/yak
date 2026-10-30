@@ -28,5 +28,7 @@ test('write and read back', () => {
 test('the legacy h:mm value reads as hm', () => {
   expect(parseHoursFormat('h:mm')).toBe('hm');
   expect(parseHoursFormat('hm')).toBe('hm');
+  expect(parseHoursFormat('decimal1')).toBe('decimal1');
+  expect(parseHoursFormat('decimal0')).toBe('decimal0');
   expect(parseHoursFormat('decimal')).toBe('decimal');
 });

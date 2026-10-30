@@ -91,7 +91,7 @@ interface PartialMessage {
   bytes: number;
 }
 
-const concat = (a: Uint8Array, b: Uint8Array): Uint8Array => {
+const concat = (a: Uint8Array, b: Uint8Array): Uint8Array<ArrayBuffer> => {
   const out = new Uint8Array(a.length + b.length);
   out.set(a, 0);
   out.set(b, a.length);

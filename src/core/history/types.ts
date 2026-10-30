@@ -27,6 +27,8 @@ export interface Mark {
   name: string;
   at: number;
   text: string;
+  /** `before-restore`: the state before a restore from Version history; not tied to a note (`noteId` is empty) and kept through thinning. */
+  kind?: 'before-restore';
 }
 
 export interface SegmentStore {

@@ -19,7 +19,14 @@ export interface Point {
   /** Distinct time entries and notes (tasks included) the point touched. */
   entries: number;
   notes: number;
+  /** Where the point was recorded. Every point has one, so a log that syncs later can name other devices. */
+  source: string;
+  /** Set on a mark rather than a change: "Before restore". */
+  mark?: string;
 }
+
+/** What `source` says for points recorded here. */
+export const THIS_DEVICE = 'This device';
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 
@@ -83,7 +90,16 @@ export async function dayPoints(store: SegmentStore, docIds: readonly string[], 
       entries.clear();
       notes.clear();
       Y.applyUpdate(doc, s.update);
-      if (mine) out.push({ docId, seq: s.seq, start: s.start, end: s.end, local: s.local, entries: entries.size, notes: notes.size });
+      if (mine) out.push({ docId, seq: s.seq, start: s.start, end: s.end, local: s.local, entries: entries.size, notes: notes.size, source: THIS_DEVICE });
+    }
+  }
+  // A mark is written to each document it covers; show it once.
+  const seen = new Set<number>();
+  for (const docId of docIds) {
+    for (const m of await store.marks(docId)) {
+      if (m.kind !== 'before-restore' || dayOf(m.at) !== day || seen.has(m.at)) continue;
+      seen.add(m.at);
+      out.push({ docId, seq: -1, start: m.at, end: m.at, local: true, entries: 0, notes: 0, source: THIS_DEVICE, mark: m.name });
     }
   }
   return out.sort((a, b) => a.start - b.start);
@@ -92,7 +108,8 @@ export async function dayPoints(store: SegmentStore, docIds: readonly string[], 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** "3 entries · 1 note", or "Other changes" when the point touched neither. */
-export function pointSummary(p: Pick<Point, 'entries' | 'notes'>): string {
+export function pointSummary(p: Pick<Point, 'entries' | 'notes' | 'mark'>): string {
+  if (p.mark) return p.mark;
   const parts: string[] = [];
   if (p.entries > 0) parts.push(plural(p.entries, 'entry', 'entries'));
   if (p.notes > 0) parts.push(plural(p.notes, 'note', 'notes'));

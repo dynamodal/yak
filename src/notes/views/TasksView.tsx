@@ -167,6 +167,7 @@ function TasksList({ params }: ViewProps) {
       <PageHeader
         title="Tasks"
         hideTitle
+        anchor
         filters={
           viewOf(mode) === 'list' ? (
             <ListFilters mode={mode} tasks={tasks} filter={listFilter} onChange={setListFilter} />

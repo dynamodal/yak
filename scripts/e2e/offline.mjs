@@ -18,7 +18,8 @@ const DIST = process.env.DIST_DIR || join(process.cwd(), 'dist');
 const SW = join(DIST, 'sw.js');
 
 const original = readFileSync(SW, 'utf8');
-const manifestOf = (src) => JSON.parse(/\{version:"[^"]*",pages:\[[^\]]*\],assets:\[[^\]]*\](?:,backupFirst:!0)?\}/.exec(src)[0].replace(/(\w+):/g, '"$1":').replace(/:!0/g, ':true'));
+// The manifest is the minified object literal `{version:…,pages:[…],assets:…}` in our own build output; the minifier may quote it with `"` or a backtick and write the file list as a string split on commas, so evaluate the literal.
+const manifestOf = (src) => new Function(`return (${/\{version:[^}]*\}/.exec(src)[0]})`)();
 const manifest = manifestOf(original);
 const V1 = manifest.version;
 const V2 = 'e2e' + Date.now().toString(16).slice(-9);

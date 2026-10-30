@@ -216,11 +216,11 @@ export async function startSelecting(page) {
 /** Pick an item from a Notes sidebar menu ("New…" or "Notes menu"). */
 export async function notesMenu(page, label, item) {
   await page.getByRole('toolbar', { name: 'Notes' }).getByRole('button', { name: label, exact: true }).click();
-  await page.getByRole('menuitem', { name: item, exact: true }).click();
+  await page.getByRole('menuitem', typeof item === 'string' ? { name: item, exact: true } : { name: item }).click();
 }
 
 /** A new note from the Notes sidebar's "New…" menu. */
-export const newNote = (page) => notesMenu(page, 'New…', 'New note');
+export const newNote = (page) => notesMenu(page, 'New…', /^New note( in .+)?$/);
 
 /**
  * Opens what hides the join form and the connection server field: on the Welcome screen the "Already use Yak?" line,
@@ -326,7 +326,14 @@ export async function openAdvanced(page) {
     await page.locator('details.advanced').first().waitFor();
   }
   const fold = page.locator('details.advanced').first();
-  if (!(await fold.evaluate((d) => d.open))) await fold.locator('summary').first().click();
+  // `#/settings/advanced` opens the fold from an effect a frame after it renders; a click in that gap would close it
+  // again (#30). Give the app its turn first, click only if it stays closed, and check it ends up open.
+  if (/^#\/settings\/advanced/.test(await page.evaluate(() => location.hash))) await until(() => fold.evaluate((d) => d.open), 1500);
+  await until(async () => {
+    if (!(await fold.evaluate((d) => d.open))) await fold.locator('summary').first().click();
+    await sleep(200);
+    return fold.evaluate((d) => d.open);
+  }, 10000, 0);
   return fold;
 }
 

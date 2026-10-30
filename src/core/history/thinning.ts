@@ -25,13 +25,17 @@ export function bucketOf(seg: Pick<Segment, 'end'>, now: number, policy: Thinnin
 }
 
 /** Runs of neighbouring segments in the same bucket; only runs of two or more are worth merging. */
-export function planThinning(segments: readonly Segment[], now: number, policy: ThinningPolicy = DEFAULT_POLICY): Segment[][] {
+export function planThinning(segments: readonly Segment[], now: number, policy: ThinningPolicy = DEFAULT_POLICY, cuts: readonly number[] = []): Segment[][] {
   const runs: Segment[][] = [];
   let current: Segment[] = [];
   let key: string | null = null;
+  let prev: Segment | undefined;
   for (const s of segments) {
     const b = bucketOf(s, now, policy);
-    if (b !== null && b === key) current.push(s);
+    // A "Before restore" mark at time `c` stays a point: segments up to `c` never merge with later ones.
+    const cut = prev !== undefined && cuts.some((c) => prev !== undefined && prev.end <= c && s.end > c);
+    prev = s;
+    if (b !== null && b === key && !cut) current.push(s);
     else {
       if (current.length > 1) runs.push(current);
       current = b === null ? [] : [s];
@@ -44,7 +48,8 @@ export function planThinning(segments: readonly Segment[], now: number, policy: 
 
 /** Merge old runs of segments; the content is kept, only the time inside a merged span is lost. */
 export async function thinDocument(store: SegmentStore, docId: string, now: number, policy: ThinningPolicy = DEFAULT_POLICY): Promise<number> {
-  const runs = planThinning(await store.list(docId), now, policy);
+  const cuts = (await store.marks(docId)).filter((m) => m.kind === 'before-restore').map((m) => m.at);
+  const runs = planThinning(await store.list(docId), now, policy, cuts);
   for (const run of runs) {
     const merged: NewSegment = {
       docId,

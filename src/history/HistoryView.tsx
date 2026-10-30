@@ -8,7 +8,8 @@ import { lineDiff } from '../core/history/diff';
 import { collection } from '../core/schema';
 import { compareCollection, type Comparison, restoreRecords, stateAt } from '../core/history/travel';
 import { HistoryBrowser } from './HistoryBrowser';
-import { historyStore } from './runtime';
+import { clock, historyStore, runtime } from './runtime';
+import { uuid } from '../core/ids';
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 
@@ -24,6 +25,7 @@ function fromInput(text: string): number | null {
 }
 
 const DAY = 86_400_000;
+const BEFORE_RESTORE = 'Before restore';
 const when = (ms: number): string => new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
 interface SpaceResult {
@@ -66,6 +68,7 @@ export function HistorySection({ params }: ViewProps) {
   const [before, setBefore] = useState(false);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   const [refresh, setRefresh] = useState(0);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     const when_ = exact ?? fromInput(at);
@@ -127,7 +130,16 @@ export function HistorySection({ params }: ViewProps) {
   };
   const total = results?.reduce((n, r) => n + countOf(r), 0) ?? 0;
   const added = results?.reduce((n, r) => n + r.comparison.addedSince + r.notes.addedSince, 0) ?? 0;
-  const restore = (): void => {
+  const restore = async (): Promise<void> => {
+    setConfirming(false);
+    // The "Before restore" mark: what the log holds now stays a point of its own, so thinning cannot merge it away.
+    await runtime.recorder?.flushAll();
+    const markAt = clock();
+    for (const r of results ?? []) {
+      for (const docId of [privateDocId(r.spaceId), spaceDocId(r.spaceId)]) {
+        await historyStore.addMark({ id: uuid(), docId, noteId: '', name: BEFORE_RESTORE, at: markAt, text: '', kind: 'before-restore' });
+      }
+    }
     let n = 0;
     let notes = 0;
     for (const r of results ?? []) {
@@ -139,15 +151,15 @@ export function HistorySection({ params }: ViewProps) {
     const parts = [];
     if (n > 0) parts.push(n === 1 ? '1 entry' : `${n} entries`);
     if (notes > 0) parts.push(notes === 1 ? '1 note' : `${notes} notes`);
-    toast(`Restored ${parts.join(' and ') || 'nothing'}.`);
+    toast(`Restored ${parts.join(' and ') || 'nothing'}. The state before is kept as “${BEFORE_RESTORE}” at ${when(markAt)}.`);
     setRefresh(refresh + 1);
   };
 
   return (
     <section ref={top} class="history-page" id="history" aria-labelledby="history-h">
-      <h2 id="history-h">Go back in time</h2>
+      <h2 id="history-h">Version history</h2>
       <p class="hint">
-        Time entries, notes and tasks as they were at a chosen time. Choose what changed or was deleted since and bring it back; everything else stays as it is now. Projects, clients, tags and settings are not covered. This device keeps a log of its changes and cannot see further back than when it started recording.
+        Earlier versions of your time entries, notes and tasks. For now each device records its own; this list shows versions recorded on this device, and it cannot see further back than when this device started recording. Choose what changed or was deleted since a point and bring it back as new edits; everything else stays as it is now. Projects, clients, tags and settings are not covered here: an edit to one of them, such as a rename, cannot be undone from this list. Version history is stored in a separate database in this browser, not in a backup.
       </p>
       <div class="row history-controls">
         <label>
@@ -181,7 +193,7 @@ export function HistorySection({ params }: ViewProps) {
           setAt(toInput(ms));
         }}
       />
-      {since !== null && <p class="muted history-since">History on this device begins {when(since)}.</p>}
+      {since !== null && <p class="muted history-since">Recorded on: This device, from {when(since)}.</p>}
       {results === null ? (
         <p class="empty">Reading the log…</p>
       ) : since === null ? (
@@ -282,7 +294,7 @@ export function HistorySection({ params }: ViewProps) {
             ),
           )}
           <div class="row">
-            <Button variant="primary" disabled={picked.size === 0} onClick={restore}>
+            <Button variant="primary" disabled={picked.size === 0 || confirming} onClick={() => setConfirming(true)}>
               Restore selected ({picked.size})
             </Button>
             <Button
@@ -293,6 +305,20 @@ export function HistorySection({ params }: ViewProps) {
               Select all
             </Button>
           </div>
+          {confirming && (
+            <div class="confirm-restore card" role="group" aria-label="Confirm restore">
+              <p>
+                Bring back {picked.size === 1 ? '1 item' : `${picked.size} items`} as they were at {when(exact ?? fromInput(at) ?? Date.now())}? They are written as new edits, and later work stays.
+                The state from before is kept in Version history as “{BEFORE_RESTORE}”. To undo, choose that point under Days with changes and restore from it.
+              </p>
+              <div class="row">
+                <Button variant="primary" onClick={() => void restore()}>
+                  Restore
+                </Button>
+                <Button onClick={() => setConfirming(false)}>Cancel</Button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </section>

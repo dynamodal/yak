@@ -180,13 +180,17 @@ const setupPlugin = async ({ bundle, relay, code, vault: vaultName }) => {
     }
     // The settings tab, with Obsidian 1.14's Setting: a thenable (`then` calls back with itself), so a
     // promise resolved with one never settles (#91). Components accept any call and return themselves.
-    const component = () => new Proxy({}, { get: (_, k) => (k === 'then' ? undefined : () => component()) });
+    const component = () => new Proxy({}, { get: (_, k) => (k === 'then' ? undefined : k === 'inputEl' ? document.createElement('input') : () => component()) });
     class Setting {
       constructor(el) {
         this.row = el.appendChild(document.createElement('div'));
       }
       setName(n) {
         this.row.setAttribute('data-name', n);
+        return this;
+      }
+      setHeading() {
+        this.row.setAttribute('data-heading', '');
         return this;
       }
       setDesc(d) {
@@ -268,20 +272,23 @@ check(t >= 0, `the account document arrived through the relay${t >= 0 ? ` in ${t
 
 // It is a device of its own; nothing reaches it until the owner ticks spaces.
 await app.evaluate(() => (location.hash = '#/settings'));
-await openRow(app, 'Obsidian (TestVault)');
-await app.getByLabel('Obsidian (TestVault) keeps Personal').waitFor({ timeout: 20000 });
+const vaultName = await P(() => window.__plugin.deviceNameNow());
+check(/^Obsidian \(TestVault, desktop, [0-9a-f]{4}\)$/.test(vaultName), `the default device name has the platform and a short id (${vaultName})`);
+await plugged(() => window.__plugin.accountDoc() !== undefined && window.__plugin.shownDeviceName() === window.__plugin.deviceNameNow());
+await openRow(app, vaultName);
+await app.getByLabel(`${vaultName} keeps Personal`).waitFor({ timeout: 20000 });
 check(true, 'Settings lists the plugin by name, with a keep chip per space');
 await settle();
 check(!(await P(() => window.__vault.paths().some((p) => p.startsWith('Yak/')))), 'no notes are written before the owner chooses spaces');
 check((await P(() => [...window.__plugin.store.opened().keys()].filter((id) => id.startsWith('space/')).length)) === 0, 'no space document is held yet');
 
-await app.getByLabel('Obsidian (TestVault) keeps Personal').check();
+await app.getByLabel(`${vaultName} keeps Personal`).check();
 const came = await plugged(async () => (await window.__plugin.mirror.run(), window.__vault.text('Yak/Personal/Ideas/Plan.md') === 'first'), 30000);
 check(came >= 0, 'a kept space becomes a folder of files under the root');
 check((await P(() => window.__vault.text('Yak/Work/Brief.md'))) === undefined, 'a space that is not kept is not written');
 check((await P(() => window.__vault.text('Yak/Personal/Home.md'))) === 'See [[Work:Brief]]', 'a link into a space not kept here is left as it is');
 
-await app.getByLabel('Obsidian (TestVault) keeps Work').check();
+await app.getByLabel(`${vaultName} keeps Work`).check();
 const work = await plugged(async () => (await window.__plugin.mirror.run(), window.__vault.text('Yak/Work/Brief.md') === 'the brief'), 30000);
 check(work >= 0, 'ticking the second space adds its folder');
 await plugged(async () => (await window.__plugin.mirror.run(), window.__vault.text('Yak/Personal/Home.md')?.includes('Yak/Work/Brief')));
@@ -358,6 +365,15 @@ check(await until(() => S(() => window.__plugin.accountDoc()?.id).then(async (id
 
 // Obsidian 1.14 froze on this tab once keys existed (#91): open it now that they do, and check the page answers.
 await P(() => window.__settingTab.display());
+const names = await P(() => [...document.querySelectorAll('[data-settings-tab] [data-name]')].map((r) => r.getAttribute('data-name')));
+check(names[0] === 'Sync status' && names.indexOf('Device name') < names.indexOf('Sync code') && names.indexOf('Sync code') < names.indexOf('Advanced') && names.indexOf('Advanced') < names.indexOf('Root folder') && names.indexOf('Signaling server') < names.indexOf('Keep documents in the vault'), `the settings tab order: ${names.join(' > ')}`);
+check(names.includes('Leave'), 'a joined vault offers Leave');
+check(await P(() => document.querySelector('[data-settings-tab] [data-name="Advanced"]').hasAttribute('data-heading')), 'Advanced is a Setting heading');
+check(await P(() => document.querySelector('[data-settings-tab] [data-name="Sync status"]').getAttribute('data-desc').startsWith('Syncing')), 'the status line says the vault is syncing');
+await P(() => window.__plugin.renameDevice('Kitchen tablet'));
+check((await P(() => window.__plugin.shownDeviceName())) === 'Kitchen tablet', 'renaming the device from the settings changes its name in the account');
+await P(() => window.__plugin.renameDevice(''));
+check((await P(() => window.__plugin.shownDeviceName())) === vaultName, 'an empty name goes back to the default');
 check(
   await P(() => document.querySelector('[data-settings-tab] [data-name="This vault\'s fingerprint"]') !== null),
   'the settings tab shows the fingerprint row once the vault has keys',

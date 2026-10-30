@@ -1,14 +1,17 @@
 name: CI
 
 # Public repo, so hosted minutes are free (decision F-6).
-# Every non-draft PR and every push to main runs types, unit tests, build and the browser suites.
+# Every non-draft PR, every push to main and every merge queue entry runs types, unit tests, build and the browser suites.
 # Shape: `build` (test build, uploaded once), `verify` (types, unit tests, production-bundle check) and two `e2e` shards run side by side;
 # `Checks` waits for all of them and is the one status branch rules require, so keep its name. Every PR runs it, docs-only included.
-# Pushes to main also run the timer-shortened suites with their real timers (`e2e-real-timers`).
+# Pushes to main and merge queue entries also run the timer-shortened suites with their real timers (`e2e-real-timers`).
 # If Actions is unavailable, scripts/ci-local.sh posts the same checks as commit statuses (docs/testing.md).
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  # Merge queue: GitHub tests each entry combined with the entries ahead of it.
+  merge_group:
+    types: [checks_requested]
   push:
     branches: [main]
   workflow_dispatch:
@@ -96,11 +99,11 @@ jobs:
           retention-days: 7
 
   # The same suites with the product's real timers (60 s direct-path retry, 60 s relay stats refresh, 15 s link retry),
-  # so they stay exercised even though the PR gate uses shortened ones. Pushes to main and manual runs only.
+  # so they stay exercised even though the PR gate uses shortened ones. Pushes to main, merge queue entries and manual runs only.
   e2e-real-timers:
     name: Browser suites (real timers)
     needs: build
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

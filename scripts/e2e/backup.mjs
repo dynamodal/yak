@@ -160,6 +160,9 @@ check(descriptions(afterMerge).includes('after the backup'), 'newer local entry 
 // Replace: the device goes back to exactly the backup (after a safety backup and a reload).
 await openRestore(a, atStop.name);
 await a.getByRole('button', { name: 'Replace local data…' }).click();
+const confirmText = await a.locator('.confirm-replace').innerText();
+check(/exactly like the backup from/.test(confirmText) && /Merge it back/.test(confirmText), 'the replace confirmation names the backup time and the undo path');
+check(!/Only this device changes/.test(confirmText), 'an unpaired device is not told about other devices');
 const replaceBtn = a.getByRole('button', { name: 'Replace and reload' });
 check(await replaceBtn.isDisabled(), 'replace needs the confirmation checkbox');
 await a.getByLabel('I understand that later changes on this device will be removed.').check();

@@ -36,7 +36,20 @@ export function packageOf(moduleId: string): { name: string; dir: string } | nul
 /** `Name <mail> (url)` becomes `Name`; an object author uses its name. */
 export function authorName(author: unknown): string {
   const raw = typeof author === 'string' ? author : author && typeof author === 'object' ? String((author as { name?: unknown }).name ?? '') : '';
-  return raw.replace(/<[^>]*>|\([^)]*\)/g, '').trim();
+  return stripUntilStable(raw, /<[^<>]*>|\([^()]*\)/g)
+    .replace(/[<>]/g, '')
+    .trim();
+}
+
+/** Strips `re` repeatedly, so nested input like `a<<b>c>` leaves no partial tag behind. */
+function stripUntilStable(text: string, re: RegExp): string {
+  let prev: string;
+  let out = text;
+  do {
+    prev = out;
+    out = out.replace(re, '');
+  } while (out !== prev);
+  return out;
 }
 
 /** The licence of a package.json: the `license` field, or the legacy `licenses` array. */
@@ -111,5 +124,6 @@ export function renderText(entries: readonly LicenseEntry[], appName: string): s
 
 /** The name in a `Copyright (c) 2015-present Jason Miller` line of a licence text, or ''. */
 export function authorFromText(text: string): string {
-  return /^\s*copyright\s*(?:\(c\)|©)?\s*[\d\s,\-–]*(?:present)?\s+(.+?)\s*$/im.exec(text)?.[1]?.replace(/<[^>]*>/g, '').trim() ?? '';
+  const name = /^\s*copyright\s*(?:\(c\)|©)?\s*[\d\s,\-–]*(?:present)?\s+(.+?)\s*$/im.exec(text)?.[1] ?? '';
+  return stripUntilStable(name, /<[^<>]*>/g).replace(/[<>]/g, '').trim();
 }

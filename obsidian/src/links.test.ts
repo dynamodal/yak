@@ -32,7 +32,7 @@ describe('links between the app and the vault', () => {
 
   it('leaves everything else alone', () => {
     const text = '[[Home]] [[Elsewhere/Thing]] [[Unknown:x]] `[[Work:Acme/Brief]]`\n```\n[[Work:Acme/Brief]]\n```';
-    expect(toVaultLinks(text, 'Yak', personal, spaces)).toBe(text.replace('`[[Work:Acme/Brief]]`', '`[[Work:Acme/Brief]]`'));
+    expect(toVaultLinks(text, 'Yak', personal, spaces)).toBe(text);
     expect(fromVaultLinks('[[Other/Place]] [[Yak/Nowhere/x]]', 'Yak', personal, spaces)).toBe('[[Other/Place]] [[Yak/Nowhere/x]]');
   });
 

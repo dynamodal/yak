@@ -17,13 +17,13 @@ describe('Settings in the palette (F-55)', () => {
   it('opens a section or a row of it', () => {
     const href = (id: string): string => settingsHref(SETTINGS_ENTRIES.find((e) => e.id === id)!);
     expect(href('notes')).toBe('#/settings/notes');
-    expect(href('notes-mirror')).toBe('#/settings/notes/mirror');
+    expect(href('mirror')).toBe('#/settings/mirror');
     expect(href('backups')).toBe('#/settings/backups');
     expect(href('passphrase-manage')).toBe('#/settings/passphrase/manage');
     expect(href('add-device')).toBe('#/settings/devices/add');
   });
   it('finds Mirror by mirror, folder and obsidian', () => {
-    for (const q of ['mirror', 'folder obsidian', 'obsidian']) expect(find(q)).toContain('settings.notes-mirror');
+    for (const q of ['mirror', 'folder obsidian', 'obsidian']) expect(find(q)).toContain('settings.mirror');
   });
   it('finds the other places by what people call them', () => {
     expect(find('passphrase')).toContain('settings.passphrase');
@@ -34,13 +34,13 @@ describe('Settings in the palette (F-55)', () => {
   });
   it('titles read as a Settings group', () => {
     expect(settingsCommands().every((c) => c.title.startsWith('Settings › '))).toBe(true);
-    expect(settingsCommands().find((c) => c.id === 'settings.notes-mirror')?.title).toBe('Settings › Notes › Mirror to a folder');
+    expect(settingsCommands().find((c) => c.id === 'settings.mirror')?.title).toBe('Settings › Mirror to a folder');
   });
   it('leaves out Notes entries while Notes is off and Mirror while Mirror is off', () => {
-    expect(find('mirror', ['notes'])).toEqual(['settings.features']);
+    expect(find('mirror', ['notes'])).toEqual(['settings.mirror', 'settings.features']);
     const noMirror = visibleSettingsEntries((f) => f === 'mirror').map((e) => e.id);
     expect(noMirror).toContain('notes-links');
-    expect(noMirror).not.toContain('notes-mirror');
+    expect(noMirror).not.toContain('mirror');
     expect(visibleSettingsEntries((f) => f === 'import').map((e) => e.id)).not.toContain('import');
   });
 });

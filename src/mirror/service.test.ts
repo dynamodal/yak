@@ -46,6 +46,19 @@ describe('mirror service', () => {
     expect(t.service.state.lastRunAt).toBeTruthy();
   });
 
+  it('keeps how the last pass ended, ok or failed with the reason, and when (#95)', async () => {
+    const t = setup();
+    await t.service.run();
+    expect(t.service.state.lastResult).toMatchObject({ ok: true });
+    expect(t.persisted().lastResult?.ok).toBe(true);
+    t.setFolder({ state: 'granted', name: 'Notes', id: 'f1', get fs(): MemoryFs {
+      throw new Error('The folder is gone');
+    } });
+    await t.service.run();
+    expect(t.service.state.lastResult).toMatchObject({ ok: false, error: 'The folder is gone' });
+    expect(t.persisted().lastResult).toMatchObject({ ok: false, error: 'The folder is gone' });
+  });
+
   it('keeps conflict copies until dismissed', async () => {
     const t = setup();
     const doc = t.spaces[0]!.doc;

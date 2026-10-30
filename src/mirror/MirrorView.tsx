@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import { useApp } from '../app/context';
 import { Button } from '../app/ui';
 import { folderMirrorSupported } from './folder';
-import { mirrorSpaces } from './service';
+import { mirrorSpaces, type MirrorResult } from './service';
 import { useMirror, watchFolder } from './runtime';
 
 const when = (iso: string | undefined): string => (iso ? new Date(iso).toLocaleString() : 'not yet');
@@ -13,6 +13,12 @@ const FOLDER_TEXT: Record<string, string> = {
   prompt: 'Access to the folder was lost when the page was closed. Allow it to continue.',
   denied: 'Access to the folder was refused. Choose the folder again.',
 };
+
+/** The last result and when: "OK, 3:05 PM" or "Failed, 3:05 PM: the reason" (#95). Before the result was kept, only a time of the last good pass is known. */
+function resultText(r: MirrorResult | undefined, lastRunAt: string | undefined): string {
+  if (!r) return lastRunAt ? `Last run OK: ${when(lastRunAt)}` : 'Not run yet';
+  return r.ok ? `Last run OK: ${when(r.at)}` : `Last run failed: ${when(r.at)}. ${r.error ?? 'Unknown error'}`;
+}
 
 /** Pick a folder; notes appear there as Markdown files and edits made elsewhere come back. */
 export function MirrorView() {
@@ -38,9 +44,6 @@ export function MirrorView() {
   return (
     <div class="mirror">
       <p class="help-link"><a href="#/help/obsidian">How this works</a></p>
-      <p class="hint">
-        Notes and tasks appear as Markdown files, one folder per space, and edits made in other editors (Obsidian, VS Code) come back. Time entries stay in the app.
-      </p>
       <div class="card">
         <h3>Folder</h3>
         <p class={`mirror-status ${state.folder.state === 'granted' ? 'ok' : ''}`} data-folder-state={state.folder.state}>
@@ -104,8 +107,8 @@ export function MirrorView() {
       {chosen ? (
         <div class="card">
           <h3>Status</h3>
-          <p data-mirror-run>
-            {state.running ? 'Mirroring…' : `Last checked: ${when(state.lastRunAt)}`}
+          <p data-mirror-run data-mirror-result={state.running ? 'running' : state.lastResult ? (state.lastResult.ok ? 'ok' : 'failed') : 'none'}>
+            {state.running ? 'Mirroring…' : resultText(state.lastResult, state.lastRunAt)}
           </p>
           {state.error ? (
             <p class="error" role="alert">

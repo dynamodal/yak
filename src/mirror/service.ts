@@ -29,6 +29,15 @@ export interface Persisted {
   /** Conflict copies not yet dismissed, as `Folder/Name (conflict).md`. */
   conflicts: string[];
   lastRunAt?: string;
+  lastResult?: MirrorResult;
+}
+
+/** How the last pass ended, and when (#95). Kept on this device with the rest. */
+export interface MirrorResult {
+  at: string;
+  ok: boolean;
+  /** Why it failed; absent when ok. */
+  error?: string;
 }
 
 export interface MirrorStore {
@@ -48,6 +57,7 @@ export interface MirrorServiceState {
   folder: FolderInfo;
   running: boolean;
   lastRunAt?: string;
+  lastResult?: MirrorResult;
   conflicts: string[];
   errors: string[];
   excluded: string[];
@@ -90,7 +100,7 @@ export function mirrorSpaces(spaces: readonly SpaceInput[], excluded: readonly s
  */
 export class MirrorService {
   private folderInfo: FolderInfo = { state: 'none' };
-  private data: Pick<MirrorServiceState, 'running' | 'lastRunAt' | 'conflicts' | 'errors' | 'excluded' | 'error'> = {
+  private data: Pick<MirrorServiceState, 'running' | 'lastRunAt' | 'lastResult' | 'conflicts' | 'errors' | 'excluded' | 'error'> = {
     running: false,
     conflicts: [],
     errors: [],
@@ -126,7 +136,7 @@ export class MirrorService {
     const { fs: _fs, ...info } = await this.opts.folder.current();
     this.folderInfo = info;
     const p = await this.opts.store.load();
-    this.data = { ...this.data, excluded: p.excluded, conflicts: p.conflicts, lastRunAt: p.lastRunAt };
+    this.data = { ...this.data, excluded: p.excluded, conflicts: p.conflicts, lastRunAt: p.lastRunAt, lastResult: p.lastResult };
     this.emit();
     return info;
   }
@@ -151,7 +161,7 @@ export class MirrorService {
   async reset(): Promise<void> {
     const p = await this.opts.store.load();
     await this.opts.store.save({ excluded: p.excluded, state: emptyState(), conflicts: [] });
-    this.data = { ...this.data, errors: [], error: undefined, conflicts: [] };
+    this.data = { ...this.data, errors: [], error: undefined, conflicts: [], lastResult: undefined };
     await this.refresh();
   }
 
@@ -244,13 +254,18 @@ export class MirrorService {
         const report = await syncMirror(fs, mirrorSpaces(this.opts.spaces(), p.excluded), state);
         const conflicts = [...new Set([...p.conflicts, ...report.conflicts])];
         const lastRunAt = new Date().toISOString();
-        await this.opts.store.save({ folderId: info.id, excluded: p.excluded, state, conflicts, lastRunAt });
-        this.data = { ...this.data, errors: report.errors, error: undefined, conflicts, excluded: p.excluded, lastRunAt };
+        const lastResult: MirrorResult = report.errors.length === 0 ? { at: lastRunAt, ok: true } : { at: lastRunAt, ok: false, error: `${report.errors.length} file${report.errors.length === 1 ? '' : 's'} could not be mirrored` };
+        await this.opts.store.save({ folderId: info.id, excluded: p.excluded, state, conflicts, lastRunAt, lastResult });
+        this.data = { ...this.data, errors: report.errors, error: undefined, conflicts, excluded: p.excluded, lastRunAt, lastResult };
         return true;
       }, false);
       if (done === 'busy') return;
     } catch (e) {
-      this.data = { ...this.data, error: e instanceof Error ? e.message : String(e) };
+      const error = e instanceof Error ? e.message : String(e);
+      const lastResult: MirrorResult = { at: new Date().toISOString(), ok: false, error };
+      this.data = { ...this.data, error, lastResult };
+      // Kept so the reason is still there after a reload; a store that fails too changes nothing.
+      await this.opts.store.load().then((p) => this.opts.store.save({ ...p, lastResult })).catch(() => undefined);
     } finally {
       this.data = { ...this.data, running: false };
       this.emit();

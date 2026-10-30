@@ -217,14 +217,23 @@ export default class YakPlugin extends Plugin {
   }
 
   private noticed = '';
+  private removedNoticed = false;
+  /** The notice with the code to compare: it stays until the join moves on, and it can cover the settings tab. */
+  private compareNotice: Notice | undefined;
 
-  /** While joining by invite: the code to compare, until the owner approves (#257). */
+  /** While joining by invite: the code to compare, until the owner approves (#257); and a removal (#140). */
   private joinNotice(): void {
+    if (this.keys.removed !== this.removedNoticed) {
+      this.removedNoticed = this.keys.removed;
+      if (this.keys.removed) new Notice('Yak: another of your devices removed this vault from your account, so it stopped syncing. Its notes stay. To join again, make a one-time code in the app and paste it in Settings › Yak Sync.', 0);
+    }
     const j = this.keys.join;
     const key = `${j?.phase}:${j?.compare ?? ''}:${j?.confirmed ? 1 : 0}`;
     if (!j || key === this.noticed) return;
     this.noticed = key;
-    if (j.phase === 'compare' && !j.confirmed) new Notice(`Yak: your other device must show ${j.compare}. If it does, choose "The codes match" in Settings › Yak Sync, then approve the vault there.`, 0);
+    this.compareNotice?.hide();
+    this.compareNotice = undefined;
+    if (j.phase === 'compare' && !j.confirmed) this.compareNotice = new Notice(`Yak: your other device must show ${j.compare}. If it does, choose "The codes match" in Settings › Yak Sync, then approve the vault there.`, 0);
     else if (j.phase === 'approved') new Notice('Yak: this vault was approved and joins your account.');
     else if (j.phase === 'declined' || j.phase === 'failed') new Notice(`Yak: ${j.error ?? 'the other device declined this vault.'}`);
   }
@@ -397,7 +406,10 @@ class YakSettings extends PluginSettingTab {
     const account = p.accountDoc();
     const devices = account ? [...readDevices(account.doc).values()].filter((d) => !d.removed && !d.left).length : 0;
     const phase = p.keys.join?.phase;
+    // With keys required the vault learns it was removed and stops (PluginKeys); without, the others only ignore it.
+    const removed = p.keys.removed || (account !== undefined && !p.keys.trust.required() && isRemoved(account.doc, p.data.deviceId));
     return syncStatusLine({
+      removed,
       joined: s.paired,
       joining: phase === 'asking' || phase === 'compare',
       connected: s.peers.filter((x) => x.state === 'connected').length,
@@ -410,11 +422,22 @@ class YakSettings extends PluginSettingTab {
     this.off?.();
     el.textContent = '';
     let code = '';
-    const joined = this.plugin.sync.status.paired;
+    const p = this.plugin;
+    const joined = p.sync.status.paired;
     const status = new Setting(el).setName('Sync status').setDesc(this.statusText());
-    this.off = this.plugin.sync.subscribe(() => {
-      status.setDesc(this.statusText());
-    });
+    // What decides the rows below: a change re-renders the open tab, so "The codes match" appears without reopening it (#140).
+    const shape = (): string => [p.sync.status.paired, p.keys.removed, p.keys.join?.phase, p.keys.join?.compare, p.keys.join?.confirmed].join(':');
+    const rendered = shape();
+    const update = (): void => {
+      if (shape() !== rendered) this.display();
+      else status.setDesc(this.statusText());
+    };
+    const offSync = p.sync.subscribe(update);
+    const offKeys = p.keys.subscribe(update);
+    this.off = () => {
+      offSync();
+      offKeys();
+    };
     new Setting(el)
       .setName('Device name')
       .setDesc('How this vault appears on the Devices page. Leave it empty for the default: vault, phone or desktop, and a short id.')
@@ -459,10 +482,9 @@ class YakSettings extends PluginSettingTab {
             .setCta()
             .onClick(() => {
               this.plugin.keys.confirmJoin();
-              this.display();
             }),
         )
-        .addButton((b) => b.setButtonText("Don't match? Start again").onClick(() => void this.plugin.keys.restartJoin().then(() => this.display())));
+        .addButton((b) => b.setButtonText("Don't match? Start again").onClick(() => void this.plugin.keys.restartJoin()));
     else if (join?.phase === 'compare') new Setting(el).setName('Approve this vault').setDesc(`Now approve it on your other device, which shows ${join.compare}.`);
     else if (join?.phase === 'declined' || join?.phase === 'failed') new Setting(el).setName('Not joined').setDesc(join.error ?? 'The other device declined this vault.');
     new Setting(el)
@@ -492,7 +514,6 @@ class YakSettings extends PluginSettingTab {
           b.setButtonText('Forget sync code').onClick(() => {
             this.plugin.sync.unpair();
             new Notice('Sync code forgotten.');
-            this.display();
           }),
         );
     new Setting(el).setName('Advanced').setHeading();

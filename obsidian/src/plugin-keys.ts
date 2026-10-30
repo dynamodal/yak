@@ -6,11 +6,11 @@ import { devicesMap, deviceName } from '../../src/core/devices';
 import { keepsMap } from '../../src/core/keeps';
 import { checkApproval, checkChosen, type PinnedChoice } from '../../src/core/key-certs';
 import { exportDeviceKeys, generateDeviceKeys, importDeviceKeys, unwrap, type DeviceKeyPairs, type DeviceKeysJwk } from '../../src/core/keys';
-import { kvDb } from '../../src/core/kv-db';
+import { kvDb, type KvDb } from '../../src/core/kv-db';
 import type { DocumentStore } from '../../src/core/doc-store';
 import { applyTrust, computeTrust, KeyTrust } from '../../src/app/key-trust';
 import { InviteGuest, type Approval } from '../../src/sync/invite';
-import { ownDeviceKeys } from '../../src/sync/key-store';
+import { dropOwnDeviceKeys, ownDeviceKeys } from '../../src/sync/key-store';
 import type { SyncService } from '../../src/sync/sync-service';
 import { createTransport } from '../../src/sync/transport-factory';
 
@@ -31,16 +31,23 @@ export interface KeyData {
   chosen?: PinnedChoice;
   /** Per space, the key this vault saw established: no longer read or written (#295). */
   spaceKeys?: Record<string, string>;
+  /** Another device removed this vault from the account (#140); cleared by the next join. */
+  removed?: boolean;
 }
 
-/** Load this vault's keys, making them on first use. Several vaults on one desktop share the browser storage, so the device id names them. */
+/** The protected key storage of one vault: several vaults on one desktop share it, so the device id names the keys. */
+function keyDb(deviceId: string): Pick<KvDb, 'kvGet' | 'kvSet'> {
+  const db = kvDb('yak-sync-keys');
+  const name = (k: string): string => (k === 'device-keys' ? `device-keys:${deviceId}` : k);
+  return { kvGet: (k) => db.kvGet(name(k)), kvSet: (k, v) => db.kvSet(name(k), v) };
+}
+
+/** Load this vault's keys, making them on first use. */
 export async function loadDeviceKeys(deviceId: string, data: KeyData): Promise<{ keys: DeviceKeyPairs; storage: KeyStorage } | undefined> {
   if (typeof crypto === 'undefined' || !crypto.subtle) return undefined;
   if (data.keys) return { keys: await importDeviceKeys(data.keys), storage: 'settings' };
   if (typeof indexedDB !== 'undefined') {
-    const db = kvDb('yak-sync-keys');
-    const name = `device-keys:${deviceId}`;
-    const keys = await ownDeviceKeys({ kvGet: (k) => db.kvGet(k === 'device-keys' ? name : k), kvSet: (k, v) => db.kvSet(k === 'device-keys' ? name : k, v) });
+    const keys = await ownDeviceKeys(keyDb(deviceId));
     if (keys) return { keys, storage: 'protected' };
   }
   const keys = await generateDeviceKeys(true);
@@ -67,11 +74,28 @@ export class PluginKeys {
   private queued = false;
   private guest: InviteGuest | undefined;
   private ready: Promise<void> = Promise.resolve();
+  private listeners = new Set<() => void>();
 
   constructor(
     private readonly o: { me: string; data: KeyData; save(): Promise<void>; sync: SyncService; store: DocumentStore; trust: KeyTrust; log(detail: string): void; onChange?(): void },
   ) {
     this.trust = o.trust;
+  }
+
+  /** Another device removed this vault from the account; it stopped syncing and can join again (#140). */
+  get removed(): boolean {
+    return this.o.data.removed === true;
+  }
+
+  /** Called on every change of `join`, `removed` or the trust; returns the unsubscribe. */
+  subscribe(fn: () => void): () => void {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  private changed(): void {
+    this.o.onChange?.();
+    for (const fn of [...this.listeners]) fn();
   }
 
   start(): Promise<void> {
@@ -128,17 +152,42 @@ export class PluginKeys {
       }
     }
     const r = await computeTrust({ doc, fp, me: this.o.me, own: this.keys, log: this.o.log });
+    // Removed by another device: stop syncing and make new keys, so a new invite can approve them (S-258g), as the app does.
+    if (r.removedSelf && this.o.sync.status.paired) {
+      this.o.log('this vault was removed from the account: stopped syncing; join again with a new invite');
+      this.o.sync.unpair();
+      this.o.data.removed = true;
+      await this.dropKeys();
+      this.changed();
+      return;
+    }
     if (applyTrust(this.trust, fp, r)) {
       this.o.log(`device keys: ${r.proof ? 'approved' : 'not approved'}${r.required ? ', keys required' : ''}`);
       this.o.sync.keysChanged();
-      this.o.onChange?.();
+      this.changed();
     }
+  }
+
+  /** Forget this vault's key pairs and make new ones (published at the next refresh). */
+  private async dropKeys(): Promise<void> {
+    if (this.storage === 'protected') await dropOwnDeviceKeys(keyDb(this.o.me));
+    delete this.o.data.keys;
+    this.keys = undefined;
+    this.storage = undefined;
+    await this.o.save();
+    this.ready = this.load();
+    await this.ready;
   }
 
   private last: { code: string; relay: string; name: string } | undefined;
 
   /** Join with a code, and ask to be approved in case it is a one-time invite (#257). */
   async joinWithCode(code: string, relay: string, name: string): Promise<void> {
+    if (this.removed) {
+      delete this.o.data.removed;
+      await this.o.save();
+      this.changed();
+    }
     await this.o.sync.join(code, relay);
     this.last = { code, relay, name };
     await this.ask();
@@ -174,7 +223,7 @@ export class PluginKeys {
       onNoAnswer: () => {
         if (this.guest === guest && this.join?.phase === 'asking') {
           this.join = undefined;
-          this.o.onChange?.();
+          this.changed();
         }
       },
     });
@@ -184,7 +233,7 @@ export class PluginKeys {
 
   private setJoin(j: JoinProgress): void {
     this.join = j;
-    this.o.onChange?.();
+    this.changed();
   }
 
   /** Approved: keep the signed records, follow the compared account key, move to the account's sync secret. */

@@ -177,6 +177,7 @@ const setupPlugin = async ({ bundle, relay, code, vault: vaultName }) => {
       constructor(m) {
         notices.push(m);
       }
+      hide() {}
     }
     // The settings tab, with Obsidian 1.14's Setting: a thenable (`then` calls back with itself), so a
     // promise resolved with one never settles (#91). Components accept any call and return themselves.

@@ -3,6 +3,7 @@
 Makes a vault a device of your Yak account.
 Notes and tasks of the spaces you choose appear as Markdown files and sync both ways, on a phone too.
 Time entries stay in the app.
+Needs Obsidian 1.14.5 or later.
 
 ## Install and update
 
@@ -76,4 +77,5 @@ scripts/release-obsidian.sh --publish  # pushes tag obsidian-v<version> from a c
 
 - `npm test`: link translation, the vault adapter against the engine, the vault rules, document saving.
 - `npm run e2e obsidian`: the built bundle in a page with an in-memory stand-in for Obsidian's API, paired with the app through the mock relay.
-- Not covered by a machine: real Obsidian, and the phone's background behaviour.
+- `npm run e2e:obsidian-app`: the built bundle in real Obsidian desktop (`obsidian/e2e/`, wdio-obsidian-service), at `minAppVersion` and the latest release; see `docs/testing.md`.
+- Not covered by a machine: Obsidian on a phone, and its background behaviour.

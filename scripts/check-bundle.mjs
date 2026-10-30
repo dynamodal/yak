@@ -8,7 +8,7 @@ const BUDGET = { 'main-*.js': { raw: 670, gzip: 220 }, 'main-*.css': { raw: 59, 
 const files = readdirSync('dist/assets');
 let failed = false;
 for (const [pattern, limit] of Object.entries(BUDGET)) {
-  const re = new RegExp(`^${pattern.replace('.', '\\.').replace('*', '.+')}$`);
+  const re = new RegExp(`^${pattern.replaceAll('.', '\\.').replaceAll('*', '.+')}$`);
   const name = files.find((f) => re.test(f));
   if (!name) throw new Error(`no ${pattern} in dist/assets: run npm run build first`);
   const data = readFileSync(`dist/assets/${name}`);

@@ -68,7 +68,12 @@ const server = createServer(async (req, res) => {
   const path = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname);
   if (relay && path.startsWith('/signal/')) {
     // Plain requests (the stats) go to the mock relay too.
-    const upstream = await fetch(new URL(req.url ?? '/', relay.httpUrl)).catch(() => undefined);
+    // Only the parsed path and query are forwarded, so an absolute or `//host` request URL cannot pick the host.
+    const { pathname, search } = new URL(req.url ?? '/', 'http://x');
+    const target = new URL(relay.httpUrl);
+    target.pathname = pathname;
+    target.search = search;
+    const upstream = await fetch(target).catch(() => undefined);
     res.writeHead(upstream?.status ?? 502, { 'content-type': upstream?.headers.get('content-type') ?? 'text/plain' });
     res.end(upstream ? await upstream.text() : 'bad gateway');
     return;

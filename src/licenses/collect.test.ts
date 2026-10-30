@@ -16,12 +16,15 @@ describe('licences', () => {
     expect(authorName('Kevin Jahns <k@x.org> (https://x.org)')).toBe('Kevin Jahns');
     expect(authorName({ name: 'Eemeli Aro' })).toBe('Eemeli Aro');
     expect(authorName(undefined)).toBe('');
+    expect(authorName('a<<b>c>')).toBe('a');
+    expect(authorName('a(b(c)d) e')).toBe('a e');
     expect(licenseOf({ license: 'ISC' })).toBe('ISC');
     expect(licenseOf({ licenses: [{ type: 'MIT' }, { type: 'Apache-2.0' }] })).toBe('MIT OR Apache-2.0');
     expect(licenseOf({})).toBe('');
   });
   it('reads an author from a copyright line', () => {
     expect(authorFromText('MIT License\n\nCopyright (c) 2015-present Jason Miller\n\nPermission')).toBe('Jason Miller');
+    expect(authorFromText('Copyright (c) 2020 Ann <<b>c>')).toBe('Ann');
     expect(authorFromText('Apache boilerplate, the copyright owner or entity')).toBe('');
   });
   it('allows only licences on the list, with SPDX AND / OR', () => {

@@ -326,7 +326,14 @@ export async function openAdvanced(page) {
     await page.locator('details.advanced').first().waitFor();
   }
   const fold = page.locator('details.advanced').first();
-  if (!(await fold.evaluate((d) => d.open))) await fold.locator('summary').first().click();
+  // `#/settings/advanced` opens the fold from an effect a frame after it renders; a click in that gap would close it
+  // again (#30). Give the app its turn first, click only if it stays closed, and check it ends up open.
+  if (/^#\/settings\/advanced/.test(await page.evaluate(() => location.hash))) await until(() => fold.evaluate((d) => d.open), 1500);
+  await until(async () => {
+    if (!(await fold.evaluate((d) => d.open))) await fold.locator('summary').first().click();
+    await sleep(200);
+    return fold.evaluate((d) => d.open);
+  }, 10000, 0);
   return fold;
 }
 

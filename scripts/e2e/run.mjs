@@ -7,6 +7,7 @@
 //   npm run e2e -- --jobs 1      # one suite at a time (default: E2E_JOBS, else min(CPUs, 3))
 //   npm run e2e -- --shard 1/2   # the first of two balanced halves of the runs (CI runs 1/2 and 2/2 in two jobs)
 //   npm run e2e -- --real-timers # only the suites that shorten product timers, with the real timers (E2E_REAL_TIMERS=1)
+//   npm run e2e -- --build-only  # only build dist/ (a test build) when stale, run nothing
 //   npm run e2e -- --write-durations   # after a full run, store each run's seconds in durations.json (see below)
 //
 // Order and shards come from scripts/e2e/durations.json (run label -> seconds): longest first, so the last run to
@@ -202,6 +203,8 @@ else if (!existsSync(join(root, 'dist', 'index.html'))) {
   console.error('No dist/: run `npm run build` or drop --no-build');
   process.exit(2);
 }
+// Only the staleness check and build, for runners of other suites (obsidian/e2e/run.mjs).
+if (args.includes('--build-only')) process.exit(0);
 
 mkdirSync(logDir, { recursive: true });
 

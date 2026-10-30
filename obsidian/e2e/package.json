@@ -1,0 +1,20 @@
+{
+  "name": "yak-obsidian-e2e",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "End-to-end tests of the Yak Sync plugin in real Obsidian desktop (wdio-obsidian-service). Dev only; its own lock file keeps the obsidian package away from the app's dependencies (decision O1).",
+  "scripts": {
+    "test": "wdio run wdio.conf.mjs"
+  },
+  "devDependencies": {
+    "@wdio/cli": "^9.32.0",
+    "@wdio/local-runner": "^9.32.0",
+    "@wdio/mocha-framework": "^9.32.0",
+    "@wdio/spec-reporter": "^9.32.0",
+    "obsidian": "^1.14.4",
+    "wdio-obsidian-reporter": "^3.4.0",
+    "wdio-obsidian-service": "^3.4.0",
+    "webdriverio": "^9.32.0"
+  }
+}

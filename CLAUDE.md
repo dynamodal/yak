@@ -22,6 +22,7 @@ Issue and PR numbers here and in `docs/` refer to `dynamodal/yak`; numbers and d
 - Modules talk only through `src/core` (documents, event bus) and `src/app`; never import another feature module.
 - No CDN or remote code at runtime; few, well-known dependencies; no user scripts.
 - No secrets, tokens or personal data in the repo, issues or PRs.
+- Before creating or commenting on an issue or PR, check whether it contains personal or revealing information, directly or indirectly: client, employer or project names, note titles, task or time-entry text, device names, hostnames, emails, screenshots of real data, usage numbers tied to a person. Generalize it (e.g. "a long project name", "3 devices"), or ask the owner to reframe or confirm it is fine to share. Never attach raw screenshots; describe them or redraw with placeholder data.
 - Feature-detect every browser capability and degrade gracefully.
 - App name behind `APP_NAME`; generic storage names.
 - Alpha testers keep their data: a change to stored data ships with a migration, never "reset your devices" (decision F39).

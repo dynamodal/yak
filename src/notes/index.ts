@@ -16,9 +16,12 @@ import { openTodaysNote } from './daily';
 import { NoticeWatch } from './NoticeWatch';
 import { INSERT_EVENT } from './editor-events';
 import { requestSwitcher } from './switcher-request';
+import { QuickAddHost } from './QuickAddHost';
+import { openQuickAdd } from './quick-add-request';
 
 registerView({ id: 'notes', title: 'Notes', path: 'notes', order: 50, icon: IconNote, component: lazyView(() => import('./views/NotesView').then((m) => ({ default: m.NotesView }))) });
 registerGlobal({ id: 'notes-notices', component: NoticeWatch });
+registerGlobal({ id: 'quick-add-task', component: QuickAddHost });
 registerSection({ id: 'task-values', page: 'organize', title: 'Task values', order: 30, feature: 'tasks', component: TaskValues });
 registerView({ id: 'tasks', title: 'Tasks', path: 'tasks', order: 60, icon: IconCheckbox, component: lazyView(() => import('./views/TasksView').then((m) => ({ default: m.TasksView }))) });
 
@@ -39,6 +42,8 @@ registerCommand({
     requestSwitcher();
   },
 });
+// Quick-add a task from any page (#138); the dialog loads when first opened.
+registerCommand({ id: 'tasks.new', title: 'New task', keywords: ['add', 'quick', 'capture', 'todo'], shortcuts: ['Alt+Q'], run: () => openQuickAdd() });
 registerCommand({ id: 'notes.today', title: "Open today's note", run: ({ app }) => void openTodaysNote(app) });
 registerCommand({
   id: 'notes.insert-date',

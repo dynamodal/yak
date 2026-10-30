@@ -105,6 +105,16 @@ async function scan([scheme, width]) {
   await page.locator('.picker').first().waitFor();
   await axe(page, `${tag} project picker`);
   await page.keyboard.press('Escape');
+  // Quick-add a task (#138): the modal with chips filled from the line, and a picker open.
+  await page.keyboard.press('Alt+Q');
+  const quick = page.getByRole('dialog', { name: 'New task' });
+  await quick.waitFor();
+  await axe(page, `${tag} quick-add task`);
+  await quick.getByRole('textbox', { name: 'Task title' }).fill('Quick task tomorrow +Acme @phone #client !high');
+  await axe(page, `${tag} quick-add task with chips`);
+  await quick.getByRole('button', { name: /^Due/ }).click();
+  await page.getByRole('dialog', { name: 'Pick due' }).waitFor();
+  await axe(page, `${tag} quick-add due picker`);
   await context.close();
 }
 await Promise.all([['light', 1280], ['dark', 1280], ['light', 375], ['dark', 375]].map(scan));

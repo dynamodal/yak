@@ -37,6 +37,7 @@ const VIEW_FEATURE: Readonly<Record<string, FeatureId>> = {
 /** The commands that are not a "Go to <view>". */
 const COMMAND_FEATURE: Readonly<Record<string, FeatureId>> = {
   'timer.toggle': 'time',
+  'tasks.new': 'tasks',
   'notes.find': 'notes',
   'notes.today': 'notes',
   'notes.insert-date': 'notes',

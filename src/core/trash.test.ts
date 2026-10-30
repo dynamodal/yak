@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
 import { addEntry, addNote } from '../backup/testing';
 import { attachmentsMap } from './blobs/attachments';
+import { restoreRecords } from './history/travel';
 import { collection, createRecord, liveRecords, softDelete } from './schema';
 import { deletedAtMs, inTrash, purgeRecord, readDeleteFilesNow, restoreRecord, trashItems, trashRecord, TRASH_DAYS, writeDeleteFilesNow } from './trash';
 
@@ -145,6 +146,18 @@ describe('delete for good', () => {
     const rec = collection(doc, 'time_entries').get(e)!;
     expect([...rec.keys()].sort()).toEqual(['deleted', 'purged_at']);
     expect(liveRecords(doc, 'time_entries')).toHaveLength(0);
+  });
+
+  it('Version history, which may still hold a copy, can bring it back whole', () => {
+    const doc = new Y.Doc();
+    const n = addNote(doc, 'Kept.md', 'old words');
+    const past = new Y.Doc();
+    Y.applyUpdate(past, Y.encodeStateAsUpdate(doc));
+    trashRecord(doc, 'notes', n, T0);
+    purgeRecord(doc, 'notes', n, T0);
+    expect(restoreRecords(doc, past, 'notes', [n])).toBe(1);
+    expect(liveRecords<{ path: string }>(doc, 'notes').map((r) => r.path)).toEqual(['Kept.md']);
+    expect(String(collection(doc, 'notes').get(n)!.get('text'))).toBe('old words');
   });
 
   it('only a deleted record can be deleted for good', () => {

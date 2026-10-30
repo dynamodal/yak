@@ -83,6 +83,7 @@ declare module 'obsidian' {
   }
   export class Notice {
     constructor(message: string, timeout?: number);
+    hide(): void;
   }
   export interface TextComponent {
     setPlaceholder(v: string): TextComponent;

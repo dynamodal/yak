@@ -2,7 +2,7 @@
 //
 //   npm run e2e:obsidian-app                 # build dist/ (test build) when stale and the plugin, then test
 //   npm run e2e:obsidian-app -- --no-build   # use dist/ and obsidian/dist/ as they are (CI builds them first)
-//   OBSIDIAN_VERSIONS=latest npm run e2e:obsidian-app   # one version instead of the minimum and latest
+//   OBSIDIAN_VERSIONS="1.14.5 latest" npm run e2e:obsidian-app   # other versions (space separated, app[/installer])
 //
 // Installs this folder's own dependencies on first use (npm ci). On Linux without a display it runs under
 // xvfb-run when that is installed.

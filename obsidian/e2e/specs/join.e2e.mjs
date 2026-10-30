@@ -97,15 +97,17 @@ describe('Yak Sync in real Obsidian', function () {
     await settingRow('Sync code').$('button=Join').click();
     // The notice names the code; the tab that is still open offers to confirm it (#140).
     await browser.waitUntil(() => noticeShown('your other device must show'), { timeout: 30000, timeoutMsg: 'no notice with the code to compare' });
+    // The notice stays until the join moves on and can cover the button; a click dismisses it, as a person would.
+    if (await $('.notice*=your other device must show').isExisting()) await $('.notice*=your other device must show').click();
     await $('button=The codes match').waitForDisplayed({ timeout: 15000 });
-    const vaultCompare = (await rowDesc('Compare the code')).match(/must show (\S+?)\.?$/)?.[1];
+    const vaultCompare = (await rowDesc('Compare the code')).match(/must show (.+?)\.$/)?.[1];
     const appCompare = (await app.locator('[data-compare]').first().innerText({ timeout: 30000 })).trim();
     expect(vaultCompare).toBe(appCompare);
     await $('button=The codes match').click();
     await expect(settingRow('Approve this vault')).toBeDisplayed();
     await app.locator('.invite-requests').getByRole('button', { name: 'Approve' }).click();
     await unlockIfAsked(app);
-    await browser.waitUntil(async () => /^Syncing with 1 other device/.test(await statusLine()), { timeout: 40000, timeoutMsg: 'the status line never said the vault is syncing' });
+    await browser.waitUntil(async () => /^Syncing (with 1 other device|1 of 1 other devices)\./.test(await statusLine()), { timeout: 40000, timeoutMsg: 'the status line never said the vault is syncing' });
     await expect(settingRow('Leave')).toBeDisplayed();
   });
 

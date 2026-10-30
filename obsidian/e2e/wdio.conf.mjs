@@ -14,12 +14,16 @@ import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseObsidianVersions } from 'wdio-obsidian-service';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..', '..');
 const { minAppVersion } = JSON.parse(readFileSync(join(root, 'obsidian', 'manifest.json'), 'utf8'));
+const cacheDir = resolve(here, '.obsidian-cache');
 // The minimum the plugin supports and the latest public release; no beta builds (they need an Insiders account).
-const versions = (process.env.OBSIDIAN_VERSIONS ?? `${minAppVersion},latest`).split(',').map((v) => v.trim()).filter(Boolean);
+// Resolved to version numbers, so the run is not doubled while the latest release is the minimum.
+const wanted = process.env.OBSIDIAN_VERSIONS ?? `${minAppVersion} latest`;
+const versions = [...new Map(await parseObsidianVersions(wanted, { cacheDir })).entries()];
 
 let server;
 
@@ -29,18 +33,18 @@ export const config = {
   specs: ['./specs/**/*.e2e.mjs'],
   // One Obsidian at a time: two Electron apps and a Chromium on a small runner make timing flaky.
   maxInstances: 1,
-  capabilities: versions.map((v) => ({
+  capabilities: versions.map(([app, installer]) => ({
     browserName: 'obsidian',
-    browserVersion: v,
+    browserVersion: app,
     'wdio:obsidianOptions': {
-      installerVersion: 'earliest',
+      installerVersion: installer,
       plugins: [join(root, 'obsidian', 'dist')],
       vault: join(here, 'vault'),
     },
   })),
   services: ['obsidian'],
   reporters: ['obsidian'],
-  cacheDir: resolve(here, '.obsidian-cache'),
+  cacheDir,
   mochaOpts: { ui: 'bdd', timeout: 120_000, bail: true },
   waitforTimeout: 30_000,
   logLevel: 'warn',

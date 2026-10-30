@@ -7,7 +7,8 @@ export function defaultDeviceName(vaultName: string, mobile: boolean, deviceId: 
 }
 
 /** The status line at the top of the settings tab (#120). */
-export function syncStatusLine(s: { joined: boolean; joining: boolean; connected: number; devices: number }): string {
+export function syncStatusLine(s: { removed?: boolean; joined: boolean; joining: boolean; connected: number; devices: number }): string {
+  if (s.removed && !s.joining) return 'Removed from your account by another of your devices, so this vault no longer syncs. Its notes stay. To join again, make a one-time code in the app and paste it below.';
   if (!s.joined) return s.joining ? 'Joining. Waiting for your other device.' : 'Not joined. Paste a sync code below to join.';
   if (s.devices <= 1) return s.connected > 0 ? `Syncing with ${s.connected} other ${s.connected === 1 ? 'device' : 'devices'}.` : 'Joined. No other device is connected right now.';
   return `Syncing ${s.connected} of ${s.devices - 1} other devices.`;

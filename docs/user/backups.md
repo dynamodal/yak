@@ -1,10 +1,10 @@
-# Backups, Version history and Recently deleted
+# Backup and restore
 
-Yak keeps three kinds of safety net.
+Yak keeps three kinds of safety net: Backups, Version history and Recently deleted.
 They differ in what they cover, where they are stored, and what restoring from them does.
 Every undo belongs to exactly one of them.
 
-| | Recently deleted | Version history | Backups |
+| Layer | Recently deleted | Version history | Backups |
 | --- | --- | --- | --- |
 | Like | A trash can | Version history in a document editor | An external drive |
 | What it is | Something you deleted, marked as deleted | A log of every change | Full copies of your data |

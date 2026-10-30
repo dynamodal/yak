@@ -5,7 +5,6 @@ import { settingsParts } from '../app/settings-parts';
 import { useNeeds } from '../app/needs';
 import { Field, OpenDetails } from '../app/ui';
 import { lazyView } from '../app/lazy';
-import { Sections } from '../app/views/Sections';
 import { FilesCard } from './FilesCard';
 import { LinksCard } from './LinksCard';
 import { PeriodicNotesTable } from './DailyCard';
@@ -41,7 +40,7 @@ export function PassphraseSection(props: { open: boolean }) {
 }
 
 /** Backups and Version history: parts the modules that own them add (`registerSettingsPart`), so this page names no feature module. */
-export function PartsSection(props: { section: 'backups' | 'version-history' }) {
+export function PartsSection(props: { section: 'backups' | 'version-history' | 'mirror' }) {
   return (
     <>
       {settingsParts(props.section).map((p) => (
@@ -55,7 +54,7 @@ export function PartsSection(props: { section: 'backups' | 'version-history' }) 
 export { RecentlyDeletedSection } from './RecentlyDeleted';
 
 /**
- * Notes (F-55): links, files and unused files, daily, weekly and monthly notes, and the sections other modules add (Mirror).
+ * Notes (F-55): links, files and unused files, daily, weekly and monthly notes, 
  * They were a page of their own behind the gear on Notes; each part has an id (`section-<row>`) that `#/settings/notes/<row>` scrolls to.
  */
 export function NotesSection() {
@@ -76,7 +75,6 @@ export function NotesSection() {
         <h3 id="section-periodic-h">Daily, weekly and monthly notes</h3>
         <PeriodicNotesTable />
       </section>
-      <Sections page="note-settings" level={3} />
     </>
   );
 }

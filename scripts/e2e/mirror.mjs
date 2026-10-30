@@ -22,7 +22,7 @@ const file = (path) => M((p) => window.__mirror.readFile(p), path);
 const notes = () => M(() => window.__mirror.notes('personal'));
 
 try {
-  await page.goto(`${BASE}?test#/settings/notes`);
+  await page.goto(`${BASE}?test#/settings/mirror`);
   await page.waitForFunction(() => window.__mirror !== undefined && window.__app?.spaces().personal, null, { timeout: 15000 });
   await M(() => window.__mirror.useOpfs('mirror-e2e'));
   check((await page.getByText('Mirroring.').count()) === 1, 'the screen says it is mirroring');

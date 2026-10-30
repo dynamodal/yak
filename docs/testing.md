@@ -9,6 +9,7 @@ Prove as much as possible without a person; real devices check only what a lapto
 | Unit and fuzz | `npm test` | Merges (randomized, 2–3 devices, offline edits, deletes), crypto, transports against mocks, reconnect logic, data model, backups, history |
 | Types | `npx tsc --noEmit`; `npm run typecheck:worker` | App and Worker |
 | Browser suites | `npm run e2e [suite…]` | Isolated profiles as devices, pairing via mock relay or ntfy, every page, offline, real CSP |
+| Real Obsidian | `npm run e2e:obsidian-app` | The plugin bundle in Obsidian desktop (minimum and latest version) with the app beside it |
 | Real devices | Checklist below | Sleep, Wi-Fi change, a restricted network, the real relay |
 
 CI (F-6 and F-41 in `docs/decisions/app.md`):
@@ -17,6 +18,7 @@ CI (F-6 and F-41 in `docs/decisions/app.md`):
   - `Types and unit tests`: `typecheck`, `typecheck:worker`, `npm test`, `check:prod-bundle` (a normal build holds none of the test hooks).
   - `Browser suites (1/2)` and `(2/2)`: download `dist-test`, run `npm run e2e -- --no-build --shard i/2`. Playwright's Chromium comes from the cache (`.github/actions/chrome`); `playwright-core install --with-deps` (apt, about 38 s) runs only on a cache miss. The runner's preinstalled Google Chrome was tried and rejected: it requests `/favicon.ico`, and the suites fail on that 404 console error.
   - `Checks`: waits for all of them and is green only if each succeeded. It is the one status branch rules require, so keep its name. Docs-only changes run it too, so it always reports.
+- `Obsidian app` (decision O-140b in `docs/decisions/obsidian.md`): `npm run e2e:obsidian-app -- --no-build` on `dist-test` and a fresh `npm run build:obsidian`, under xvfb. Only when `Changed areas` finds a change to `obsidian/`, the shared code the plugin bundles (`src/sync`, `src/core`, `src/mirror`, a few `src/app` and `src/notes` modules) or the harness; always on pushes to `main` and manual runs. Skipped counts as passing in `Checks`. The Release Obsidian plugin workflow runs it before it builds.
 - Pushes to `main`, merge queue entries and manual runs also run `Browser suites (real timers)`: `npm run e2e -- --no-build --real-timers`, the suites that shorten product timers, with the real ones (60 s direct-path retry and so on). It is part of `Checks` on those runs.
 - Merge queue: `main` lands PRs through GitHub's merge queue. Each PR is tested combined with the PRs ahead of it before it lands; the required check is `Checks`.
 - Also by hand (Actions → CI → Run workflow).
@@ -46,6 +48,18 @@ CI (F-6 and F-41 in `docs/decisions/app.md`):
 - Never run suites against public ntfy.sh; use `scripts/mock-ntfy.mjs`.
 - While working, run only the suites you touch; run them all once before the PR.
 - Worker: `npx --yes wrangler@4.151.0 dev --port 8787 --ip 127.0.0.1` runs the real relay locally; `node scripts/check-worker.mjs` does that and checks the Origin rule, the room and address limits, the request budget, the kill switch and `/signal/status` (needs `npm run build` first; takes about 2 minutes).
+
+## Real Obsidian
+
+- `obsidian/e2e/`: WebdriverIO with wdio-obsidian-service, its own `package.json` and lock file (installed on first run, `npm ci` there in CI). Specs are `specs/*.e2e.mjs`, mocha; the header comment of each says what it covers.
+- `npm run e2e:obsidian-app` builds `dist/` (test build) when stale and the plugin, serves `dist/` with the mock relay (`wdio.conf.mjs` `onPrepare`, as `npm run e2e` does), and runs each spec once per Obsidian version. `-- --no-build` uses both builds as they are.
+- Versions: the plugin's `minAppVersion` (1.14.5, pinned in `obsidian/manifest.json`) and the latest public release, resolved to numbers so they run once while equal; the oldest installer (Electron) each app version accepts. `OBSIDIAN_VERSIONS="1.15.0 latest"` picks others. No betas: they need an Insiders account.
+- Obsidian is downloaded into `obsidian/e2e/.obsidian-cache/` (git-ignored) on first use; each run opens a fresh copy of `obsidian/e2e/vault/` with the plugin enabled.
+- The app runs in Playwright's Chromium beside Obsidian (`scripts/e2e/lib.mjs`). Obsidian is driven through its real UI; `executeObsidian` only reads state and edits a vault file as an editor would.
+- Obsidian 1.14 opens Settings in a window of its own, and notices appear in the focused window: switch windows (`inMain` in `specs/join.e2e.mjs`).
+- Display: `run.mjs` starts its own Xvfb and runs Obsidian on it with `WAYLAND_DISPLAY` unset, so no window opens on the desktop or takes its focus; locally and in CI alike. Without Xvfb it refuses to run; `YAK_XVFB` names an Xvfb that is not on `PATH`, and `-- --show` opens the windows on the desktop to watch or debug.
+- Chromium's headless backend (`--ozone-platform=headless`) was tried instead and rejected: Obsidian starts but never opens its DevTools port, so WebDriver cannot attach.
+- A failed step prints the plugin's join state and the end of its connection log.
 
 ## Performance
 

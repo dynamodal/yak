@@ -23,6 +23,11 @@ describe('sync status line', () => {
     expect(syncStatusLine({ joined: true, joining: false, connected: 1, devices: 3 })).toBe('Syncing 1 of 2 other devices.');
   });
 
+  it('says a removed vault was removed and how to join again (#140)', () => {
+    for (const joined of [false, true]) expect(syncStatusLine({ removed: true, joined, joining: false, connected: 0, devices: 2 })).toMatch(/^Removed from your account.*join again/);
+    expect(syncStatusLine({ removed: true, joined: false, joining: true, connected: 0, devices: 2 })).toMatch(/^Joining/);
+  });
+
   it('copes with an account document that has not arrived', () => {
     expect(syncStatusLine({ joined: true, joining: false, connected: 0, devices: 0 })).toMatch(/^Joined/);
   });

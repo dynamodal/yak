@@ -14,13 +14,13 @@ export const NAV_GROUPS: readonly NavGroupDef[] = [
   { id: 'settings', title: 'Settings', order: 80, landing: true },
 ];
 
-/** Pages that left Settings or never existed in it: Projects & tags is Organize and the note settings and Mirror are the Notes section of Settings (F-325, F-33x, F-55), Shortcuts are in Help. */
+/** Pages that left Settings or never existed in it: Projects & tags is Organize and the note settings are the Notes section and Mirror its own section of Settings (F-325, F-33x, F-55, F-95), Shortcuts are in Help. */
 const MOVED: Readonly<Record<string, string[]>> = {
   projects: ['settings', 'organize'],
   organize: ['settings', 'organize'],
   'notes-settings': ['settings', 'notes'],
   'note-settings': ['settings', 'notes'],
-  mirror: ['settings', 'notes', 'mirror'],
+  mirror: ['settings', 'mirror'],
   'shortcuts-settings': ['help', 'shortcuts'],
   shortcuts: ['help', 'shortcuts'],
 };
@@ -41,7 +41,7 @@ const FOLDED: Readonly<Record<string, string | undefined>> = {
 };
 
 /** The sections of the Settings page, in order (`#/settings/<section>` scrolls to one). Detail routes must not reuse these names. */
-export const SETTINGS_SECTIONS = ['needs-you', 'backups', 'version-history', 'recently-deleted', 'passphrase', 'devices-sync', 'spaces', 'sharing', 'organize', 'notes', 'display', 'features', 'help', 'advanced'] as const;
+export const SETTINGS_SECTIONS = ['needs-you', 'backups', 'version-history', 'recently-deleted', 'passphrase', 'devices-sync', 'spaces', 'sharing', 'organize', 'notes', 'mirror', 'display', 'features', 'help', 'advanced'] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
 /** Names of the removed Backup & restore page, and the section each one went to (#97). `#/backups` is a section's own address. */
@@ -58,9 +58,9 @@ const folded = (name: string): string[] => ['settings', ...(FOLDED[name] ? [FOLD
  */
 export function legacyRoute(route: readonly string[], views: readonly ViewDef[]): string[] | undefined {
   const [first, second, ...rest] = route;
-  // `#/settings/organize` is current; the same name anywhere else is an old address.
+  // `#/settings/organize` and `#/settings/mirror` are current; the same name anywhere else is an old address.
   const moved = (name: string | undefined, where: 'bare' | 'settings' | 'manage'): string[] | undefined =>
-    name === undefined || !Object.hasOwn(MOVED, name) || (name === 'organize' && where === 'settings') ? undefined : MOVED[name];
+    name === undefined || !Object.hasOwn(MOVED, name) || ((name === 'organize' || name === 'mirror') && where === 'settings') ? undefined : MOVED[name];
   const gone = first === 'manage' || first === 'settings' ? moved(second, first) : moved(first, 'bare');
   if (gone) return gone;
   // A join link (`#/join/<code>`, option A+) opens Add a device, which takes the code from the address.
@@ -75,6 +75,7 @@ export function legacyRoute(route: readonly string[], views: readonly ViewDef[])
     if (second === 'backup') return rest[0] === 'passphrase' ? ['settings', 'passphrase', 'manage'] : ['settings', 'backups', ...rest];
     if (second === 'history' || second === 'backup-safety') return ['settings', ...(BACKUP_PAGES[second] ?? []), ...rest];
     if (second === 'devices' && rest[0] !== undefined && rest[0] !== 'add') return ['settings', 'devices-sync', ...rest];
+    if (second === 'notes' && rest[0] === 'mirror') return ['settings', 'mirror', ...rest.slice(1)];
     if (second === 'space') return ['settings', 'spaces', ...rest];
     if (second === 'account') return ['settings', 'sharing', ...rest];
     // `spaces`, `sharing` and `features` are sections of the page now: `#/settings/spaces[/<row>]` is current.

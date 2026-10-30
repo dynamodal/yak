@@ -31,6 +31,7 @@ const BLURBS: Partial<Record<SettingsSection, string>> = {
   backups: 'Full copies of your data in a folder outside the browser, or a download. They are your files and are not synced.',
   'version-history': 'Earlier versions of your time entries, notes and tasks. Stored in a separate database in this browser; for now each device records its own.',
   'recently-deleted': 'Deleted items you can still bring back. Stored with your data, so they sync with it.',
+  mirror: 'Notes and tasks appear as Markdown files, one folder per space, and edits made in other editors (Obsidian, VS Code) come back. Time entries stay in the app. The folder is on this device only.',
   passphrase: 'The passphrase protects encrypted backups and approves devices and shares. It is never stored.',
 };
 
@@ -62,7 +63,7 @@ function scrollTo(slug: string | undefined): void {
 /**
  * Settings (F-33): one long single-column page, `#/settings`. A contents row under the title links to each section
  * (`#/settings/<section>` opens the page scrolled to it; `#/settings/<section>/<id>` also opens that row). Sections, in order: Needs you (only
- * while something waits), Backups, Version history, Recently deleted, Passphrase and import, Devices and sync, Spaces, Sharing, Organize, Notes (only while Notes is on), Display, Features, Help, Advanced.
+ * while something waits), Backups, Version history, Recently deleted, Passphrase and import, Devices and sync, Spaces, Sharing, Organize, Notes (only while Notes is on), Mirror to a folder (only while Mirror is on), Display, Features, Help, Advanced.
  * Devices, spaces and accounts are rows that open in place; only adding a device and Import have pages of their own.
  */
 export function SettingsView() {
@@ -74,11 +75,12 @@ export function SettingsView() {
   const target = slug && route[2] ? route[2] : undefined;
   useHiddenModules();
   const notesOn = !isFeatureHidden('notes');
-  const sections = SETTINGS_SECTIONS.filter((s) => (s !== 'needs-you' || needs.length > 0) && (s !== 'notes' || notesOn));
+  const mirrorOn = !isFeatureHidden('mirror');
+  const sections = SETTINGS_SECTIONS.filter((s) => (s !== 'needs-you' || needs.length > 0) && (s !== 'notes' || notesOn) && (s !== 'mirror' || mirrorOn));
   const dots: Partial<Record<SettingsSection, Dot>> = { 'needs-you': 'warn', backups: warn ? 'warn' : undefined, 'devices-sync': syncDot === 'warn' ? 'warn' : undefined } as Partial<Record<SettingsSection, Dot>>;
 
   useEffect(() => {
-    // A row of the Notes section (Mirror, …) is a part inside it; the other sections open their rows in place.
+    // A row of the Notes section is a part inside it; the other sections open their rows in place.
     if (slug !== 'notes' || !target) return scrollTo(slug);
     const place = (): boolean => {
       const part = document.getElementById(`section-${target}`);
@@ -166,6 +168,11 @@ export function SettingsView() {
       {notesOn ? (
         <Section slug="notes">
           <NotesSection />
+        </Section>
+      ) : null}
+      {mirrorOn ? (
+        <Section slug="mirror">
+          <PartsSection section="mirror" />
         </Section>
       ) : null}
       <Section slug="display">

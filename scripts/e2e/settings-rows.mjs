@@ -19,7 +19,7 @@ const mk = async (name, size = { width: 1100, height: 900 }) => {
 {
   const p = await mk('local');
   check((await p.locator('[data-device-row]').count()) === 1, 'local-only: one device row');
-  check((await p.getByRole('link', { name: /Add a device/ }).count()) >= 1 && (await p.getByRole('button', { name: '+ New space' }).count()) === 1, 'local-only: "+ Add a device" beside "+ New space"');
+  check((await p.getByRole('link', { name: /Add a device/ }).count()) === 0 && (await p.locator('[data-line="sync"]').getByRole('link', { name: 'Set up' }).count()) === 1, 'local-only: one way in, "Set up" on the Sync line');
   check((await p.getByRole('button', { name: '+ Share with an account' }).count()) === 1, 'local-only: one "+ Share with an account" button');
   check((await p.locator('[data-line="passphrase"], [data-line="sync"]').count()) === 2 && (await p.locator('[data-backups] .backup-health').count()) === 1, 'local-only: the backup summary, passphrase and sync lines are all there');
   const text = await p.locator('.st-home').innerText();
@@ -34,7 +34,7 @@ const mk = async (name, size = { width: 1100, height: 900 }) => {
   await p.keyboard.press('Escape');
   check((await p.locator('dialog[open]').count()) === 0, 'the sheet closes with Escape');
 
-  await p.locator('.st-actions').getByRole('link', { name: '+ Add a device' }).first().click();
+  await p.locator('[data-line="sync"]').getByRole('link').first().click();
   await p.getByRole('heading', { name: 'Add a device', level: 1 }).waitFor();
   check((await p.evaluate(() => location.hash)) === '#/settings/devices/add', '"+ Add a device" opens the Add a device page');
   await p.goBack();

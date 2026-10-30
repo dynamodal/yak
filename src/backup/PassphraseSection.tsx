@@ -34,7 +34,7 @@ export function PassphraseSection() {
   };
   return (
     <section aria-label="Your passphrase" id="passphrase-manage">
-      <div class="card" aria-label="What your passphrase protects">
+      <div class="plain-info" aria-label="What your passphrase protects">
         <h3>What your passphrase protects</h3>
         <ul>
           <li>Encrypted backups: nobody can open them without it.</li>

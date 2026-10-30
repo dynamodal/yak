@@ -51,10 +51,10 @@ function SpaceUnused({ name, unit, doc }: { name: string; unit: string; doc: Y.D
   };
   const bytes = unused.reduce((n, a) => n + a.size, 0);
   return (
-    <div class="card st-group unused-files" data-space={unit}>
+    <div class={`st-group unused-files${unused.length > 0 ? ' card' : ' plain-info'}`} data-space={unit}>
       <h3>{name}</h3>
       <p class="hint">
-        {total === 0 ? 'No files in this space' : `${total} file${total === 1 ? '' : 's'}`}
+        {total === 0 ? 'No unused files in this space' : `${total} file${total === 1 ? '' : 's'}`}
         {usage && usage.held > 0 ? `, ${formatBytes(usage.held)} on this device of ${formatBytes(usage.limit)}` : ''}.
       </p>
       {usage && usage.fraction >= WARN_FRACTION ? (

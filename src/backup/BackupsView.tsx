@@ -14,7 +14,8 @@ import { RESTORE_POINTS, findAccounts, readIndex, snapshotDir, stateAtTime } fro
 import { MANIFEST, type DocCounts, type Manifest } from './format';
 import { folderPickerSupported, pickReadFolder } from './folder';
 import { beforeReplace, dismissMergeBack, mergeBackOffered, recoverBeforeReplace, replaceSupported, startReplace, type BeforeReplace } from './replace';
-import { bundleToDir, mergeBackup, openBackup, type OpenedBackup } from './restore';
+import { backupUpdates, bundleToDir, mergeBackup, openBackup, type OpenedBackup } from './restore';
+import { DIFF_KINDS, countsText, diffBackup, kindName, sideIsEmpty, type BackupDiff, type DiffItem } from './diff';
 import { accountBlobSource, folderBlobSource, listBlobs, restoreBlobs, totalBlobBytes, type BlobSource } from './blobs';
 import { blobStore } from '../core/blobs/store';
 import { readZip, ZipDir } from './zip';
@@ -82,8 +83,68 @@ function docLabel(id: string, spaces: readonly { id: string; name: string }[]): 
   return m[2] ? `${name} · private (time, rates)` : name;
 }
 
+/** The items of one side of the comparison, by kind, the first 50 of each. */
+function DiffItems(props: { items: DiffItem[]; label: string; spaces: readonly { id: string; name: string }[] }) {
+  if (props.items.length === 0) return null;
+  return (
+    <details class="bc-items">
+      <summary>{props.label}</summary>
+      {DIFF_KINDS.map((kind) => {
+        const of = props.items.filter((i) => i.kind === kind).sort((a, b) => (a.title < b.title ? -1 : a.title > b.title ? 1 : 0));
+        if (of.length === 0) return null;
+        return (
+          <div key={kind} data-kind={kind}>
+            <p class="bc-kind">
+              {of.length} {kindName(kind, of.length)}
+            </p>
+            <ul>
+              {of.slice(0, 50).map((i) => (
+                <li key={`${i.docId}:${i.id}`}>
+                  {i.title || (kind === 'time_entries' ? '(no description)' : '(untitled)')}
+                  {i.start ? <span class="muted"> · {when(i.start)}</span> : null}
+                  <span class="muted"> · {docLabel(i.docId.replace(/\/private$/, ''), props.spaces)}</span>
+                </li>
+              ))}
+            </ul>
+            {of.length > 50 && <p class="hint">And {of.length - 50} more.</p>}
+          </div>
+        );
+      })}
+    </details>
+  );
+}
+
+/** What Merge would add and what Replace would remove, compared with this device now (#96). */
+function CompareView({ diff, spaces }: { diff: BackupDiff; spaces: readonly { id: string; name: string }[] }) {
+  const { merge, replace } = diff;
+  return (
+    <section class="backup-compare" aria-label="Compared with this device now">
+      <h4>Compared with this device now</h4>
+      <div class="bc-sides">
+        <div class="bc-side" data-side="merge">
+          <p>
+            <strong>Merge adds:</strong> <span data-counts>{countsText(merge.added)}</span>.
+          </p>
+          {merge.changed.length > 0 && <p class="hint">It also takes in edits to {countsText(merge.changed)}.</p>}
+          {merge.removed.length > 0 && <p class="hint">It also takes in deletions made on another device: {countsText(merge.removed)}.</p>}
+          <DiffItems items={[...merge.added, ...merge.changed, ...merge.removed]} label="What Merge changes" spaces={spaces} />
+        </div>
+        <div class="bc-side" data-side="replace">
+          <p>
+            <strong>Replace removes:</strong> <span data-counts>{countsText(replace.removed)}</span>.
+          </p>
+          {replace.changed.length > 0 && <p class="hint">It changes {countsText(replace.changed)} back to how they were.</p>}
+          {replace.added.length > 0 && <p class="hint">It brings back {countsText(replace.added)}.</p>}
+          <DiffItems items={replace.removed} label="What Replace removes" spaces={spaces} />
+          <DiffItems items={replace.changed} label="What Replace changes back" spaces={spaces} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function RestorePanel(props: { backup: OpenedBackup; source: string; onClose(): void; onDone(text: string): void }) {
-  const { store, deviceId, service, state, bus } = useBackup();
+  const { store, deviceId, service, state, bus, docs } = useBackup();
   const { spaces: ourSpaces, sync } = useApp();
   const paired = useSyncStatus(sync).paired;
   // Name documents by the backup's own account (a backup from another browser has other space ids).
@@ -110,6 +171,23 @@ function RestorePanel(props: { backup: OpenedBackup; source: string; onClose(): 
   const [understood, setUnderstood] = useState(false);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  // The comparison with now: worked out in chunks, so a large backup never freezes the page; Replace waits for it.
+  const [diff, setDiff] = useState<BackupDiff | undefined>();
+  const [diffError, setDiffError] = useState('');
+  useEffect(() => {
+    if (!props.backup.verification.ok) return undefined;
+    const ctl = new AbortController();
+    setDiff(undefined);
+    setDiffError('');
+    void backupUpdates(props.backup)
+      .then((updates) => diffBackup(docs(), updates, { signal: ctl.signal }))
+      .then(
+        (d) => !ctl.signal.aborted && setDiff(d),
+        (e) => !ctl.signal.aborted && setDiffError(errText(e)),
+      );
+    return () => ctl.abort();
+  }, [props.backup]);
+  const canReplace = replaceSupported() && diff !== undefined && !sideIsEmpty(diff.replace);
 
   /** Put the backup's files into this device's file stores; `merge` also brings back index entries deleted here. */
   const restoreFiles = async (merge: boolean): Promise<string> => {
@@ -173,33 +251,6 @@ function RestorePanel(props: { backup: OpenedBackup; source: string; onClose(): 
           {manifest.blobs_missing > 0 && `${manifest.blobs_missing} more were not on the device that made this backup yet.`}
         </p>
       )}
-      <table class="backup-docs">
-        <thead>
-          <tr>
-            <th>Document</th>
-            <th>Entries</th>
-            <th>Notes</th>
-            <th>Projects</th>
-            <th>Clients</th>
-            <th>Tags</th>
-          </tr>
-        </thead>
-        <tbody>
-          {manifest.documents.map((d) => (
-            <tr key={d.id} data-doc={d.id}>
-              <td title={d.id}>{docLabel(d.id, spaces)}</td>
-              <td>
-                {live(d.counts.time_entries)}
-                {d.counts.time_entries.deleted ? <span class="hint"> (+{d.counts.time_entries.deleted} deleted)</span> : null}
-              </td>
-              <td>{live(d.counts.notes)}</td>
-              <td>{live(d.counts.projects)}</td>
-              <td>{live(d.counts.clients)}</td>
-              <td>{live(d.counts.tags)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
       {verification.ok ? (
         <p class="verify ok">All {verification.checked} files match their checksums.</p>
       ) : (
@@ -212,18 +263,63 @@ function RestorePanel(props: { backup: OpenedBackup; source: string; onClose(): 
           </ul>
         </div>
       )}
+      {verification.ok &&
+        (diff ? (
+          <CompareView diff={diff} spaces={spaces} />
+        ) : diffError ? (
+          <p class="error" role="alert">
+            Could not compare the backup with this device: {diffError}
+          </p>
+        ) : (
+          <p class="hint" role="status">
+            Comparing the backup with this device…
+          </p>
+        ))}
       {verification.ok && !confirming && (
         <div class="row">
           <Button variant="primary" disabled={!!busy} onClick={() => void merge()}>
             Merge into this device
           </Button>
-          {replaceSupported() && (
+          {canReplace && (
             <Button variant="danger" disabled={!!busy} onClick={() => setConfirming(true)}>
               Replace local data…
             </Button>
           )}
         </div>
       )}
+      {verification.ok && !confirming && diff && sideIsEmpty(diff.replace) && <p class="hint">Replace would change nothing: this device already matches the backup.</p>}
+      <details class="backup-holds">
+        <summary>What the backup holds</summary>
+        <div class="table-scroll">
+          <table class="backup-docs">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Entries</th>
+                <th>Notes</th>
+                <th>Projects</th>
+                <th>Clients</th>
+                <th>Tags</th>
+              </tr>
+            </thead>
+            <tbody>
+              {manifest.documents.map((d) => (
+                <tr key={d.id} data-doc={d.id}>
+                  <td title={d.id}>{docLabel(d.id, spaces)}</td>
+                  <td>
+                    {live(d.counts.time_entries)}
+                    {d.counts.time_entries.deleted ? <span class="hint"> (+{d.counts.time_entries.deleted} deleted)</span> : null}
+                  </td>
+                  <td>{live(d.counts.notes)}</td>
+                  <td>{live(d.counts.projects)}</td>
+                  <td>{live(d.counts.clients)}</td>
+                  <td>{live(d.counts.tags)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
       {!confirming && (
         <div class="row">
           <Button disabled={!!busy} onClick={props.onClose}>
@@ -232,12 +328,13 @@ function RestorePanel(props: { backup: OpenedBackup; source: string; onClose(): 
         </div>
       )}
       {verification.ok && !confirming && (
-        <p class="hint">Merge adds whatever is missing on this device and keeps everything else, including later edits.</p>
+        <p class="hint">Merge adds whatever is missing on this device and keeps everything else, including later edits. Replace is offered once the comparison above is ready.</p>
       )}
-      {confirming && (
+      {confirming && diff && (
         <div class="confirm-replace">
           <p>
-            This makes this device exactly like the backup from {when(manifest.created_at)}. Everything made after that is removed from this device.
+            This makes this device exactly like the backup from {when(manifest.created_at)}. Removed: {countsText(diff.replace.removed)}.
+            {diff.replace.changed.length > 0 && ` Changed back: ${countsText(diff.replace.changed)}.`}
           </p>
           <p>
             Your current data is kept
@@ -411,7 +508,8 @@ function BackupsPanel({ standalone }: { standalone: boolean }) {
   };
   const [history, setHistory] = useState<{ items: BackupListing[]; total: number } | undefined>();
   const [historyError, setHistoryError] = useState('');
-  const [opened, setOpened] = useState<{ backup: OpenedBackup; source: string } | undefined>();
+  // `name` is set for a backup picked in the folder's list: it opens beside the list, the others below the restore buttons.
+  const [opened, setOpened] = useState<{ backup: OpenedBackup; source: string; name?: string } | undefined>();
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -505,8 +603,8 @@ function BackupsPanel({ standalone }: { standalone: boolean }) {
             ? 'The backup folder cannot be reached. This button asks you to choose a folder, then backs up to it.'
             : '';
 
-  const open = async (dir: BackupDir, source: string, blobs?: BlobSource): Promise<void> => {
-    setOpened({ backup: await openBackup(dir, blobs), source });
+  const open = async (dir: BackupDir, source: string, blobs?: BlobSource, name?: string): Promise<void> => {
+    setOpened({ backup: await openBackup(dir, blobs), source, ...(name ? { name } : {}) });
   };
 
   /** A picked folder can be one backup (has a manifest) or a folder of backups. */
@@ -548,6 +646,20 @@ function BackupsPanel({ standalone }: { standalone: boolean }) {
     if (/\.zip$/i.test(file.name) || file.type === 'application/zip') return open(new ZipDir(await readZip(file)), `file ${file.name}`);
     await open(bundleToDir(await file.text()), `file ${file.name}`);
   };
+
+  // Keyed by the backup, like EncryptionPanel: a change in the lines around it must never remount a panel that holds typed input or an error, and another backup starts fresh.
+  const restorePanel = opened && (
+    <RestorePanel
+      key={`restore:${opened.name ?? opened.source}`}
+      backup={opened.backup}
+      source={opened.source}
+      onClose={() => setOpened(undefined)}
+      onDone={(text) => {
+        setOpened(undefined);
+        setMessage(text);
+      }}
+    />
+  );
 
   const summary = (
     <>
@@ -682,20 +794,6 @@ function BackupsPanel({ standalone }: { standalone: boolean }) {
         </select>
       </label>
 
-      {/* Keyed, like EncryptionPanel: a change in the conditional lines above must never remount a panel that holds typed input or an error. */}
-      {opened && (
-        <RestorePanel
-          key="restore"
-          backup={opened.backup}
-          source={opened.source}
-          onClose={() => setOpened(undefined)}
-          onDone={(text) => {
-            setOpened(undefined);
-            setMessage(text);
-          }}
-        />
-      )}
-
       <EncryptionPanel key="encryption" account={account} accountId={accountId} service={service} encrypted={state.encrypted === true} standalone={standalone} />
 
       <h3>Restore</h3>
@@ -739,6 +837,7 @@ function BackupsPanel({ standalone }: { standalone: boolean }) {
           }}
         />
       )}
+      {opened && !opened.name && restorePanel}
       {mergeBackOffered(before) && (
         <p class="hint merge-back">
           The data from before the replace on {when(before.at)} is kept on this device. It adds back what the replace removed; nothing is lost.{' '}
@@ -776,59 +875,46 @@ function BackupsPanel({ standalone }: { standalone: boolean }) {
         <p class="empty">No backups in this folder yet.</p>
       ) : (
         <>
-          <table class="backup-history">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Device</th>
-                <th>Why</th>
-                <th>Contents</th>
-                <th>Size</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
+          <div class="bn-body">
+            <ul class="bn-list" aria-label="Backups in the folder">
               {history.items.map((item) => (
-                <tr key={item.name} data-name={item.name}>
+                <li key={item.name} data-name={item.name}>
                   {item.manifest ? (
-                    <>
-                      <td>{when(item.manifest.created_at)}</td>
-                      <td>{item.manifest.device_id === deviceId ? 'This device' : item.manifest.device_id.slice(0, 8)}</td>
-                      <td>{REASONS[item.manifest.reason] ?? item.manifest.reason}</td>
-                      <td>
+                    <button
+                      type="button"
+                      class={opened?.name === item.name ? 'active' : ''}
+                      aria-current={opened?.name === item.name}
+                      disabled={busy}
+                      onClick={() =>
+                        void act(async () => {
+                          const f = await folder.current();
+                          if (!f.dir) throw new Error('The backup folder is not available.');
+                          const view = await needPass((p) => readableFolder(f.dir as BackupDir, accountId, accountId, p));
+                          const backup = new SubDir(view, item.path ?? item.name);
+                          await open(backup, `the backup folder (${item.name})`, accountBlobSource(view, accountId, backup), item.name);
+                        })
+                      }
+                    >
+                      <span class="bn-when">{when(item.manifest.created_at)}</span>
+                      <span class="muted">
+                        Recorded on: {item.manifest.device_id === deviceId ? 'This device' : item.manifest.device_id.slice(0, 8)} · {REASONS[item.manifest.reason] ?? item.manifest.reason}
+                      </span>
+                      <span class="muted">
                         <CountsLine counts={item.manifest.counts} />
-                        {item.manifest.blobs.length > 0 ? <span>, {item.manifest.blobs.length} files ({bytes(totalBlobBytes(item.manifest.blobs))})</span> : null}
-                      </td>
-                      <td>{bytes(totalBytes(item.manifest))}</td>
-                      <td>
-                        <Button
-                          disabled={busy}
-                          onClick={() =>
-                            void act(async () => {
-                              const f = await folder.current();
-                              if (!f.dir) throw new Error('The backup folder is not available.');
-                              const view = await needPass((p) => readableFolder(f.dir as BackupDir, accountId, accountId, p));
-                              const backup = new SubDir(view, item.path ?? item.name);
-                              await open(backup, `the backup folder (${item.name})`, accountBlobSource(view, accountId, backup));
-                            })
-                          }
-                        >
-                          Restore…
-                        </Button>
-                      </td>
-                    </>
+                        {item.manifest.blobs.length > 0 ? <>, {item.manifest.blobs.length} files</> : null} · {bytes(totalBytes(item.manifest))}
+                      </span>
+                    </button>
                   ) : (
-                    <>
-                      <td>{item.name}</td>
-                      <td colSpan={5} class="hint">
-                        {item.error}
-                      </td>
-                    </>
+                    <div class="bn-bad">
+                      <span>{item.name}</span>
+                      <span class="hint">{item.error}</span>
+                    </div>
                   )}
-                </tr>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+            <div class="bn-detail">{opened?.name ? restorePanel : <p class="empty">Pick a backup to see what it would change on this device.</p>}</div>
+          </div>
           {history.total > history.items.length && (
             <p class="hint">
               Showing the newest {history.items.length} of {history.total} backups. All of them stay in the folder.

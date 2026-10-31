@@ -67,6 +67,25 @@ async function scan([scheme, width]) {
     await axe(page, `${tag} ${hash}`);
   }
 
+  // The Backups navigator with a backup picked: its comparison with now, the item lists open, and the Replace confirmation.
+  await page.evaluate(() => { location.hash = '#/settings/backups/open'; });
+  await page.waitForFunction(() => window.__backup !== undefined);
+  await page.evaluate(() => window.__backup.useOpfs('a11y-backups'));
+  await page.reload();
+  await page.waitForFunction(() => window.__backup !== undefined);
+  await page.evaluate(() => window.__backup.ready());
+  await page.getByText('Backing up to').waitFor();
+  await page.getByRole('button', { name: 'Back up now', exact: true }).click();
+  await page.getByText(/^Backed up to /).waitFor();
+  await page.evaluate(() => window.__backup.addEntry('personal', 'After the backup'));
+  await page.locator('.bn-list li[data-name] button').first().click();
+  await page.locator('.backup-compare').waitFor();
+  for (const summary of await page.locator('.bc-items summary').all()) await summary.click();
+  await axe(page, `${tag} backups navigator`);
+  await page.getByRole('button', { name: 'Replace local data…' }).click();
+  await axe(page, `${tag} replace confirmation`);
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+
   // The sync control in its four shapes, with its popover open (the shape, the name and the list must pass axe).
   const peer = (id, state, via) => ({ id, state, ...(via ? { via } : {}) });
   const sync = {

@@ -26,11 +26,27 @@
 .verify.ok { color: var(--ok); font-weight: var(--weight-semibold); }
 .verify.bad { color: var(--danger); }
 .confirm-replace { border-top: 1px solid var(--border); margin-top: 0.75rem; padding-top: 0.5rem; }
+.backup-docs { margin: 0.5rem 0; }
 
-.backup-history td:last-child { text-align: right; }
-.backup-docs, .backup-history { margin: 0.5rem 0; }
-
+/* Backups navigator (#96): the list of backups on the left, the picked one and its comparison with now on the right. */
+.bn-body { display: grid; grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+.bn-list { list-style: none; margin: 0; padding: 0; max-height: 60vh; overflow: auto; }
+.bn-list button { display: flex; flex-direction: column; align-items: flex-start; width: 100%; text-align: left; gap: 0.1rem; background: none; border: 0; border-radius: var(--radius-sm); padding: 0.35rem 0.5rem; color: inherit; }
+.bn-list button.active, .bn-list button:hover { background: var(--surface-2); }
+.bn-list .muted { font-size: var(--text-sm); color: var(--muted); }
+.bc-items .muted { color: var(--muted); }
+.bn-bad { display: flex; flex-direction: column; padding: 0.35rem 0.5rem; }
+.bn-detail .restore-panel { margin-top: 0; }
+.bc-sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--space-3); }
+.bc-side p { margin: 0.25rem 0; }
+.bc-items ul { margin: 0.25rem 0; padding-left: 1.25rem; }
+.bc-items li { overflow-wrap: anywhere; }
+.bc-kind { font-weight: var(--weight-semibold); }
 @media (max-width: 40rem) {
-  .backup-history th:nth-child(3), .backup-history td:nth-child(3),
-  .backup-history th:nth-child(5), .backup-history td:nth-child(5) { display: none; }
+  .bn-body { grid-template-columns: 1fr; }
+  .bn-list { max-height: 40vh; }
 }
+.restore-panel { min-width: 0; overflow-wrap: anywhere; }
+.backup-holds { margin: 0.5rem 0; }
+.backup-holds .table-scroll { overflow-x: auto; }
+.restore-panel div.row { flex-wrap: wrap; }

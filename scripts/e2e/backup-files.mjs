@@ -60,7 +60,7 @@ await ready(a);
 await a.getByText('Backing up to').waitFor();
 check(/Your notes hold 2 files/.test(await a.getByTestId('backup-files').innerText()), 'A: Backups says how many files the notes hold');
 check(/JSON download is text only and leaves them out/.test(await a.getByTestId('backup-files').innerText()), 'A: it says the JSON download leaves files out');
-await a.getByRole('button', { name: 'Back up now' }).click();
+await a.getByRole('button', { name: 'Back up now', exact: true }).click();
 await a.getByText(/^Backed up to /).waitFor();
 const accountFiles = await E(a, () => window.__backup.exportAccount());
 const paths = Object.keys(accountFiles);

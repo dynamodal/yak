@@ -55,6 +55,8 @@ export interface BackupRuntime {
   bus: EventBus;
   deviceId: string;
   accountId: string;
+  /** The documents a backup of this device holds (log documents and other accounts' documents left out). */
+  docs: () => Map<string, Y.Doc>;
   /** Resolves after a pending replace was applied and the triggers started. */
   ready: Promise<void>;
 }
@@ -68,7 +70,8 @@ let runtime: BackupRuntime | undefined;
 function backupRuntime(app: { store: DocumentStore; bus: EventBus; deviceId: string; accountId: string; account: Y.Doc }): BackupRuntime {
   if (runtime) return runtime;
   const folder = new BrowserFolder();
-  const service = new BackupService({ docs: () => new Map([...app.store.opened()].filter(([id]) => !isLogDoc(id) && (accountOfDoc(id) === undefined || accountOfDoc(id) === app.accountId))), deviceId: app.deviceId, accountId: app.accountId, history: historyStore, keyring: () => deviceKey(app.accountId, app.account), folder, status: localStatus, lock: webLock, onBackup: (e) => recordCover(app.store, app.deviceId, e) });
+  const docs = (): Map<string, Y.Doc> => new Map([...app.store.opened()].filter(([id]) => !isLogDoc(id) && (accountOfDoc(id) === undefined || accountOfDoc(id) === app.accountId)));
+  const service = new BackupService({ docs, deviceId: app.deviceId, accountId: app.accountId, history: historyStore, keyring: () => deviceKey(app.accountId, app.account), folder, status: localStatus, lock: webLock, onBackup: (e) => recordCover(app.store, app.deviceId, e) });
   const ready = (async () => {
     reloadOnReplaceElsewhere();
     try {
@@ -83,7 +86,7 @@ function backupRuntime(app: { store: DocumentStore; bus: EventBus; deviceId: str
     }
     service.start(app.bus);
   })();
-  runtime = { service, folder, store: app.store, bus: app.bus, deviceId: app.deviceId, accountId: app.accountId, ready };
+  runtime = { service, folder, store: app.store, bus: app.bus, deviceId: app.deviceId, accountId: app.accountId, docs, ready };
   if (testMode()) void import('./test-hook').then((m) => m.installTestHook(runtime as BackupRuntime));
   return runtime;
 }

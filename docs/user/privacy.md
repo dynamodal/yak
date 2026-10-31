@@ -23,6 +23,7 @@ Yak is alpha software with no warranty. Keep backups.
 - Pairing needs the relay and STUN servers, which help devices find each other.
 - The relay sees encrypted messages, their sizes and times, and the network addresses connecting to it. It cannot read the contents.
 - STUN servers see the network address of a device asking for its public address. No content.
+- To find a direct path, each device tells the devices it links with its local addresses and the public address STUN reported, inside the encrypted handshake.
 - If a direct link is impossible, encrypted data passes through the relay. It is still unreadable there.
 - Adding a device with a one-time code (accounts that require device keys): the new device sends its name and public keys, and your device answers, through the relay, encrypted with the code. The relay cannot read them.
 - Removing a device (accounts that require device keys): your other devices stop accepting it. It still knows the account's sync secret, so it could see that your devices are online, but not what they sync.
@@ -30,7 +31,7 @@ Yak is alpha software with no warranty. Keep backups.
 ## Shared spaces
 
 - A space shared with another person syncs only that space's shared part between your devices and theirs, encrypted and directly where possible. Private parts, logs and account settings never leave your own account.
-- Everyone in a share can read, edit and delete what the space holds, and the other accounts' devices see how many of your devices are connected, and their network addresses on direct links.
+- Everyone in a share can read, edit and delete what the space holds, and the other accounts' devices see how many of your devices are connected, and their network addresses (local and public) when they try a direct link.
 - The share is set up through the relay (the link and its messages are encrypted with the link's code, the relay sees sizes, times and addresses). Names you give are shown to the other accounts.
 - Ending a share or leaving stops new changes; nobody can take back what was already synced.
 
@@ -45,6 +46,8 @@ Yak is alpha software with no warranty. Keep backups.
 - Each device keeps a log of connection and sync events, device names and network addresses; never the contents of notes or time entries.
 - It also notes device keys: the first characters of the account key's fingerprint, how many devices were certified, a change of account key that was ignored, and when the key for two devices failed and they went back to the shared key. With device keys required, it also notes the switch, which devices were approved or removed (the first characters of their ids), that this device was removed, and joins by one-time code. Never a private key, a sync secret, a one-time code or the passphrase.
 - File transfers add a line per file with the first characters of its checksum and its size, never its name or contents.
+- Each try at a direct connection adds a line with the kinds and counts of addresses each side offered and how far the try got; no addresses or ports.
+- **Connection report** (on a device page, under **Advanced**) shows those tries for each other device, numbered, without names, ids, addresses or ports. It is only copied when you press the button; nothing is sent by itself.
 - It is shared only between your own devices and kept 7 days.
 - Turn it off on a device page (**Settings**, then the device's name) under **Advanced › Logs from all devices**.
 - Yak does not show a first-run notice about it; it is described here and next to that switch.

@@ -7,6 +7,7 @@ import { PeerMesh, type RelayEndpoint } from './peer-mesh';
 import type { RelayLinkEvents } from './relay-link';
 import type { RelayRefusal } from './relay-refusal';
 import type { PeerLinkEvents } from './peer-link';
+import { emptyCounts } from './link-diagnostics';
 import type { PeerKeys, SyncIdentity } from './handshake';
 import { generateDeviceKeys, type DeviceKeyPairs } from '../core/keys';
 import { RateLimitedError, type InboxMessage, type SignalingTransport, type SubscribeHandlers } from './signaling';
@@ -64,6 +65,7 @@ class FakeNet {
   private counter = 0;
   reachable = true;
   readonly all: FakeLink[] = [];
+  onLink?: (events: PeerLinkEvents) => void;
   nextId(): string {
     return String(++this.counter);
   }
@@ -89,6 +91,7 @@ class FakeLink implements LinkEndpoint {
     readonly owner: string,
   ) {
     net.all.push(this);
+    net.onLink?.(events);
   }
   async createOffer(): Promise<{ code: string }> {
     this.id = this.net.nextId();
@@ -707,6 +710,43 @@ describe('PeerMesh', () => {
       await waitFor(() => a.data.includes('bbb:via relay') || b.data.includes('aaa:via relay'), 3000, 'relay data');
       const d = a.data.includes('bbb:via relay') ? a : b;
       expect(d.vias[d.data.findIndex((x) => x.endsWith(':via relay'))]).toBe('relay');
+    });
+
+    it('backs off direct path checks while on the relay: 1, 2, then 5 times the interval (#110)', async () => {
+      const { keys, hub, net } = await setup();
+      net.reachable = false;
+      const relayNet = new FakeRelayNet();
+      const a = makeDevice('aaa', keys, hub, net, { relayNet, directRetryMs: 80 });
+      const b = makeDevice('bbb', keys, hub, net, { relayNet, directRetryMs: 80 });
+      running.push(a, b);
+      a.mesh.start();
+      b.mesh.start();
+      const checks = (): number[] => a.log.all().filter((e) => e.detail.includes('offer (direct path check)')).map((e) => e.at);
+      await waitFor(() => checks().length >= 4, 5000, 'four direct path checks');
+      const [t1, t2, t3, t4] = checks() as [number, number, number, number];
+      expect(t3 - t2).toBeGreaterThan((t2 - t1) * 1.8);
+      expect(t4 - t3).toBeLessThan((t3 - t2) * 1.5);
+    });
+
+    it('keeps the last direct attempts per device, with the trigger that started them (#110)', async () => {
+      const { keys, hub, net } = await setup();
+      net.reachable = false;
+      const relayNet = new FakeRelayNet();
+      const onAttempt: PeerLinkEvents['onAttempt'][] = [];
+      const a = makeDevice('aaa', keys, hub, net, { relayNet });
+      const b = makeDevice('bbb', keys, hub, net, { relayNet });
+      net.onLink = (events) => onAttempt.push(events.onAttempt);
+      running.push(a, b);
+      a.mesh.start();
+      b.mesh.start();
+      await waitFor(() => a.mesh.peers[0]?.via === 'relay', 3000, 'relay');
+      const record = { at: 0, role: 'offer' as const, local: emptyCounts(), remote: emptyCounts(), natLocal: 'unknown' as const, natRemote: 'unknown' as const, samePublic: 'unknown' as const, stage: 'checks-failed' as const, ms: 1 };
+      for (const f of onAttempt) f?.(record);
+      await waitFor(() => (a.mesh.peers[0]?.attempts?.length ?? 0) > 0, 3000, 'attempts recorded');
+      const attempts = a.mesh.peers[0]?.attempts ?? [];
+      expect(attempts.length).toBeLessThanOrEqual(10);
+      expect(attempts.every((x) => typeof x.trigger === 'string' && x.trigger.length > 0)).toBe(true);
+      expect(a.log.all().some((e) => e.detail.includes('attempt offer') && e.detail.includes('connectivity checks failed'))).toBe(true);
     });
 
     it('reports the loss when the other device leaves the relay', async () => {

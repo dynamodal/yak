@@ -637,6 +637,9 @@ export class SyncService {
 
   private installTriggers(): void {
     window.addEventListener('online', () => this.trigger('online', { force: true, streamLikelyDead: true }));
+    // Wi-Fi to mobile data, a VPN coming up: a direct path may exist now (#110). Chromium-based browsers only.
+    const connection = (navigator as Navigator & { connection?: EventTarget }).connection;
+    connection?.addEventListener?.('change', () => this.trigger('network change', { force: true, streamLikelyDead: true }));
     window.addEventListener('pageshow', (e) => {
       if (e.persisted) this.trigger('restored', { force: true, streamLikelyDead: true });
     });

@@ -4,7 +4,7 @@
 //
 //   npm run e2e relay-fallback
 //
-import { BASE, launch, ok, fail, watchPage, until, finish, keepAllSpaces, openJoin, startSyncing, joinByInvite } from './lib.mjs';
+import { BASE, launch, ok, fail, watchPage, until, finish, keepAllSpaces, openJoin, startSyncing, joinByInvite, openAdvanced } from './lib.mjs';
 
 const browser = await launch({ fakeCamera: true, fastTimers: true });
 const mk = async (n) => {
@@ -45,6 +45,21 @@ const t = await until(async () => (await st(a)) === 'connected' && (await st(b))
 t >= 0 ? ok(`connected without WebRTC in ${t} ms`) : fail('did not connect through the relay');
 const label = await until(async () => /through the relay/.test(await rowText(a)), 5000);
 label >= 0 ? ok('the device row says it syncs through the relay') : fail(`device row: ${await rowText(a)}`);
+
+// #110: the row gives the last direct attempt's reason, and the connection report lists attempts without addresses.
+const why = await until(async () => /Why not directly: .*offered no addresses/.test(await rowText(a)), 30000);
+why >= 0 ? ok('the device row says why not directly') : fail(`no reason on the row: ${await rowText(a)}`);
+{
+  const fold = await openAdvanced(a);
+  const report = fold.locator('details', { has: a.locator('summary', { hasText: 'Connection report' }) });
+  await report.locator('summary').click();
+  await until(async () => /Other device 1/.test(await report.locator('pre').innerText()), 5000);
+  const text = await report.locator('pre').innerText();
+  /Other device 1: connected \(relay\)/.test(text) && /no addresses/.test(text) && !/\d+\.\d+\.\d+\.\d+/.test(text.split('\n').slice(3).join('\n'))
+    ? ok('the connection report lists the attempts, without addresses')
+    : fail(`connection report: ${text}`);
+  await a.evaluate(() => { location.hash = '#/settings/devices-sync'; });
+}
 
 await a.evaluate(() => window.__app.append('space/work', 't', 'from A '));
 await b.evaluate(() => window.__app.append('space/work', 't', 'from B '));

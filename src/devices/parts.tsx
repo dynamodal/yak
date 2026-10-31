@@ -13,6 +13,8 @@ import { keeps } from '../core/keeps';
 import { relayNotice } from '../sync/relay-status';
 import { DEFAULT_STUN_URLS, loadIceUrls, parseIceUrls, saveIceUrls } from '../sync/ice-servers';
 import { deviceStatus } from '../sync/device-status';
+import { connectionReport } from '../sync/link-diagnostics';
+import { detectBrowser } from '../browser';
 import { SyncDot } from '../app/views/SyncDot';
 import { overallShape } from '../app/sync-state';
 import { DeviceKeysPanel } from './DeviceKeysPanel';
@@ -149,6 +151,7 @@ export function ConnectionPart() {
         <LogSharingSwitch />
         <LogsPanel label={label} />
       </details>
+      <ConnectionReport />
       <details onToggle={() => setLog(sync.report())}>
         <summary>Connection log</summary>
         <div class="row">
@@ -288,3 +291,31 @@ export function ResetPart() {
 
 /** Advanced: erase every store of Yak on this device. Loads when Advanced opens it (the main bundle is on a budget). */
 export const EraseDevicePart = lazyComponent(() => import('./EraseDevice'));
+
+declare const __APP_VERSION__: string | undefined;
+
+/** Direct attempts with each other device, without names, ids or addresses (#110): shown in full, copied only on request. */
+function ConnectionReport() {
+  const { status } = useLinkedPeers();
+  const [text, setText] = useState('');
+  const make = (): string => {
+    const b = detectBrowser();
+    return connectionReport({
+      version: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'development',
+      browser: `${b.name} ${b.version.split('.')[0] ?? ''} on ${b.platform}`.replace('  ', ' '),
+      now: Date.now(),
+      peers: status.peers,
+    });
+  };
+  return (
+    <details onToggle={(e) => (e.target as HTMLDetailsElement).open && setText(make())}>
+      <summary>Connection report</summary>
+      <p class="hint">Why each other device connects directly or through the relay. It names no device, account, address or port. Copy it into a problem report if you like; nothing is sent by itself.</p>
+      <div class="row">
+        <Button onClick={() => setText(make())}>Refresh</Button>
+        <Button onClick={() => void navigator.clipboard?.writeText(make())}>Copy connection report</Button>
+      </div>
+      <pre class="log" aria-label="Connection report">{text}</pre>
+    </details>
+  );
+}

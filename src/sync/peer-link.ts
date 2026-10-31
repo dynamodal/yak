@@ -1,6 +1,7 @@
 import { EventLog } from './event-log';
 import { Joiner, pieceSize, split } from './link-chunks';
 import { decodeSignal, encodeSignal } from './signal-codec';
+import { type AttemptRecord, type AttemptStage, countCandidates as countKinds, natKind, type ParsedCandidate, samePublic, sdpCandidates } from './link-diagnostics';
 import { DATA_CHANNEL_LABEL } from '../core/protocol-ids';
 
 export interface PeerLinkEvents {
@@ -10,6 +11,8 @@ export interface PeerLinkEvents {
   onClose(reason: string): void;
   /** Pairing did not complete in time after a code or reply was created. */
   onWaitTimeout(): void;
+  /** How the attempt ended (#110): once, when the channel opens, the checks fail or the link is closed before either. */
+  onAttempt?(record: AttemptRecord): void;
 }
 
 export interface OfferInfo {
@@ -55,6 +58,17 @@ export class PeerLink {
   /** Pieces waiting for the channel's send buffer to drain. */
   private queue: Uint8Array[] = [];
   private joiner = new Joiner();
+  // Diagnostics for this attempt (#110). Candidates are held only while the attempt runs.
+  private readonly startedAt = Date.now();
+  private role: 'offer' | 'answer' = 'offer';
+  private localCandidates: ParsedCandidate[] = [];
+  private remoteCandidates: ParsedCandidate[] = [];
+  private remoteSet = false;
+  /** This side's description went out (its candidates are known). */
+  private described = false;
+  private iceUp = false;
+  private iceFailed = false;
+  private reported = false;
 
   constructor(
     private readonly events: PeerLinkEvents,
@@ -70,8 +84,14 @@ export class PeerLink {
       else this.log.log('peer', 'failed before the channel opened; recovers if the other device finishes pairing');
     });
     this.pc.addEventListener('iceconnectionstatechange', () => {
-      this.log.log('ice', this.pc.iceConnectionState);
-      if (this.everOpen && this.pc.iceConnectionState === 'disconnected') this.events.onClose('ice disconnected');
+      const ice = this.pc.iceConnectionState;
+      this.log.log('ice', ice);
+      if (ice === 'connected' || ice === 'completed') this.iceUp = true;
+      if (ice === 'failed' && !this.everOpen) {
+        this.iceFailed = true;
+        void this.report();
+      }
+      if (this.everOpen && ice === 'disconnected') this.events.onClose('ice disconnected');
     });
     this.pc.addEventListener('icegatheringstatechange', () => {
       this.log.log('ice', `gathering ${this.pc.iceGatheringState}`);
@@ -85,6 +105,7 @@ export class PeerLink {
 
   /** Device A: create the channel and an offer to hand to the other device. */
   async createOffer(): Promise<OfferInfo> {
+    this.role = 'offer';
     this.attach(this.pc.createDataChannel(CHANNEL_LABEL, { ordered: true }));
     await this.pc.setLocalDescription(await this.pc.createOffer());
     const info = await this.finishDescription('offer');
@@ -96,7 +117,10 @@ export class PeerLink {
   async acceptOffer(code: string): Promise<OfferInfo> {
     const signal = await decodeSignal(code);
     if (signal.kind !== 'offer') throw new Error('That is an answer code; paste an offer code here');
+    this.role = 'answer';
     await this.pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp });
+    this.remoteCandidates = sdpCandidates(signal.sdp);
+    this.remoteSet = true;
     await this.pc.setLocalDescription(await this.pc.createAnswer());
     const info = await this.finishDescription('answer');
     this.startWaiting();
@@ -108,6 +132,8 @@ export class PeerLink {
     const signal = await decodeSignal(code);
     if (signal.kind !== 'answer') throw new Error('That is an offer code; paste an answer code here');
     await this.pc.setRemoteDescription({ type: 'answer', sdp: signal.sdp });
+    this.remoteCandidates = sdpCandidates(signal.sdp);
+    this.remoteSet = true;
   }
 
   /** Sends in pieces the peer accepts (its max-message-size), in order, without overfilling the send buffer. */
@@ -139,6 +165,7 @@ export class PeerLink {
   }
 
   close(): void {
+    if (!this.reported) this.finish(this.stage());
     clearTimeout(this.waitTimer);
     this.queue = [];
     this.channel?.close();
@@ -155,28 +182,77 @@ export class PeerLink {
     }, PAIRING_WAIT_MS);
   }
 
-  /** Log which kind of path the connection took (no addresses): candidate types, protocol, interface type. */
-  private async logSelectedPath(): Promise<void> {
+  /** How far the attempt got, judged when it ends without an open channel. */
+  private stage(): AttemptStage {
+    if (!this.remoteSet) return 'no-answer';
+    if (this.described && !this.iceUp && (this.remoteCandidates.length === 0 || this.localCandidates.length === 0)) return 'no-candidates';
+    if (this.iceUp) return 'secure-failed';
+    return this.iceFailed ? 'checks-failed' : 'unfinished';
+  }
+
+  /** Reads the candidate pairs once (open or failed), logs the chosen path, then records the attempt. */
+  private async report(): Promise<void> {
+    const extra: Partial<AttemptRecord> = {};
+    let prflxLocal = 0;
+    let prflxRemote = 0;
     try {
       const stats = await this.pc.getStats();
       let pairId: string | undefined;
+      let pairs = 0;
       stats.forEach((s) => {
         const t = s as unknown as Record<string, unknown>;
         if (t.type === 'transport' && typeof t.selectedCandidatePairId === 'string') pairId = t.selectedCandidatePairId;
+        if (t.type === 'candidate-pair') pairs++;
+        if (t.type === 'local-candidate' && t.candidateType === 'prflx') prflxLocal++;
+        if (t.type === 'remote-candidate' && t.candidateType === 'prflx') prflxRemote++;
       });
+      extra.pairs = pairs;
       const get = (id: unknown): Record<string, unknown> | undefined =>
         typeof id === 'string' ? (stats.get(id) as unknown as Record<string, unknown> | undefined) : undefined;
-      const pair = get(pairId);
-      if (!pair) return;
-      const local = get(pair.localCandidateId);
-      const remote = get(pair.remoteCandidateId);
-      const rtt = typeof pair.currentRoundTripTime === 'number' ? ` rtt ${Math.round(pair.currentRoundTripTime * 1000)}ms` : '';
-      this.log.log(
-        'path',
-        `${String(local?.candidateType)}/${String(remote?.candidateType)} ${String(local?.protocol)} local network ${String(local?.networkType ?? 'unknown')}${rtt}`,
-      );
+      const pair = this.everOpen ? get(pairId) : undefined;
+      if (pair) {
+        const local = get(pair.localCandidateId);
+        const remote = get(pair.remoteCandidateId);
+        const rtt = typeof pair.currentRoundTripTime === 'number' ? Math.round(pair.currentRoundTripTime * 1000) : undefined;
+        this.log.log(
+          'path',
+          `${String(local?.candidateType)}/${String(remote?.candidateType)} ${String(local?.protocol)} local network ${String(local?.networkType ?? 'unknown')}${rtt !== undefined ? ` rtt ${rtt}ms` : ''}`,
+        );
+        extra.path = `${String(local?.candidateType)}/${String(remote?.candidateType)} ${String(local?.protocol)}`;
+        if (rtt !== undefined) extra.rttMs = Math.round(rtt / 10) * 10;
+      }
     } catch {
       // Stats are diagnostic only.
+    }
+    if (this.reported) return;
+    this.finish(this.everOpen ? 'open' : this.stage(), extra, prflxLocal, prflxRemote);
+  }
+
+  private finish(stage: AttemptStage, extra: Partial<AttemptRecord> = {}, prflxLocal = 0, prflxRemote = 0): void {
+    this.reported = true;
+    const local = countKinds(this.localCandidates);
+    const remote = countKinds(this.remoteCandidates);
+    local.prflx += prflxLocal;
+    remote.prflx += prflxRemote;
+    const record: AttemptRecord = {
+      at: this.startedAt,
+      role: this.role,
+      local,
+      remote,
+      natLocal: natKind(this.localCandidates),
+      natRemote: natKind(this.remoteCandidates),
+      samePublic: samePublic(this.localCandidates, this.remoteCandidates),
+      stage,
+      ...extra,
+      ms: Date.now() - this.startedAt,
+    };
+    // Addresses are no longer needed once counted.
+    this.localCandidates = [];
+    this.remoteCandidates = [];
+    try {
+      this.events.onAttempt?.(record);
+    } catch {
+      // Diagnostics never break the link.
     }
   }
 
@@ -191,7 +267,7 @@ export class PeerLink {
       this.everOpen = true;
       clearTimeout(this.waitTimer);
       this.log.log('channel', 'open');
-      void this.logSelectedPath();
+      void this.report();
       this.events.onOpen();
     });
     channel.addEventListener('close', () => {
@@ -210,6 +286,8 @@ export class PeerLink {
     const sdp = this.pc.localDescription?.sdp ?? '';
     const code = await encodeSignal({ kind, sdp });
     const kept = (await decodeSignal(code)).sdp;
+    this.localCandidates = sdpCandidates(kept);
+    this.described = true;
     return {
       code,
       length: code.length,

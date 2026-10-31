@@ -1,3 +1,4 @@
+import type { RoomKind } from '../core/protocol-ids';
 import type { EventLog } from './event-log';
 import { RELAY_CONTEXT_PREFIX, RELAY_PAIR_DIGEST } from '../core/protocol-ids';
 import { parseRelayRefusal, type RelayRefusal } from './relay-refusal';
@@ -66,6 +67,8 @@ export interface RelayLinkEvents {
 export interface RelayLinkOptions {
   /** The relay's address, `wss://host/signal`; the link is `<baseUrl>/<topic>/link/<pair>`. */
   baseUrl: string;
+  /** What the room is for, sent as `?k=` (#109). */
+  kind?: RoomKind;
   topic: string;
   selfId: string;
   peerId: string;
@@ -149,7 +152,7 @@ export class RelayLink {
         if (this.closed) return;
         // Binds sealed messages to this pair, so a frame cannot be moved to another pair or kind.
         this.context = `${topic}:${pair}`;
-        this.url = `${baseUrl.replace(/\/+$/, '')}/${encodeURIComponent(topic)}/link/${pair}`;
+        this.url = `${baseUrl.replace(/\/+$/, '')}/${encodeURIComponent(topic)}/link/${pair}${this.opts.kind ? `?k=${this.opts.kind}` : ''}`;
         this.connect();
       },
       () => this.opts.log.log('relay', 'could not work out the link address'),

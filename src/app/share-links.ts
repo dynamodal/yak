@@ -1,3 +1,4 @@
+import type { RoomKind } from '../core/protocol-ids';
 import * as Y from 'yjs';
 import { STORAGE_PREFIX } from '../constants';
 import { addSpace, freeSpaceName, readSpaces } from '../core/account';
@@ -60,7 +61,7 @@ export interface ShareLinkDeps {
   shares: Shares;
   me: string;
   storage: StorageLike;
-  transport?: (url: string) => SignalingTransport;
+  transport?: (url: string, kind?: RoomKind) => SignalingTransport;
 }
 
 /** The link a person opens: the code is in the fragment, which the server never sees. */
@@ -112,7 +113,7 @@ export class ShareLinks {
 
   private transport(): SignalingTransport {
     const d = this.d();
-    return (d.transport ?? createTransport)(defaultSignalingUrl());
+    return (d.transport ?? createTransport)(defaultSignalingUrl(), 'i');
   }
 
   /** The name this person shows to the other account: remembered, else this device's name. */

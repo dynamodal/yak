@@ -1,3 +1,4 @@
+import type { RoomKind } from '../core/protocol-ids';
 import type * as Y from 'yjs';
 import { STORAGE_PREFIX } from '../constants';
 import { spacesMap } from '../core/account';
@@ -96,7 +97,7 @@ export interface SharesDeps {
   me: string;
   storage: StorageLike;
   log(detail: string): void;
-  transport?: (url: string) => SignalingTransport;
+  transport?: (url: string, kind?: RoomKind) => SignalingTransport;
 }
 
 export class Shares {
@@ -248,6 +249,7 @@ export class Shares {
       const svc: SyncService = new SyncService(store, {
         deviceId: me,
         createTransport: this.deps.transport ?? defaultTransport,
+        roomKind: 's',
         storageKey: `${STORAGE_PREFIX}-share-${space}`,
         realAddresses: false,
         identity: e.trust,

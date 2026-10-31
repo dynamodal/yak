@@ -1,3 +1,4 @@
+import type { RoomKind } from '../core/protocol-ids';
 import { parseRelayRefusal, type RelayRefusal } from './relay-refusal';
 import { RateLimitedError, type InboxMessage, type SignalingTransport, type SubscribeHandlers } from './signaling';
 
@@ -20,6 +21,8 @@ export const MAX_RELAY_MESSAGE_BYTES = 8 * 1024;
 export interface WebSocketTransportOptions {
   /** `wss://host/signal` (a path the mailbox name is appended to). Default: this site's `/signal`. */
   baseUrl?: string;
+  /** What the room is for, sent as `?k=` (#109). Absent: not sent. */
+  kind?: RoomKind;
   /** For tests and non-browser use. Default: the global `WebSocket`. */
   WebSocketImpl?: typeof WebSocket;
   /** Delay before reconnecting: starts here, doubles, capped at `maxRetryMs`. */
@@ -57,6 +60,7 @@ const errorText = (e: unknown): string => (e instanceof Error ? e.message : Stri
 
 export class WebSocketTransport implements SignalingTransport {
   private readonly baseUrl: string;
+  private readonly kind: RoomKind | undefined;
   private readonly impl: typeof WebSocket | undefined;
   private readonly retryMs: number;
   private readonly maxRetryMs: number;
@@ -69,6 +73,7 @@ export class WebSocketTransport implements SignalingTransport {
 
   constructor(options: WebSocketTransportOptions = {}) {
     this.baseUrl = toWebSocketUrl(options.baseUrl ?? siteRelayUrl());
+    this.kind = options.kind;
     this.impl = options.WebSocketImpl ?? (typeof WebSocket === 'undefined' ? undefined : WebSocket);
     this.retryMs = options.retryMs ?? 1000;
     this.maxRetryMs = options.maxRetryMs ?? 15_000;
@@ -104,7 +109,7 @@ export class WebSocketTransport implements SignalingTransport {
     if (!channel) {
       const impl = this.impl;
       channel = new Channel({
-        url: `${this.baseUrl}/${encodeURIComponent(mailbox)}`,
+        url: `${this.baseUrl}/${encodeURIComponent(mailbox)}${this.kind ? `?k=${this.kind}` : ''}`,
         create: (url) => new impl(url),
         retryMs: this.retryMs,
         maxRetryMs: this.maxRetryMs,

@@ -43,3 +43,9 @@ export const LEGACY = {
   settingsKind: 'punchdeck-settings',
 } as const;
 export const FROM_EARLIER_VERSION = 'from Punchdeck, an earlier test version of this app';
+
+/**
+ * What a relay room is for, sent as `?k=` on its sockets so the operator can count accounts, shares
+ * and one-time codes apart (#109): `a` account, `s` shared space, `i` one-time code or share link.
+ */
+export type RoomKind = 'a' | 's' | 'i';

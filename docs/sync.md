@@ -70,10 +70,20 @@ How sync works today. Decisions and reasons: `decisions/sync.md`.
 - `GET /signal/admin/stats?hours=24` with `Authorization: Bearer <ADMIN_KEY>` queries it through the Cloudflare SQL API and returns rows per hour and kind. It needs the secrets `ADMIN_KEY`, `CF_ACCOUNT_ID` and `CF_API_TOKEN` (a token with Account Analytics read); without them it answers 404. Never put them in the repo.
 - To turn on: enable Workers Analytics Engine for the account, uncomment `analytics_engine_datasets` in `wrangler.jsonc`, `npx wrangler secret put` the three secrets, deploy.
 - App: `#/settings/network` (not in the Settings list) asks for the admin key once per device (`localStorage`, never synced) and shows active rooms, messages, bytes and the share carried by relay data links.
+
+### Relay usage (#109)
+
+- No Analytics Engine needed: `RelayBudget` keeps the day's estimated requests and relayed messages per UTC hour (today and the day before), and per room seen today, under the room's short hash: its kind, devices now, most devices at once, data links now and pairs that met on a data link. At UTC midnight the hashes go (rooms still open carry over); a daily total of counts is kept 30 days.
+- Room kind: the app adds `?k=a` (account), `s` (shared space) or `i` (one-time code, share link) to every relay socket (`RoomKind`, `src/core/protocol-ids.ts`); a socket without it (an older build) counts as `o`.
+- Each room tells the budget object its devices and links when a socket opens or closes: one counted request each, so a socket now costs about 4 estimated requests instead of 2.
+- `GET /signal/admin/usage`, `Authorization: Bearer <ADMIN_KEY>` (only that secret; 404 without it): used, budget, the 80% cutoff, the plan's 100 000, requests and messages per hour, rooms by kind, accounts and devices now and today, data links, 30 daily totals. Counts only, no hashes.
+- `#/settings/network` shows it first: today against the budget, the projection to midnight (`projectDay`: the pace of the last three hours), 24 hourly bars, the counts and the 30 days.
+- Every user: `GET /signal/<topic>/stats` also returns `relay` (accounts and devices now and today, shared spaces today, the share of the day's allowance, messages per hour for 24 hours), shown in the relay details on Advanced; from half the allowance a line says so. Never one room's figures.
+- Known limit: a room whose sockets vanish without a close (a deploy, a crash) keeps its devices "now" until its next socket opens or the day ends.
 ### Relay stats
 
 - `GET /signal/<topic>/stats` (the topic is the only secret): devices and data links connected now, messages and bytes in the last hour and 24 hours, last activity. The room keeps 10-minute buckets in its storage and sees no content or device ids, so there is no per-device activity.
-- The Devices page shows "Relay: 3 devices connected · 420 messages today" when opened, then once a minute while visible; each ask is a counted request.
+- The Devices page shows "Relay: 3 devices connected · 420 messages today" when opened, then once a minute while visible; each ask is three counted requests (Worker, room, budget object).
 
 ### Telling whose limit it is
 

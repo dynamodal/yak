@@ -1,3 +1,4 @@
+import type { RoomKind } from '../core/protocol-ids';
 import { readAccountKeys } from '../core/account-keys';
 import { KEYS_REQUIRED_LEVEL } from '../core/account-keys';
 import { checkApproval } from '../core/key-certs';
@@ -51,7 +52,7 @@ interface Deps {
   sync: SyncService;
   storage: StorageLike;
   me: string;
-  transport?: (url: string) => SignalingTransport;
+  transport?: (url: string, kind?: RoomKind) => SignalingTransport;
 }
 
 class Invites {
@@ -92,7 +93,7 @@ class Invites {
   }
 
   private transport(url: string): SignalingTransport {
-    return (this.deps?.transport ?? createTransport)(url);
+    return (this.deps?.transport ?? createTransport)(url, 'i');
   }
 
   private last: { code: string; signalingUrl: string } | undefined;

@@ -1,6 +1,6 @@
 // Checks the real Worker (worker/index.ts) under `wrangler dev`: the Origin rule, the per-address
 // and per-topic connection limits (refused as an accepted upgrade closed with code 4429 or 4430), the per-room daily byte cap, the account-wide request budget, the kill switch
-// and `GET /signal/status`. Small limits are set with `--var`, each phase on a fresh state.
+// and `GET /signal/status`, and the usage counts (`admin/usage`, room stats' relay totals). Small limits are set with `--var`, each phase on a fresh state.
 //
 //   npm run build && node scripts/check-worker.mjs   # starts `npx wrangler@4.151.0 dev` itself (needs the network once)
 //
@@ -193,6 +193,43 @@ await withWorker({ RELAY: 'off' }, async () => {
   check(r.status === 503 && json(r).reason === 'service', 'RELAY=off refuses every connection (503 "service")');
   const st = await getStatus();
   check(st.body.state === 'limited', '/signal/status says so');
+});
+
+// Phase 4: usage counts for the operator and every user (#109).
+await withWorker({ ADMIN_KEY: 'test-admin-key' }, async () => {
+  const usage = async (key = 'test-admin-key') => {
+    const r = await fetch(`http://${HOST}/signal/admin/usage`, { headers: { Authorization: `Bearer ${key}` } });
+    return { status: r.status, body: r.status === 200 ? await r.json() : {} };
+  };
+  check((await usage('wrong')).status === 401, 'admin/usage refuses a wrong key (401)');
+  const a1 = await connect(`${topic(50)}?k=a`);
+  const a2 = await connect(`${topic(50)}?k=a`);
+  const s1 = await connect(`${topic(51)}?k=s`);
+  const i1 = await connect(`${topic(52)}?k=i`);
+  const o1 = await connect(topic(53));
+  await sleep(500);
+  let u = (await usage()).body;
+  check(u.service === 'yak-relay' && u.limit > 0 && u.used > 0 && u.requestsPerHour?.today?.length === 24, 'admin/usage answers with today\'s estimate and 24 hourly counts');
+  check(JSON.stringify(u.rooms) === JSON.stringify({ accounts: 1, shares: 1, invites: 1, other: 1 }), `rooms are counted by kind (${JSON.stringify(u.rooms)})`);
+  check(u.accountsNow === 1 && u.devicesNow === 2 && u.devicesToday === 2, `accounts and devices now and today (${u.accountsNow}, ${u.devicesNow}, ${u.devicesToday})`);
+  check(!JSON.stringify(u).includes(topic(50)), 'no topic in the answer');
+  const l1 = await connect(`${topic(50)}/link/${pair}?k=a`);
+  const l2 = await connect(`${topic(50)}/link/${pair}?k=a`);
+  await sleep(500);
+  u = (await usage()).body;
+  check(u.linkPairsToday === 1 && u.linksNow === 1, `a pair meeting on a data link is counted (${u.linkPairsToday}, ${u.linksNow})`);
+  a2.ws?.close();
+  await sleep(500);
+  u = (await usage()).body;
+  check(u.devicesNow === 1 && u.devicesToday === 2, `a device leaving lowers devices now, not today (${u.devicesNow}, ${u.devicesToday})`);
+  const st = await fetch(`http://${HOST}/signal/${topic(51)}/stats`);
+  const body = await st.json();
+  check(body.devices === 1 && body.relay?.accountsNow === 1 && body.relay?.sharesToday === 1 && body.relay?.messagesPerHour?.length === 24, 'room stats carry the relay\'s totals for users');
+  for (const r of [a1, s1, i1, o1, l1, l2]) r.ws?.close();
+});
+await withWorker({}, async () => {
+  const r = await fetch(`http://${HOST}/signal/admin/usage`, { headers: { Authorization: 'Bearer x' } });
+  check(r.status === 404, 'admin/usage answers 404 without ADMIN_KEY');
 });
 
 console.log(failed ? `${failed} FAILED` : 'ALL PASSED');

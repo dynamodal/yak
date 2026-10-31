@@ -2,7 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { useApp } from '../app/context';
 import { Button, Page, PageHeader } from '../app/ui';
 import { STORAGE_PREFIX } from '../constants';
-import { fetchNetworkStats, type NetworkResult, summarize } from '../sync/network-stats';
+import { fetchNetworkStats, fetchRelayUsage, last24, type NetworkResult, projectDay, type RelayUsage, summarize, type UsageResult } from '../sync/network-stats';
+import { HourBars } from './HourBars';
 
 const KEY = `${STORAGE_PREFIX}-admin-key`;
 const load = (): string => {
@@ -25,6 +26,7 @@ export function NetworkStatsView() {
   const [draft, setDraft] = useState('');
   const [hours, setHours] = useState(24);
   const [result, setResult] = useState<NetworkResult | undefined>();
+  const [usage, setUsage] = useState<UsageResult | undefined>();
   useEffect(() => {
     if (!key) return;
     let alive = true;
@@ -33,6 +35,14 @@ export function NetworkStatsView() {
       alive = false;
     };
   }, [sync, key, hours]);
+  useEffect(() => {
+    if (!key) return;
+    let alive = true;
+    void fetchRelayUsage(sync.status.signalingUrl, key).then((r) => alive && setUsage(r));
+    return () => {
+      alive = false;
+    };
+  }, [sync, key]);
   const summary = result?.ok ? summarize(result.rows) : undefined;
   return (
     <Page width="settings" class="st">
@@ -80,10 +90,15 @@ export function NetworkStatsView() {
               Forget the key
             </Button>
           </div>
+          {usage?.ok ? <UsageSection u={usage.usage} /> : null}
+          {usage && !usage.ok && usage.reason === 'key' ? <p class="error">The Worker did not accept this key.</p> : null}
+          {usage && !usage.ok && usage.reason === 'failed' ? <p class="error">Today's usage could not be read.</p> : null}
+          {usage && !usage.ok && usage.reason === 'off' ? <p class="error">This relay has no operator stats turned on.</p> : null}
+          <h3>Traffic per hour (Analytics Engine)</h3>
           {!result && <p class="hint">Loading…</p>}
           {result && !result.ok && (
-            <p class="error">
-              {result.reason === 'key' ? 'The Worker did not accept this key.' : result.reason === 'off' ? 'This relay has no operator stats turned on.' : 'The stats could not be read.'}
+            <p class={result.reason === 'off' ? 'hint' : 'error'}>
+              {result.reason === 'key' ? 'The Worker did not accept this key.' : result.reason === 'off' ? 'Not turned on for this relay (docs/sync.md, Operator stats).' : 'The stats could not be read.'}
             </p>
           )}
           {summary && (
@@ -120,5 +135,64 @@ export function NetworkStatsView() {
         </>
       )}
     </Page>
+  );
+}
+
+const pct = (part: number, whole: number): string => `${whole > 0 ? Math.round((part / whole) * 100) : 0}%`;
+const plural = (n: number, one: string, many: string): string => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+
+/** Today against the cap, where it is heading, the last 24 hours and who used the relay (#109). From the relay's own estimate. */
+function UsageSection(props: { u: RelayUsage }) {
+  const { u } = props;
+  const projected = projectDay(u.used, u.requestsPerHour.today, u.now);
+  return (
+    <section aria-label="Today's relay usage">
+      <h3>Today (UTC)</h3>
+      <p role="status">
+        {u.used.toLocaleString()} of {u.limit.toLocaleString()} estimated requests ({pct(u.used, u.limit)}) · data links stop at {u.linksOffAt.toLocaleString()} · Cloudflare's plan:{' '}
+        {u.planLimit.toLocaleString()} a day
+      </p>
+      <meter min={0} max={u.limit} high={u.linksOffAt} optimum={0} value={u.used} aria-label="Requests used today" />
+      <p class={projected >= u.linksOffAt ? 'error' : 'hint'}>
+        On pace for about {projected.toLocaleString()} by 00:00 UTC ({pct(projected, u.limit)} of the budget). The estimate errs a little low; Cloudflare's dashboard has the exact count.
+      </p>
+      <HourBars values={last24(u.requestsPerHour, u.now)} label="Estimated requests per hour" unit="requests" />
+      <ul class="hint">
+        <li>
+          Now: {plural(u.accountsNow, 'account', 'accounts')}, {plural(u.devicesNow, 'device', 'devices')}, {plural(u.linksNow, 'data link', 'data links')}
+        </li>
+        <li>
+          Today: {plural(u.rooms.accounts, 'account', 'accounts')} ({plural(u.devicesToday, 'device', 'devices')}), {plural(u.rooms.shares, 'shared space', 'shared spaces')},{' '}
+          {plural(u.rooms.invites, 'one-time code or share link', 'one-time codes or share links')}, {plural(u.linkPairsToday, 'device pair', 'device pairs')} through data links
+          {u.rooms.other > 0 ? `, ${plural(u.rooms.other, 'room', 'rooms')} from older versions` : ''}
+        </li>
+      </ul>
+      {u.history.length > 0 ? (
+        <table>
+          <thead>
+            <tr>
+              <th>Day (UTC)</th>
+              <th>Requests</th>
+              <th>Accounts</th>
+              <th>Devices</th>
+              <th>Shared spaces</th>
+              <th>Data-link pairs</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...u.history].reverse().map((d) => (
+              <tr key={d.day}>
+                <td>{d.day}</td>
+                <td>{d.used.toLocaleString()}</td>
+                <td>{d.accounts}</td>
+                <td>{d.devices}</td>
+                <td>{d.shares}</td>
+                <td>{d.linkPairs}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+    </section>
   );
 }

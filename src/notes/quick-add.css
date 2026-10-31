@@ -1,0 +1,17 @@
+.qa { width: min(36rem, calc(100vw - 2rem)); padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); color: var(--text); overflow: visible; }
+.qa::backdrop { background: var(--backdrop); }
+.qa-title { margin: 0 0 var(--space-2); font-size: var(--text-lg); }
+.qa-line { width: 100%; font-size: var(--text-lg); }
+.qa .hint { margin: var(--space-2) 0; }
+.qa p.error { margin: 0; min-height: 0; }
+.qa-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0; }
+.qa-chip { display: inline-flex; align-items: center; border: 1px dashed var(--border); border-radius: var(--radius-pill); background: transparent; color: var(--muted); }
+.qa-chip.set { border-style: solid; background: var(--accent-tint); color: var(--text); }
+.qa-chip button, .qa-chip select { min-height: 2.25rem; padding: 0 0.7rem; border: 0; border-radius: var(--radius-pill); background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.qa-chip-main { display: inline-flex; gap: 0.4rem; align-items: center; }
+.qa-chip-value { font-weight: var(--weight-medium); }
+.qa-chip-clear { padding: 0 0.6rem 0 0.2rem !important; color: var(--muted); }
+.qa-chip button:focus-visible, .qa-chip select:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.qa-popover { padding: var(--space-3); }
+.qa-pick { display: flex; flex-direction: column; gap: var(--space-2); min-width: 14rem; }
+.qa-actions { justify-content: flex-end; }

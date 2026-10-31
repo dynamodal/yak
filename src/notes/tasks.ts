@@ -318,6 +318,8 @@ export interface QuickAdd {
   projects: string[];
   /** `repeat:daily|weekly|monthly|yearly`, or null. */
   repeat: Freq | null;
+  /** `YYYY-MM-DD`, set by the quick-add modal (#138). */
+  scheduled?: string;
 }
 
 /** Parse quick-add text: `Call Bob @phone #client due:2026-10-20 !high`. */
@@ -345,6 +347,7 @@ export function newTaskText(q: QuickAdd, now = new Date()): string {
   if (q.due) props.due = q.due;
   if (q.contexts.length) props.contexts = q.contexts;
   if (q.projects.length) props.projects = q.projects.map((p) => `[[${p}]]`);
+  if (q.scheduled) props.scheduled = q.scheduled;
   if (q.repeat) {
     const start = q.due || localDate(now);
     props.scheduled = start;

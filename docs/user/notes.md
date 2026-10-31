@@ -11,6 +11,7 @@
 ## Tasks
 
 - A task is a note of its own: its front matter `tags` has `task`. **Tasks** lists those notes; type a name and **Add task** to make one. Tick one in the list or set its status in the note.
+- **Alt Q** (or **New task** in the palette or on Tasks) adds a task from any page. Type `Call Bob tomorrow +Acme @phone #client !high`; the chips below show the date, project, tags, contexts, priority and space, and each can be changed or cleared. **Enter** adds it, **Shift+Enter** adds and opens it, **Esc** cancels.
 - Tasks work without Notes: switch **Notes** off in Settings › Features and keep **Tasks**. A task then opens on its own page; a link to another task opens it, a link to a plain note stays plain text until Notes is on.
 - A checkbox line (`- [ ] Send invoice`) in a normal note does **not** appear in Tasks. In a task note, checkbox lines show as its progress (2 of 3). On a checkbox line, **Ctrl+Shift+Enter** turns the text into a task note and a link to it.
 - Task rules are under **Task values** on **Organize**.

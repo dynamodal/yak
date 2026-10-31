@@ -15,6 +15,7 @@ import { Button, FiltersButton, IconArchive, IconButton, IconMore, IconPlay, Ico
 import { formatTracked, trackedByTask } from '../../core/tracked';
 import { formatValue, parseInput } from '../frontmatter';
 import { ARCHIVE_AFTER_DAYS, readTaskRules } from '../task-rules';
+import { openQuickAdd } from '../quick-add-request';
 import { createNote, setNoteProperties, setNoteProperty } from '../note-store';
 import { joinPath, safeName, uniquePath } from '../paths';
 import {
@@ -198,6 +199,7 @@ function TasksList({ params }: ViewProps) {
           </nav>
         }
         space={<SpacePicker all={all} onAll={setShowAll} />}
+        primary={<Button variant="primary" aria-keyshortcuts="Alt+Q" onClick={openQuickAdd}>New task</Button>}
       />
       <QuickAdd
         spaces={all ? spaces : []}

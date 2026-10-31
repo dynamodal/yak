@@ -55,6 +55,8 @@ Yak is alpha software with no warranty. Keep backups.
 ## Metrics
 
 - The relay counts messages and bytes per hour and per message kind (connection or data link), with a short hash of the topic. No contents, addresses or device ids. Only the owner of the service can read these totals.
+- It also counts, for each day, how many accounts, devices, shared spaces and one-time codes used it, and how many devices are connected now. For that each connection says what it is for (your account, a shared space, a one-time code). Each is kept under a short hash of its topic until midnight UTC, then only the day's totals (counts) are kept for 30 days.
+- **Every user sees the relay's totals:** accounts and devices connected now and today, shared spaces today, how much of the day's allowance is used, and messages per hour. Never one account's figures, and no names. While few people use Yak, these totals can hint at when others are using it.
 - Your account's own relay counts are shown on a device page (**Settings**, then the device's name).
 
 ## Reports by email

@@ -71,7 +71,7 @@ interface Env {
   ADDRESS_DAY_TOPICS?: string;
   /** Workers Analytics Engine dataset for operator stats (wrangler.jsonc `analytics_engine_datasets`). Absent: nothing is recorded. */
   RELAY_STATS?: AnalyticsEngineDataset;
-  /** Secrets for the operator stats endpoint; without all three it answers 404. */
+  /** Secrets for the operator stats endpoint; without all three it answers 404. `ADMIN_KEY` alone opens `admin/usage`. */
   ADMIN_KEY?: string;
   CF_ACCOUNT_ID?: string;
   CF_API_TOKEN?: string;
@@ -108,6 +108,12 @@ const USAGE_SAVE_BYTES = 64 * 1024;
 const BUCKET_MS = 10 * 60 * 1000;
 const BUCKETS_KEPT = 145;
 const STATS_SAVE_MESSAGES = 50;
+/** Cloudflare Workers Free plan: requests a day for the whole account (shown beside the relay's own budget). */
+const PLAN_DAY_REQUESTS = 100_000;
+/** Daily totals (counts only) kept for the operator's trend. */
+const HISTORY_DAYS = 30;
+/** Room kinds, from the app's `k=` on the socket address: account, share, one-time code; `o` for older builds. */
+const ROOM_KINDS = /^[asi]$/;
 
 interface Bucket {
   /** Start of the bucket, ms since the epoch. */
@@ -267,6 +273,22 @@ async function adminStats(request: Request, env: Env): Promise<Response> {
   return new Response(JSON.stringify({ service: 'yak-relay', hours, rows }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS } });
 }
 
+/**
+ * `GET /signal/admin/usage` with `Authorization: Bearer <ADMIN_KEY>`: today's estimated requests against the
+ * budget, per hour for the last two UTC days, room and device counts and 30 daily totals, from RelayBudget.
+ * Needs only `ADMIN_KEY` (no Analytics Engine); 404 without it.
+ */
+async function adminUsage(request: Request, env: Env): Promise<Response> {
+  if (!env.ADMIN_KEY) return new Response('Not found', { status: 404 });
+  await gate(env, 2);
+  const given = /^Bearer (.+)$/.exec(request.headers.get('Authorization') ?? '')?.[1] ?? '';
+  if (!(await within(env.ADDRESS_LIMIT, `admin|${request.headers.get('CF-Connecting-IP') ?? 'unknown'}`)) || !sameKey(given, env.ADMIN_KEY)) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json', ...CORS } });
+  }
+  const usage = (await env.RELAY_BUDGET.get(env.RELAY_BUDGET.idFromName('budget')).usage()) as Record<string, unknown>;
+  return new Response(JSON.stringify({ service: 'yak-relay', ...usage }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS } });
+}
+
 const ROUTE = /^\/signal\/([^/]+)(?:\/link\/([0-9a-f]{32}))?$/;
 const STATS_ROUTE = /^\/signal\/([^/]+)\/stats$/;
 
@@ -302,12 +324,22 @@ async function roomStats(request: Request, env: Env, rawTopic: string): Promise<
     return new Response('Bad topic', { status: 400 });
   }
   if (!TOPIC_PATTERN.test(topic)) return new Response('Bad topic', { status: 400 });
-  const budget = await gate(env, 2);
+  const budget = await gate(env, 3);
   if (budget.level !== 'ok') return refuse(503, 'service', { scope: budget.level === 'off' ? 'all' : 'links', resetsAt: budget.resetsAt }, { 'Retry-After': '3600' });
   // A same-site GET carries no Origin; when there is one it must be allowed.
   if (request.headers.get('Origin') && !originAllowed(request, env)) return refuse(403, 'origin');
   if (!(await within(env.ADDRESS_LIMIT, request.headers.get('CF-Connecting-IP') ?? 'unknown'))) return refuse(429, 'address', {}, { 'Retry-After': '60' });
-  return env.SIGNAL_ROOM.get(env.SIGNAL_ROOM.idFromName(topic)).fetch(new Request(new URL('/stats', request.url), { headers: { 'X-Stats': '1' } }));
+  const room = await env.SIGNAL_ROOM.get(env.SIGNAL_ROOM.idFromName(topic)).fetch(new Request(new URL('/stats', request.url), { headers: { 'X-Stats': '1' } }));
+  // The relay's totals for every user (#109): counts across all rooms, never one room's.
+  let relay: PublicTotals | undefined;
+  try {
+    relay = await env.RELAY_BUDGET.get(env.RELAY_BUDGET.idFromName('budget')).publicTotals();
+  } catch {
+    // Totals are extra; the room's own counts still go back.
+  }
+  if (!relay) return room;
+  const body = (await room.json()) as Record<string, unknown>;
+  return new Response(JSON.stringify({ ...body, relay }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS } });
 }
 
 export default {
@@ -315,6 +347,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/signal/status') return status(request, env);
     if (url.pathname === '/signal/admin/stats') return adminStats(request, env);
+    if (url.pathname === '/signal/admin/usage') return adminUsage(request, env);
     const statsMatch = STATS_ROUTE.exec(url.pathname);
     if (statsMatch) return roomStats(request, env, statsMatch[1] ?? '');
     const match = ROUTE.exec(url.pathname);
@@ -345,7 +378,10 @@ export default {
     const admitted = await admit(env, address, topic);
     if (admitted !== 'ok') return refuseSocket(CLOSE_DAY, `day scope=${admitted} reset=${budget.resetsAt}`);
     const headers = new Headers(request.headers);
-    if (env.RELAY_STATS) headers.set('X-Room', await roomHash(topic));
+    // The room's short hash and kind, for the counts in RelayBudget and the operator stats.
+    const kind = url.searchParams.get('k') ?? '';
+    headers.set('X-Room', await roomHash(topic));
+    headers.set('X-Room-Kind', ROOM_KINDS.test(kind) ? kind : 'o');
     return env.SIGNAL_ROOM.get(env.SIGNAL_ROOM.idFromName(topic)).fetch(new Request(request, { headers }));
   },
 } satisfies ExportedHandler<Env>;
@@ -375,12 +411,31 @@ export class SignalRoom extends DurableObject<Env> {
       const saved = await ctx.storage.get<Usage>('usage');
       if (saved) this.usage = saved;
       this.room = await ctx.storage.get<string>('room');
+      this.kind = (await ctx.storage.get<string>('kind')) ?? 'o';
       await this.loadBuckets();
     });
   }
 
   /** Short hash of the room's topic, for the operator statistics. */
   private room: string | undefined;
+  /** `a` account, `s` share, `i` one-time code, `o` unknown (an older build). */
+  private kind = 'o';
+
+  /**
+   * Tells the budget object how many devices and data links are here now (a socket opened or closed),
+   * so it can count rooms, devices and links across the relay (#109). One counted request each.
+   */
+  private presence(closing?: WebSocket, linkOpened = false): void {
+    if (!this.room) return;
+    const sockets = this.ctx.getWebSockets().filter((ws) => ws !== closing);
+    const links = sockets.filter((ws) => linkTagOf(this.ctx.getTags(ws))).length;
+    this.env.RELAY_BUDGET.get(this.env.RELAY_BUDGET.idFromName('budget'))
+      .presence(this.room, this.kind, sockets.length - links, links, linkOpened)
+      .then((state) => {
+        this.level = this.env.RELAY === 'off' ? 'off' : state.level;
+      })
+      .catch(() => undefined);
+  }
 
   /** One data point per message: room hash, kind and size; no content, no device ids. */
   private record(kind: 'signal' | 'link', bytes: number): void {
@@ -451,11 +506,12 @@ export class SignalRoom extends DurableObject<Env> {
   }
 
   private report(): void {
-    const requests = Math.ceil(this.unreported / MESSAGES_PER_REQUEST);
+    const messages = this.unreported;
+    const requests = Math.ceil(messages / MESSAGES_PER_REQUEST);
     this.unreported = 0;
     if (requests === 0) return;
     this.env.RELAY_BUDGET.get(this.env.RELAY_BUDGET.idFromName('budget'))
-      .charge(requests)
+      .charge(requests, messages)
       .then((state) => {
         this.level = this.env.RELAY === 'off' ? 'off' : state.level;
       })
@@ -486,6 +542,11 @@ export class SignalRoom extends DurableObject<Env> {
       this.room = room;
       void this.ctx.storage.put('room', room);
     }
+    const kind = request.headers.get('X-Room-Kind');
+    if (kind && kind !== this.kind) {
+      this.kind = kind;
+      void this.ctx.storage.put('kind', kind);
+    }
     const pair = ROUTE.exec(new URL(request.url).pathname)?.[2];
     if (pair) return this.acceptLink(pair);
     const existing = this.ctx.getWebSockets().filter((ws) => this.ctx.getTags(ws).length === 0);
@@ -501,6 +562,7 @@ export class SignalRoom extends DurableObject<Env> {
     const attachment: Attachment = { connectedAt: Date.now(), windowStart: Date.now(), count: 0 };
     server.serializeAttachment(attachment);
     server.send(JSON.stringify({ event: 'open', time: nowSeconds() }));
+    this.presence();
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -517,6 +579,8 @@ export class SignalRoom extends DurableObject<Env> {
     this.ctx.acceptWebSocket(server, [tag]);
     const attachment: Attachment = { connectedAt: Date.now(), windowStart: Date.now(), count: 0, bytes: 0 };
     server.serializeAttachment(attachment);
+    // Both devices of the pair are here: one more pair synced through the relay today.
+    this.presence(undefined, this.ctx.getWebSockets(tag).length >= 2);
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -617,6 +681,7 @@ export class SignalRoom extends DurableObject<Env> {
     if (this.unsaved > 0) this.saveUsage();
     if (this.bucketsUnsaved > 0) this.saveBuckets();
     this.report();
+    this.presence(ws);
   }
 
   override webSocketError(ws: WebSocket, _error: unknown): void {
@@ -659,29 +724,145 @@ function connectedAt(ws: WebSocket): number {
   return (ws.deserializeAttachment() as Attachment | null)?.connectedAt ?? 0;
 }
 
+interface SavedBudget {
+  day: string;
+  used: number;
+  /** Requests and relayed messages per UTC hour, today and the day before. */
+  req?: number[];
+  msg?: number[];
+  yReq?: number[];
+  yMsg?: number[];
+}
+
+/** One room seen today, under `room:<hash>`: kind, devices now, most devices at once, links now, pairs linked today. */
+interface RoomEntry {
+  k: string;
+  d: number;
+  p: number;
+  l: number;
+  lt: number;
+}
+
+interface DayTotals {
+  day: string;
+  used: number;
+  accounts: number;
+  devices: number;
+  shares: number;
+  invites: number;
+  linkPairs: number;
+  messages: number;
+}
+
+/** What every user sees (#109): totals across the relay, never one room's. */
+interface PublicTotals {
+  accountsNow: number;
+  devicesNow: number;
+  accountsToday: number;
+  devicesToday: number;
+  sharesToday: number;
+  /** Today's estimated requests over the relay's daily budget, 0 to 1 (two decimals). */
+  usedShare: number;
+  /** Relayed messages per UTC hour, the last 24 hours, oldest first; the last is the current hour. */
+  messagesPerHour: number[];
+}
+
+const zeros = (): number[] => Array.from({ length: 24 }, () => 0);
+const sum = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0);
+
 /**
  * One object for the whole relay: the estimated Cloudflare requests spent today. Workers and rooms
- * report in batches, so this object itself sees few calls (each one is a request too).
+ * report in batches, so this object itself sees few calls (each one is a request too). It also keeps,
+ * until UTC midnight, each room's kind and device counts under its short hash (#109), and 30 daily
+ * totals (counts only).
  */
 export class RelayBudget extends DurableObject<Env> {
   private day = '';
   private used = 0;
+  private req = zeros();
+  private msg = zeros();
+  private yReq = zeros();
+  private yMsg = zeros();
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     void ctx.blockConcurrencyWhile(async () => {
-      const saved = await ctx.storage.get<{ day: string; used: number }>('budget');
-      if (saved) ({ day: this.day, used: this.used } = saved);
+      const saved = await ctx.storage.get<SavedBudget>('budget');
+      if (saved) {
+        ({ day: this.day, used: this.used } = saved);
+        this.req = saved.req ?? zeros();
+        this.msg = saved.msg ?? zeros();
+        this.yReq = saved.yReq ?? zeros();
+        this.yMsg = saved.yMsg ?? zeros();
+      }
     });
   }
 
-  /** Starts a new day: the count and every address's tally go back to zero. */
+  private limit(): number {
+    return Number(this.env.RELAY_DAY_REQUESTS) || DEFAULT_DAY_REQUESTS;
+  }
+
+  private async save(): Promise<void> {
+    await this.ctx.storage.put('budget', { day: this.day, used: this.used, req: this.req, msg: this.msg, yReq: this.yReq, yMsg: this.yMsg } satisfies SavedBudget);
+  }
+
+  private tally(requests: number, messages = 0): void {
+    const h = new Date().getUTCHours();
+    this.used += requests;
+    this.req[h] = (this.req[h] ?? 0) + requests;
+    this.msg[h] = (this.msg[h] ?? 0) + messages;
+  }
+
+  private async rooms(): Promise<Map<string, RoomEntry>> {
+    return (await this.ctx.storage.list<RoomEntry>({ prefix: 'room:' })) as Map<string, RoomEntry>;
+  }
+
+  private async totals(): Promise<Omit<DayTotals, 'day' | 'used' | 'messages'> & { accountsNow: number; devicesNow: number; linksNow: number; other: number }> {
+    const t = { accounts: 0, devices: 0, shares: 0, invites: 0, other: 0, linkPairs: 0, accountsNow: 0, devicesNow: 0, linksNow: 0 };
+    for (const r of (await this.rooms()).values()) {
+      t.linkPairs += r.lt;
+      t.linksNow += Math.floor(r.l / 2);
+      if (r.k === 'a') {
+        t.accounts++;
+        t.devices += r.p;
+        if (r.d > 0) t.accountsNow++;
+        t.devicesNow += r.d;
+      } else if (r.k === 's') t.shares++;
+      else if (r.k === 'i') t.invites++;
+      else t.other++;
+    }
+    return t;
+  }
+
+  /** Starts a new day: the count and every address's tally go back to zero; rooms still open carry over. */
   private async rollover(): Promise<void> {
     const today = new Date().toISOString().slice(0, 10);
     if (this.day === today) return;
+    if (this.day) {
+      const t = await this.totals();
+      const history = (await this.ctx.storage.get<DayTotals[]>('history')) ?? [];
+      history.push({ day: this.day, used: this.used, accounts: t.accounts, devices: t.devices, shares: t.shares, invites: t.invites, linkPairs: t.linkPairs, messages: sum(this.msg) });
+      await this.ctx.storage.put('history', history.slice(-HISTORY_DAYS));
+      const nextDay = new Date(Date.parse(`${this.day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+      this.yReq = nextDay === today ? this.req : zeros();
+      this.yMsg = nextDay === today ? this.msg : zeros();
+    }
     this.day = today;
     this.used = 0;
+    this.req = zeros();
+    this.msg = zeros();
     await this.ctx.storage.delete([...(await this.ctx.storage.list({ prefix: 'addr:' })).keys()]);
+    for (const [key, r] of await this.rooms()) {
+      if (r.d > 0 || r.l > 0) await this.ctx.storage.put(key, { ...r, p: r.d, lt: 0 });
+      else await this.ctx.storage.delete(key);
+    }
+    await this.save();
+  }
+
+  private state(): BudgetState {
+    const limit = this.limit();
+    const level: Level = this.used >= limit ? 'off' : this.used >= limit * LINKS_OFF_SHARE ? 'links' : 'ok';
+    return { level, resetsAt: nextMidnight() };
   }
 
   /**
@@ -692,8 +873,7 @@ export class RelayBudget extends DurableObject<Env> {
    */
   async admit(address: string, topic: string): Promise<'ok' | 'share' | 'topics'> {
     await this.rollover();
-    const limit = Number(this.env.RELAY_DAY_REQUESTS) || DEFAULT_DAY_REQUESTS;
-    const share = Math.max(2, Math.floor(limit * (Number(this.env.ADDRESS_DAY_SHARE) || DEFAULT_ADDRESS_SHARE)));
+    const share = Math.max(2, Math.floor(this.limit() * (Number(this.env.ADDRESS_DAY_SHARE) || DEFAULT_ADDRESS_SHARE)));
     const maxTopics = Number(this.env.ADDRESS_DAY_TOPICS) || DEFAULT_ADDRESS_TOPICS;
     const key = `addr:${address}`;
     const tally = (await this.ctx.storage.get<{ spent: number; topics: string[] }>(key)) ?? { spent: 0, topics: [] };
@@ -703,19 +883,67 @@ export class RelayBudget extends DurableObject<Env> {
       tally.topics.push(topic);
     }
     tally.spent += 2;
-    this.used += 2;
+    this.tally(2);
     await this.ctx.storage.put(key, tally);
-    await this.ctx.storage.put('budget', { day: this.day, used: this.used });
+    await this.save();
     return 'ok';
   }
 
-  /** Adds `requests` to today's count and returns where the budget stands. */
-  async charge(requests: number): Promise<BudgetState> {
+  /** Adds `requests` (and the relayed `messages` they stand for) to today's count and returns where the budget stands. */
+  async charge(requests: number, messages = 0): Promise<BudgetState> {
     await this.rollover();
-    this.used += Math.max(0, Math.floor(requests));
-    await this.ctx.storage.put('budget', { day: this.day, used: this.used });
-    const limit = Number(this.env.RELAY_DAY_REQUESTS) || DEFAULT_DAY_REQUESTS;
-    const level: Level = this.used >= limit ? 'off' : this.used >= limit * LINKS_OFF_SHARE ? 'links' : 'ok';
-    return { level, resetsAt: nextMidnight() };
+    this.tally(Math.max(0, Math.floor(requests)), Math.max(0, Math.floor(messages)));
+    await this.save();
+    return this.state();
+  }
+
+  /** A room's devices and data links now (a socket opened or closed); `linkOpened`: both devices of a pair just met there. */
+  async presence(room: string, kind: string, devices: number, links: number, linkOpened: boolean): Promise<BudgetState> {
+    await this.rollover();
+    this.tally(1);
+    const key = `room:${room}`;
+    const was = (await this.ctx.storage.get<RoomEntry>(key)) ?? { k: kind, d: 0, p: 0, l: 0, lt: 0 };
+    await this.ctx.storage.put(key, { k: kind, d: devices, p: Math.max(was.p, devices), l: links, lt: was.lt + (linkOpened ? 1 : 0) } satisfies RoomEntry);
+    await this.save();
+    return this.state();
+  }
+
+  /** Everything the operator page shows: counts only, no hashes. */
+  async usage(): Promise<Record<string, unknown>> {
+    await this.rollover();
+    const t = await this.totals();
+    return {
+      day: this.day,
+      now: Date.now(),
+      used: this.used,
+      limit: this.limit(),
+      linksOffAt: Math.floor(this.limit() * LINKS_OFF_SHARE),
+      planLimit: PLAN_DAY_REQUESTS,
+      resetsAt: nextMidnight(),
+      requestsPerHour: { today: this.req, yesterday: this.yReq },
+      messagesPerHour: { today: this.msg, yesterday: this.yMsg },
+      rooms: { accounts: t.accounts, shares: t.shares, invites: t.invites, other: t.other },
+      devicesToday: t.devices,
+      accountsNow: t.accountsNow,
+      devicesNow: t.devicesNow,
+      linksNow: t.linksNow,
+      linkPairsToday: t.linkPairs,
+      history: (await this.ctx.storage.get<DayTotals[]>('history')) ?? [],
+    };
+  }
+
+  async publicTotals(): Promise<PublicTotals> {
+    await this.rollover();
+    const t = await this.totals();
+    const h = new Date().getUTCHours();
+    return {
+      accountsNow: t.accountsNow,
+      devicesNow: t.devicesNow,
+      accountsToday: t.accounts,
+      devicesToday: t.devices,
+      sharesToday: t.shares,
+      usedShare: Math.round((this.used / this.limit()) * 100) / 100,
+      messagesPerHour: [...this.yMsg.slice(h + 1), ...this.msg.slice(0, h + 1)],
+    };
   }
 }

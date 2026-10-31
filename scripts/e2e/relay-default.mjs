@@ -36,6 +36,10 @@ await a.evaluate(() => window.__app.append('space/work', 't', 'via site relay ')
 await openAdvanced(a);
 (await until(async () => /Relay: 2 devices connected · [1-9]\d* messages? today/.test(await a.locator('.relay-stats summary').textContent().catch(() => '')), 90000)) >= 0
   ? ok('Advanced shows the relay room stats') : fail(`relay stats: ${await a.locator('.relay-stats').textContent().catch(() => 'missing')}`);
+// #109: the details also hold the relay's totals for everyone and the hourly bars.
+await a.locator('.relay-stats summary').click();
+/Everyone on the relay now: \d+ accounts?, \d+ devices?/.test(await a.locator('.relay-stats').innerText()) && (await a.locator('.relay-stats .hour-bars rect').count()) === 24
+  ? ok('the relay details show everyone\'s totals and 24 hourly bars') : fail(`relay details: ${await a.locator('.relay-stats').innerText()}`);
 (await until(async () => (await b.evaluate(() => window.__app.text('space/work', 't'))).includes('via site relay'), 5000)) >= 0
   ? ok('edit synced') : fail('edit did not sync');
 const sa = await stored(a);

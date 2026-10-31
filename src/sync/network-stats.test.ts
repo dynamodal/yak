@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminStatsUrl, fetchNetworkStats, summarize } from './network-stats';
+import { adminStatsUrl, fetchNetworkStats, fetchRelayUsage, last24, projectDay, summarize } from './network-stats';
 
 const reply = (status: number, body: unknown): typeof fetch => (async () => new Response(JSON.stringify(body), { status })) as typeof fetch;
 
@@ -33,5 +33,45 @@ describe('network stats', () => {
       { hour: 'h2', kind: 'signal', rooms: 3, messages: 1, bytes: 100 },
     ]);
     expect(s).toEqual({ peakRooms: 3, messages: 16, bytes: 500, linkShare: 0.6 });
+  });
+});
+
+describe('relay usage (#109)', () => {
+  const at = (h: number, m = 0): number => Date.UTC(2026, 9, 30, h, m);
+
+  it('asks admin/usage with the key and reads the counts', async () => {
+    let url = '';
+    const impl = (async (u: string) => {
+      url = u;
+      return new Response(JSON.stringify({ service: 'yak-relay', now: at(12), used: 1200, limit: 50000, linksOffAt: 40000, planLimit: 100000, requestsPerHour: { today: [1, 2], yesterday: [] }, rooms: { accounts: 3, shares: 1 }, devicesToday: 7, history: [{ day: '2026-10-29', used: 900, accounts: 2 }] }));
+    }) as unknown as typeof fetch;
+    const r = await fetchRelayUsage('wss://yak.example/signal', 'k', impl);
+    expect(url).toBe('https://yak.example/signal/admin/usage');
+    expect(r.ok && r.usage.rooms).toEqual({ accounts: 3, shares: 1, invites: 0, other: 0 });
+    expect(r.ok && r.usage.requestsPerHour.today).toHaveLength(24);
+    expect(r.ok && r.usage.history[0]?.devices).toBe(0);
+    expect(await fetchRelayUsage('wss://yak.example/signal', 'k', reply(401, {}))).toEqual({ ok: false, reason: 'key' });
+    expect(await fetchRelayUsage('https://ntfy.sh', 'k', reply(200, {}))).toEqual({ ok: false, reason: 'off' });
+  });
+
+  it('shows the last 24 hours ending with the current one', () => {
+    const today = Array.from({ length: 24 }, (_, i) => 100 + i);
+    const yesterday = Array.from({ length: 24 }, (_, i) => i);
+    const w = last24({ today, yesterday }, at(2, 30));
+    expect(w).toHaveLength(24);
+    expect(w[0]).toBe(3);
+    expect(w.slice(-3)).toEqual([100, 101, 102]);
+  });
+
+  it('projects the day from the last three hours', () => {
+    const today = Array.from({ length: 24 }, () => 0);
+    today[9] = 1000;
+    today[10] = 1000;
+    today[11] = 1000;
+    today[12] = 500;
+    // 12:30: hours 10 to 12 hold 2500 in 2.5 hours = 1000 an hour; 11.5 hours left.
+    expect(projectDay(5000, today, at(12, 30))).toBe(5000 + 1000 * 11.5);
+    // Just after midnight the day so far sets the pace.
+    expect(projectDay(0, Array.from({ length: 24 }, () => 0), at(0, 5))).toBe(0);
   });
 });

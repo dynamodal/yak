@@ -39,6 +39,17 @@ export async function startMockRelay(options = {}) {
     t.last = Math.floor(now() / 1000);
     traffic.set(topic, t);
   };
+  /** The relay-wide totals every user sees (#109); the mock counts open rooms and sockets only. */
+  const totals = () => {
+    let accounts = 0;
+    let devices = 0;
+    for (const sockets of rooms.values()) if (sockets.size > 0) { accounts++; devices += sockets.size; }
+    let messages = 0;
+    for (const t of traffic.values()) messages += t.messages;
+    const perHour = Array.from({ length: 24 }, () => 0);
+    perHour[23] = messages;
+    return { accountsNow: accounts, devicesNow: devices, accountsToday: accounts, devicesToday: devices, sharesToday: 0, usedShare: 0, messagesPerHour: perHour };
+  };
   const server = createServer((req, res) => {
     const stats = /^\/signal\/([^/?]+)\/stats(?:\?|$)/.exec(req.url ?? '');
     if (stats && TOPIC_PATTERN.test(stats[1])) {
@@ -48,7 +59,16 @@ export async function startMockRelay(options = {}) {
       for (const [key, sockets] of links) if (key.startsWith(`${topic}/`)) linkCount += sockets.size;
       const total = { messages: t?.messages ?? 0, bytes: t?.bytes ?? 0 };
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify({ service: 'yak-relay', devices: rooms.get(topic)?.size ?? 0, links: linkCount, hour: total, day: total, ...(t ? { lastActivity: t.last } : {}) }));
+      res.end(JSON.stringify({ service: 'yak-relay', devices: rooms.get(topic)?.size ?? 0, links: linkCount, hour: total, day: total, ...(t ? { lastActivity: t.last } : {}), relay: totals() }));
+      return;
+    }
+    // The operator's usage (#109): only for the mock's own key; any other key gets 404, like a Worker without ADMIN_KEY.
+    if (/^\/signal\/admin\/usage(?:\?|$)/.test(req.url ?? '') && req.headers.authorization === 'Bearer mock-admin-key') {
+      const t = totals();
+      const today = Array.from({ length: 24 }, () => 0);
+      today[new Date(now()).getUTCHours()] = 120;
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ service: 'yak-relay', now: now(), used: 120, limit: 50000, linksOffAt: 40000, planLimit: 100000, resetsAt: 0, requestsPerHour: { today, yesterday: today.map(() => 0) }, messagesPerHour: { today, yesterday: today.map(() => 0) }, rooms: { accounts: t.accountsToday, shares: 0, invites: 0, other: 0 }, devicesToday: t.devicesToday, accountsNow: t.accountsNow, devicesNow: t.devicesNow, linksNow: 0, linkPairsToday: 0, history: [] }));
       return;
     }
     res.writeHead(404);

@@ -73,7 +73,8 @@ const server = createServer(async (req, res) => {
     const target = new URL(relay.httpUrl);
     target.pathname = pathname;
     target.search = search;
-    const upstream = await fetch(target).catch(() => undefined);
+    // The admin key of the operator pages (#109) is the one header passed on.
+    const upstream = await fetch(target, { headers: req.headers.authorization ? { authorization: req.headers.authorization } : {} }).catch(() => undefined);
     res.writeHead(upstream?.status ?? 502, { 'content-type': upstream?.headers.get('content-type') ?? 'text/plain' });
     res.end(upstream ? await upstream.text() : 'bad gateway');
     return;

@@ -11,6 +11,36 @@ export interface RelayStats {
   day: { messages: number; bytes: number };
   /** Unix seconds of the last relayed message, if any. */
   lastActivity?: number;
+  /** The relay's totals across every account (#109); absent from an older Worker. */
+  relay?: RelayTotals;
+}
+
+/** Counts across the whole relay, shown to every user (#109); never one room's. */
+export interface RelayTotals {
+  accountsNow: number;
+  devicesNow: number;
+  accountsToday: number;
+  devicesToday: number;
+  sharesToday: number;
+  /** Today's share of the relay's daily allowance, 0 to 1. */
+  usedShare: number;
+  /** Relayed messages per hour, the last 24 hours, oldest first. */
+  messagesPerHour: number[];
+}
+
+function totals(v: unknown): RelayTotals | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const o = v as Record<string, unknown>;
+  const perHour = Array.isArray(o.messagesPerHour) ? o.messagesPerHour.slice(-24).map(num) : [];
+  return {
+    accountsNow: num(o.accountsNow),
+    devicesNow: num(o.devicesNow),
+    accountsToday: num(o.accountsToday),
+    devicesToday: num(o.devicesToday),
+    sharesToday: num(o.sharesToday),
+    usedShare: Math.min(1, num(o.usedShare)),
+    messagesPerHour: perHour,
+  };
 }
 
 /** `wss://host/signal` → `https://host/signal/<topic>/stats`; undefined for ntfy and other non-relay addresses. */
@@ -34,7 +64,9 @@ export async function fetchRelayStats(signalingUrl: string, topic: string, fetch
     const response = await fetchImpl(url, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
     const body = (await response.json()) as Record<string, unknown>;
     if (!response.ok || body.service !== RELAY_SERVICE) return undefined;
+    const relay = totals(body.relay);
     return {
+      ...(relay ? { relay } : {}),
       devices: num(body.devices),
       links: num(body.links),
       hour: part(body.hour),
@@ -68,4 +100,21 @@ export function relayStatsDetails(s: RelayStats, locale?: string): string[] {
   ];
   if (s.lastActivity) lines.push(`Last activity: ${new Date(s.lastActivity * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`);
   return lines;
+}
+
+/** The relay's totals for the details panel: who uses it now and today, and how much of the day's allowance is gone. */
+export function relayTotalsLines(t: RelayTotals): string[] {
+  return [
+    `Everyone on the relay now: ${plural(t.accountsNow, 'account', 'accounts')}, ${plural(t.devicesNow, 'device', 'devices')}`,
+    `Today: ${plural(t.accountsToday, 'account', 'accounts')}, ${plural(t.devicesToday, 'device', 'devices')}, ${plural(t.sharesToday, 'shared space', 'shared spaces')}`,
+    `Relay today: ${Math.round(t.usedShare * 100)}% of the shared daily allowance`,
+  ];
+}
+
+/** Said only when the relay is busy (half its allowance or more); direct sync never depends on it. */
+export function relayBusyText(t: RelayTotals): string | undefined {
+  if (t.usedShare >= 1) return "The relay has used today's shared allowance; direct sync is not affected.";
+  if (t.usedShare >= 0.8) return "The relay has used over 80% of today's shared allowance; new relay links wait until it resets. Direct sync is not affected.";
+  if (t.usedShare >= 0.5) return "The relay has used over half of today's shared allowance; direct sync is not affected.";
+  return undefined;
 }

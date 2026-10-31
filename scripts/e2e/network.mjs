@@ -19,4 +19,11 @@ check(true, 'a relay without operator stats says so');
 check((await page.evaluate(() => localStorage.getItem('app-admin-key'))) === 'not-a-real-key', 'the key stays on this device');
 await page.getByRole('button', { name: 'Forget the key' }).click();
 check((await page.getByLabel('Admin key').count()) === 1 && (await page.evaluate(() => localStorage.getItem('app-admin-key'))) === null, 'forgetting the key asks again');
+// #109: with a key the relay accepts, today's estimate against the budget, a projection and the hourly bars.
+await page.getByLabel('Admin key').fill('mock-admin-key');
+await page.getByRole('button', { name: 'Show stats' }).click();
+await page.getByText(/120 of 50,000 estimated requests/).waitFor();
+check(true, 'today\'s requests are shown against the budget');
+check((await page.getByText(/On pace for about/).count()) === 1, 'with a projection to midnight');
+check((await page.locator('.hour-bars rect').count()) === 24, 'and a bar for each of the last 24 hours');
 await finish(browser);

@@ -1,3 +1,4 @@
+import type { RoomKind } from '../core/protocol-ids';
 import { STORAGE_PREFIX } from '../constants';
 import { DocMux, FRAME_FILE_PIECE, decodeControl, encodeControl } from './doc-mux';
 import { FileTransfer, type FileHost } from './file-transfer';
@@ -70,7 +71,9 @@ export interface SyncStatus {
 export interface SyncServiceOptions {
   deviceId: string;
   /** Picks a transport for a signaling server URL. Default: ntfy for every URL. */
-  createTransport?: (url: string) => SignalingTransport;
+  createTransport?: (url: string, kind?: RoomKind) => SignalingTransport;
+  /** What this service's relay room is for (#109): the account (default) or a shared space. */
+  roomKind?: 'a' | 's';
   storageKey?: string;
   /** Safety timer while disconnected and visible (ms). */
   safetyTimerMs?: number;
@@ -121,7 +124,7 @@ export class SyncService {
   private statusForTest: SyncStatus | undefined;
   private triggerTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly storageKey: string;
-  private readonly createTransport: (url: string) => SignalingTransport;
+  private readonly createTransport: (url: string, kind?: RoomKind) => SignalingTransport;
   private started = false;
   /** One tab per browser runs the mesh; the others sync with it (`tabs.ts`). */
   private tabs: Tabs | undefined;
@@ -489,12 +492,12 @@ export class SyncService {
       knownPeers: known,
       topic: keys.topic,
       key: keys.key,
-      transport: this.createTransport(pairing.signalingUrl),
+      transport: this.createTransport(pairing.signalingUrl, this.options.roomKind ?? 'a'),
       createLink: (events) => new PeerLink(events, this.log, toIceServers(loadIceUrls())),
       ...(isRelayUrl(pairing.signalingUrl)
         ? {
             createRelay: (peerId: string, events: RelayLinkEvents, pair?: { key: CryptoKey; only: boolean }) =>
-              new RelayLink({ baseUrl: pairing.signalingUrl, topic: keys.topic, selfId: this.options.deviceId, peerId, key: keys.key, ...(pair ? { pair } : {}), log: this.log }, events),
+              new RelayLink({ baseUrl: pairing.signalingUrl, kind: this.options.roomKind ?? 'a', topic: keys.topic, selfId: this.options.deviceId, peerId, key: keys.key, ...(pair ? { pair } : {}), log: this.log }, events),
           }
         : {}),
       ...(this.options.isBlocked ? { isBlocked: this.options.isBlocked } : {}),

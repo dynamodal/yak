@@ -3,10 +3,10 @@ import { FROM_EARLIER_VERSION, LEGACY, SYNC_CODE_PREFIX } from '../core/protocol
 /**
  * Packs a WebRTC session description into one short, copy-pasteable string (later a QR code).
  *
- * The plan needs the real size of an offer measured and trimmed until it can fit one QR code.
- * Pairing is LAN only for now, so only UDP host candidates are kept: server-reflexive and
- * relay candidates need STUN/TURN, and TCP, link-local and carrier-grade-NAT (VPN, Tailscale)
- * candidates only add bytes and failed connection attempts.
+ * Descriptions travel through the sealed signaling mailbox (8 KiB a message). UDP host candidates
+ * (local addresses) and server-reflexive ones (the public address a STUN server saw) are kept, so
+ * devices on one network and on different networks can both connect (#110). TCP, relay,
+ * link-local and carrier-grade-NAT (VPN, Tailscale) host candidates only add bytes and failed checks.
  */
 
 type SignalKind = 'offer' | 'answer';
@@ -28,14 +28,15 @@ function isUnusableHost(address: string): boolean {
   return first === 100 && second >= 64 && second <= 127;
 }
 
-/** Keep UDP host candidates (including mDNS `.local` names); drop everything else. */
+/** Keep UDP host candidates (including mDNS `.local` names) and UDP server-reflexive ones; drop everything else. */
 export function trimSdp(sdp: string): string {
   const lines = sdp.split(/\r?\n/);
   const kept = lines.filter((line) => {
     if (!line.startsWith('a=candidate:')) return true;
     const lower = line.toLowerCase();
-    if (!/ typ host\b/.test(lower)) return false;
     if (!/ udp /.test(lower)) return false;
+    if (/ typ srflx\b/.test(lower)) return true;
+    if (!/ typ host\b/.test(lower)) return false;
     if (/ fe80:/.test(lower)) return false;
     // a=candidate:<foundation> <component> <transport> <priority> <address> <port> typ host ...
     const address = line.split(' ')[4] ?? '';

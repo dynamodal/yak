@@ -37,7 +37,15 @@ How sync works today. Decisions and reasons: `decisions/sync.md`.
 - The Worker forwards each binary frame to the other socket of the pair (at most two) and keeps nothing; it tells the survivor with `{"event":"left"}` when one ends. Signaling broadcasts never reach link sockets.
 - Every message is sealed whole with the account key (AES-GCM, bound to topic and pair), then cut into 32 KiB pieces with a plain header (message id, index, count). The relay sees ciphertext, sizes and timing. `hello`/`ack` frames, also sealed, tell each device the other is there.
 - Sending is paced under the Worker's caps (about 320 kB/s and 30 frames/s); the Worker closes a socket above 4 MiB or 400 frames per 10 s, or a frame over 64 KiB. A catch-up of several MB takes tens of seconds.
-- Direct is still tried: the usual offer retries run, and while on the relay the initiator makes a fresh offer every 60 s. When a direct link opens the sessions keep running unchanged and the relay link is closed 3 s later.
+- Direct is still tried: the usual offer retries run, and while on the relay the initiator makes a fresh offer after 1 and 2 minutes, then every 5 minutes; a network change (`online`, `navigator.connection` `change`), resume or Reconnect starts again at 1 minute. When a direct link opens the sessions keep running unchanged and the relay link is closed 3 s later.
+
+### Why not directly (#110)
+
+- Offers and answers carry UDP host candidates (local and `.local` names) and UDP server-reflexive ones (the public address STUN saw); TCP, relay, link-local and 100.64/10 are trimmed (`trimSdp`). No trickle: gathering waits at most 4 s.
+- Each attempt ends in one record (`src/sync/link-diagnostics.ts`), kept in memory, the last 10 per other device: role, trigger, candidate kinds and counts on both sides, NAT kind (`varies` when two STUN servers saw different public ports), same public address yes/no/unknown, the stage reached (`no answer`, `no addresses`, `replaced while checking`, `connectivity checks failed`, `secure channel did not open`, `open`), pairs tried, the chosen path and RTT. Addresses and ports are read while the attempt runs and not kept.
+- Likely reasons a pair on one home network stays on the relay: both browsers hide local addresses behind `.local` names (no camera permission) and the network does not resolve them; one device is briefly on mobile data or a VPN (full tunnel, "block local network", managed `WebRtcIPHandlingPolicy`); guest Wi-Fi or client isolation; a host firewall dropping inbound UDP.
+- Not open to a browser (Tailscale's other tricks): UPnP / NAT-PMP / PCP port mapping, port spraying, raw UDP probes. The relay link plays DERP's part.
+- One debug-log line per attempt (`attempt …`); a device row on the relay says "Why not directly:" with a plain reason; Advanced › Connection report shows every device's attempts without names, ids, addresses or ports, copied only on request.
 - A relay socket whose other device is not there is closed after 10 min.
 - Status: the device's row says "Syncing through the relay". The header chip is unchanged.
 - Cost: the Durable Object bills incoming WebSocket messages at 20 to 1 as requests, and ping/pong is answered without waking it. A 10 MB catch-up is about 320 frames, so about 16 billed requests; an idle room costs nothing.
@@ -198,7 +206,7 @@ Accepted limits (S-203):
 
 ## Known limits
 
-- Devices on other networks connect directly only when both routers allow it (STUN is set, device setting in Devices › STUN servers); behind carrier NAT or strict firewalls there is no path until the relay fallback (#169). TURN is not set.
+- Devices on other networks connect directly only when both routers allow it (STUN is set, device setting in Devices › STUN servers); behind a NAT that maps per destination, carrier NAT or strict firewalls there is no path, and the relay fallback carries the data. TURN is not set.
 - ntfy.sh rate limits are not guaranteed; it also forwards ciphertext to Firebase for Android push.
 - Chrome may hide LAN addresses behind mDNS `.local`; asking for camera permission first makes it use real addresses.
 - Cloudflare Workers Free plan: about 100 000 requests a day for the whole account.

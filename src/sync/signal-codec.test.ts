@@ -23,11 +23,20 @@ const SDP = [
 ].join('\r\n');
 
 describe('trimSdp', () => {
-  it('keeps only UDP host candidates, including mDNS names', () => {
+  it('keeps UDP host candidates, including mDNS names, and UDP server-reflexive ones', () => {
     const lines = trimSdp(SDP).split('\r\n').filter((l) => l.startsWith('a=candidate:'));
-    expect(lines).toHaveLength(2);
+    expect(lines).toHaveLength(3);
     expect(lines[0]).toContain('.local');
-    expect(lines[1]).toContain('192.168.1.20 54324');
+    expect(lines[1]).toContain('typ srflx');
+    expect(lines[2]).toContain('192.168.1.20 54324');
+  });
+
+  it('drops TCP and relay candidates', () => {
+    const sdp = [
+      'a=candidate:1 1 tcp 1518280447 203.0.113.9 9 typ srflx raddr 0.0.0.0 rport 0 tcptype active generation 0',
+      'a=candidate:2 1 udp 41885439 198.51.100.4 3478 typ relay raddr 203.0.113.9 rport 54323 generation 0',
+    ].join('\r\n');
+    expect(trimSdp(sdp)).toBe('');
   });
 
   it('drops link-local and carrier-grade-NAT (VPN, Tailscale) addresses but keeps private LAN ranges', () => {

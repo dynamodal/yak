@@ -18,6 +18,8 @@ import { UndecidedNotice } from '../app/views/UndecidedNotice';
 import { deviceName, devicesMap, readDevices, setDeviceName, setRemoved, suggestedName } from '../core/devices';
 import { keeps } from '../core/keeps';
 import { deviceStatus, peerStatus } from '../sync/device-status';
+import { attemptHint } from '../sync/link-diagnostics';
+import type { PeerInfo } from '../sync/peer-mesh';
 import { dropOwnDeviceKeys } from '../sync/key-store';
 import { KeepChip, keptNames, OpenRow, useOpenRow } from './OpenRow';
 
@@ -26,6 +28,12 @@ const shortId = shortDeviceId;
 type Confirming = { kind: 'remove'; id: string } | { kind: 'rejoin' } | { kind: 'leave' } | undefined;
 
 /** The Sync line: always there, whatever the state (F-33): "Off · Set up", "On · waiting for your first device", "Syncing with Laptop". */
+/** The last direct attempt's reason, while this device reaches the other only through the relay (#110). */
+const relayReason = (peer: PeerInfo): string | undefined => {
+  const last = peer.attempts?.[peer.attempts.length - 1];
+  return last ? attemptHint(last) : undefined;
+};
+
 export function SyncLine() {
   const { sync, account } = useApp();
   const status = useSyncStatus(sync);
@@ -177,6 +185,7 @@ export function DevicesSection(props: { target?: string }) {
                       <SyncDot shape={linkShape(linkKind(peer!))} /> {st.label}
                     </p>
                   ) : null}
+                  {peer?.via === 'relay' && relayReason(peer) ? <p class="hint device-relay-reason">Why not directly: {relayReason(peer)}</p> : null}
                   {peer?.sharedKey ? <p class="hint">Syncs with the shared key: the key for just these two devices failed (until reload)</p> : null}
                   {peer && peer.state === 'waiting-for-peer' ? (
                     <p class="hint device-wait">

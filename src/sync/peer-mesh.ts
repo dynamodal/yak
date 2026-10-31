@@ -3,6 +3,7 @@ import { open, ReplayGuard, seal, type Opened, type SignalPayload, type SignalTy
 import { derivePairKey, peerTag, signSignal, verifySignal, type SyncIdentity } from './handshake';
 import type { LinkEndpoint, LinkState } from './types';
 import type { PeerLinkEvents } from './peer-link';
+import { attemptLine, type AttemptRecord } from './link-diagnostics';
 import type { RelayLinkEvents } from './relay-link';
 import type { RelayRefusal } from './relay-refusal';
 import { RateLimitedError, type InboxMessage, type SignalingTransport } from './signaling';
@@ -17,6 +18,8 @@ export interface PeerInfo {
   via?: 'direct' | 'relay';
   /** The pair key with this device failed this session; it syncs with the shared key (S-256c). */
   sharedKey?: boolean;
+  /** The last direct attempts with this device, newest last (#110); counts and stages only. */
+  attempts?: AttemptRecord[];
 }
 
 /** The relay data path to one peer (`RelayLink` implements it). */
@@ -72,7 +75,7 @@ export interface PeerMeshOptions {
   identity?: SyncIdentity;
   /** No direct link this long after an offer or answer: use the relay too. Default 5 s. */
   relayAfterMs?: number;
-  /** While on the relay, the initiator offers again this often to find a direct path. Default 60 s. */
+  /** While on the relay, the initiator offers again after this, then twice and five times this (the most). Default 60 s. */
   directRetryMs?: number;
   /** A relay socket with no peer on it this long is closed. Default 10 min. */
   relayIdleMs?: number;
@@ -88,6 +91,10 @@ const HELLO_REPLY_INTERVAL_MS = 5000;
 const PAIR_ANSWER_MS = 1000;
 /** After a direct link opens while on the relay: how long the relay stays for the other device to catch up. */
 const RELAY_HANDOVER_MS = 3000;
+/** Multiples of `directRetryMs` between direct path checks while on the relay; the last repeats. */
+const UPGRADE_STEPS = [1, 2, 5];
+/** Direct attempts remembered per device for the device page and the connection report. */
+const ATTEMPTS_KEPT = 10;
 
 /**
  * One device's links to every other device paired with the same secret, over one push mailbox.
@@ -602,6 +609,8 @@ class Session {
   private helloReplyTimer: ReturnType<typeof setTimeout> | undefined;
   private retryIndex = 0;
   private attemptStartedAt = 0;
+  private upgradeStep = 0;
+  private attempts: AttemptRecord[] = [];
 
   constructor(
     readonly peerId: string,
@@ -620,6 +629,7 @@ class Session {
       ...(this.lastConnectedAt !== undefined ? { lastConnectedAt: this.lastConnectedAt } : {}),
       ...(this.lastSeenAt !== undefined ? { lastSeenAt: this.lastSeenAt } : {}),
       ...(this.pairBroken ? { sharedKey: true } : {}),
+      ...(this.attempts.length > 0 ? { attempts: [...this.attempts] } : {}),
     };
   }
 
@@ -628,8 +638,11 @@ class Session {
     return !this.linkOpen && this.link !== undefined;
   }
 
+  /** A forced reconnect (network change, resume, the button): retries and direct path checks start over. */
   resetRetries(): void {
     this.retryIndex = 0;
+    this.upgradeStep = 0;
+    if (this.upgradeTimer !== undefined && this.relayOpen) this.scheduleUpgrade();
   }
 
   send(data: Uint8Array): void {
@@ -729,7 +742,7 @@ class Session {
     this.attemptSid = sid;
     this.setState(this.everConnected ? 'reconnecting' : 'connecting');
     this.log(`offer (${reason})`);
-    const link = this.mesh.opts.createLink(this.eventsFor(gen));
+    const link = this.mesh.opts.createLink(this.eventsFor(gen, reason));
     this.link = link;
     this.armRelay();
     try {
@@ -778,7 +791,7 @@ class Session {
     this.verifiedGen = this.signalVerified ? gen : -1;
     this.setState(this.everConnected ? 'reconnecting' : 'connecting');
     this.log('answering offer');
-    const link = this.mesh.opts.createLink(this.eventsFor(gen));
+    const link = this.mesh.opts.createLink(this.eventsFor(gen, 'offer received'));
     this.link = link;
     this.armRelay();
     try {
@@ -861,6 +874,7 @@ class Session {
     this.setState('connected');
     this.mesh.changed();
     this.mesh.opts.onLinkOpen(this.peerId);
+    this.upgradeStep = 0;
     this.scheduleUpgrade();
   }
 
@@ -877,15 +891,24 @@ class Session {
     this.setState('reconnecting');
   }
 
-  /** While on the relay, the initiator keeps looking for a direct path. */
+  /** While on the relay, the initiator keeps looking for a direct path: after 1, 2, then every 5 minutes. */
   private scheduleUpgrade(): void {
     clearTimeout(this.upgradeTimer);
     if (!this.isInitiator) return;
+    const step = UPGRADE_STEPS[Math.min(this.upgradeStep, UPGRADE_STEPS.length - 1)] ?? 1;
     this.upgradeTimer = setTimeout(() => {
       if (!this.relayOpen || this.linkOpen) return;
+      this.upgradeStep++;
       void this.attempt('direct path check', true);
       this.scheduleUpgrade();
-    }, this.mesh.opts.directRetryMs ?? scaledMs(60_000));
+    }, step * (this.mesh.opts.directRetryMs ?? scaledMs(60_000)));
+  }
+
+  private noteAttempt(record: AttemptRecord): void {
+    this.attempts.push(record);
+    if (this.attempts.length > ATTEMPTS_KEPT) this.attempts.shift();
+    this.log(`attempt ${attemptLine(record)}`);
+    this.mesh.changed();
   }
 
   private stopRelay(): void {
@@ -917,8 +940,9 @@ class Session {
     link?.close();
   }
 
-  private eventsFor(gen: number): PeerLinkEvents {
+  private eventsFor(gen: number, trigger: string): PeerLinkEvents {
     return {
+      onAttempt: (record) => this.noteAttempt({ ...record, trigger }),
       onOpen: () => {
         if (gen !== this.generation) return;
         const onRelay = this.relayOpen;

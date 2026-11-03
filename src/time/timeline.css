@@ -1,4 +1,4 @@
-/* Calendar (day timeline, #68): a minute is a pixel; hatch, dashes and text carry the findings, never colour alone. */
+/* Calendar (day timeline, #68): the scale is --tlg-hour (T-68d); hatch, dashes and text carry the findings, never colour alone. */
 .tlg-scroll { max-height: 70vh; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-top: var(--space-2); }
 .tlg { --tlg-cols: 1; --tlg-hour: 60px; min-width: 0; }
 .tlg-head, .tlg-body { display: grid; grid-template-columns: 3.25rem repeat(var(--tlg-cols), minmax(0, 1fr)); }
@@ -37,3 +37,5 @@ button.tlg-gap:hover { background: var(--warn-wash); }
   .tlg-dayhead { font-size: var(--text-xs); padding-inline: 1px; }
   .tlg-block { padding-inline: 2px; }
 }
+.tlg-zoom button { min-width: var(--control-h); justify-content: center; font-size: var(--text-lg, 1.1rem); }
+.tlg-zoom button:disabled { opacity: 0.4; cursor: default; background: none; }

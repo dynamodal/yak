@@ -1,6 +1,6 @@
 import './timeline.css';
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { rememberTimelineSpan, savedTimelineSpan, type TimelineSpan } from '../app/timer-views';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { rememberTimelineSpan, rememberTimelineZoom, savedTimelineSpan, savedTimelineZoom, type TimelineSpan } from '../app/timer-views';
 import { useNow } from '../app/hooks';
 import { Button, Dialog, IconChevronLeft, IconChevronRight, toast, useMedia } from '../app/ui';
 import { addDays, dayKey, startOfDay } from './dates';
@@ -13,9 +13,19 @@ import { weekRange } from './stats';
 import { type FixEntry, type Plan, type Reader, type Ref, planExtendPrevious, planSplitAround, planStartNextEarlier, planTrimFirst, planTrimSecond, isInside, runFix } from './timeline-fix';
 import { isoToMs } from './dates';
 import {
+  blockText,
   clockText,
   cutByDay,
+  drawnBox,
   drawnPosition,
+  gapLabelFits,
+  MIN_BLOCK_PX,
+  minutesToPx,
+  openingScrollTop,
+  scrollForZoom,
+  zoomLevel,
+  zoomStep,
+  ZOOM_LEVELS,
   entryBlocks,
   findGaps,
   findOverlaps,
@@ -28,10 +38,6 @@ import {
   wallMinutes,
 } from './timeline';
 
-/** Pixels per hour on the grid; a minute is a pixel, so the shortest gap (15 minutes) is tall enough for its label. */
-const HOUR_PX = 60;
-const DEFAULT_TOP_HOUR = 8;
-const LEAD_MINUTES = 30;
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 const WEEKDAY: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
@@ -59,10 +65,15 @@ export default function TimelineView({ all }: { all: AllTime }) {
   const spaceName = useSpaceName();
   const [editing, setEditing] = useState<Ref | null>(null);
   const [adding, setAdding] = useState<{ start: number; end: number } | null>(null);
+  const [hourPx, setHourPxState] = useState(() => zoomLevel(savedTimelineZoom()));
   const { weekStart } = all.data;
   const setSpan = (s: TimelineSpan): void => {
     setSpanState(s);
     rememberTimelineSpan(s);
+  };
+  const setHourPx = (px: number): void => {
+    setHourPxState(px);
+    rememberTimelineZoom(px);
   };
   const range = span === 'day' ? { from: startOfDay(anchor), to: addDays(startOfDay(anchor), 1) } : weekRange(anchor, weekStart);
   const step = span === 'day' ? 1 : 7;
@@ -92,12 +103,19 @@ export default function TimelineView({ all }: { all: AllTime }) {
 
   // Open scrolled to just before the first entry of the range (08:00 when there is none).
   const scroller = useRef<HTMLDivElement>(null);
+  const head = useRef<HTMLDivElement>(null);
+  const shownPx = useRef(hourPx);
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    const firstMinute = blocks.length ? Math.min(...blocks.map((b) => wallMinutes(b.start, startOfDay(b.start)))) : DEFAULT_TOP_HOUR * 60;
-    el.scrollTop = Math.max(0, ((blocks.length ? firstMinute - LEAD_MINUTES : firstMinute) / 60) * HOUR_PX);
+    el.scrollTop = openingScrollTop(blocks.length ? Math.min(...blocks.map((b) => wallMinutes(b.start, startOfDay(b.start)))) : undefined, hourPx);
   }, [range.from, span]);
+  // A new scale keeps the time at the middle of the visible grid where it was.
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (el && shownPx.current !== hourPx) el.scrollTop = scrollForZoom(el.scrollTop, el.clientHeight - (head.current?.offsetHeight ?? 0), shownPx.current, hourPx);
+    shownPx.current = hourPx;
+  }, [hourPx]);
 
   const handles = useMemo(() => new Map([...all.slices].map(([id, s]) => [id, { doc: s.doc, privateDoc: s.privateDoc }])), [all.slices]);
   const fixes = useMemo(
@@ -139,11 +157,19 @@ export default function TimelineView({ all }: { all: AllTime }) {
         <Button disabled={isCurrent} onClick={() => setAnchor(Date.now())}>
           Today
         </Button>
+        <div class="seg tlg-zoom" role="group" aria-label="Zoom">
+          <button type="button" aria-label="Zoom out" title="Zoom out" disabled={hourPx <= (ZOOM_LEVELS[0] as number)} onClick={() => setHourPx(zoomStep(hourPx, -1))}>
+            <span aria-hidden="true">−</span>
+          </button>
+          <button type="button" aria-label="Zoom in" title="Zoom in" disabled={hourPx >= (ZOOM_LEVELS[ZOOM_LEVELS.length - 1] as number)} onClick={() => setHourPx(zoomStep(hourPx, 1))}>
+            <span aria-hidden="true">+</span>
+          </button>
+        </div>
       </div>
 
       <div class="tlg-scroll" ref={scroller} tabIndex={0} role="region" aria-label="Calendar grid">
-        <div class="tlg" style={{ '--tlg-cols': days.length, '--tlg-hour': `${HOUR_PX}px` }}>
-          <div class="tlg-head">
+        <div class="tlg" style={{ '--tlg-cols': days.length, '--tlg-hour': `${hourPx}px` }} data-hour-px={hourPx}>
+          <div class="tlg-head" ref={head}>
             <span class="tlg-gutter" />
             {days.map((d) => (
               <span key={d} class={`tlg-dayhead${dayKey(d) === dayKey(now) ? ' today' : ''}`}>
@@ -154,13 +180,13 @@ export default function TimelineView({ all }: { all: AllTime }) {
           <div class="tlg-body">
             <div class="tlg-axis" aria-hidden="true">
               {HOURS.map((h) => (
-                <span key={h} class="tlg-hour" style={{ top: `${h * HOUR_PX}px` }}>
+                <span key={h} class="tlg-hour" style={{ top: `${minutesToPx(h * 60, hourPx)}px` }}>
                   {String(h).padStart(2, '0')}:00
                 </span>
               ))}
             </div>
             {days.map((d) => (
-              <DayColumn key={d} dayStart={d} blocks={blocks} found={found} overlapping={overlapping} now={now} label={label(d)} spaceOf={(id) => fixes.get(id)?.spaceId} onOpen={(ref) => setEditing(ref)} onAdd={(g) => setAdding(g)} />
+              <DayColumn key={d} dayStart={d} blocks={blocks} found={found} overlapping={overlapping} now={now} hourPx={hourPx} label={label(d)} spaceOf={(id) => fixes.get(id)?.spaceId} onOpen={(ref) => setEditing(ref)} onAdd={(g) => setAdding(g)} />
             ))}
           </div>
         </div>
@@ -271,6 +297,7 @@ function DayColumn({
   found,
   overlapping,
   now,
+  hourPx,
   label,
   spaceOf,
   onOpen,
@@ -281,6 +308,7 @@ function DayColumn({
   found: Found;
   overlapping: Set<string>;
   now: number;
+  hourPx: number;
   label: string;
   spaceOf(id: string): string | undefined;
   onOpen(ref: Ref): void;
@@ -291,27 +319,28 @@ function DayColumn({
   const placed = layoutLanes(own, dayStart);
   const gaps = found.gaps.filter((g) => g.day === key);
   const overlaps = found.overlaps.filter((o) => o.day === key);
-  const px = (minutes: number): number => (minutes / 60) * HOUR_PX;
   return (
     <div class="tlg-col" role="group" aria-label={label}>
       {gaps.map((g) => {
-        const pos = drawnPosition(g.start, g.end, dayStart);
+        const box = drawnBox(drawnPosition(g.start, g.end, dayStart), hourPx);
         return (
           <button
             type="button"
             key={g.start}
             class="tlg-gap"
-            style={{ top: `${px(pos.top)}px`, height: `${px(pos.bottom - pos.top)}px` }}
+            style={{ top: `${box.top}px`, height: `${box.height}px` }}
             aria-label={`${minutesText(g.end - g.start)} gap, ${clockText(g.start)} to ${clockText(g.end)}. Add an entry`}
             onClick={() => onAdd({ start: g.start, end: g.end })}
           >
-            <span>{minutesText(g.end - g.start)} gap</span>
+            {gapLabelFits(box.height) && <span>{minutesText(g.end - g.start)} gap</span>}
           </button>
         );
       })}
       {placed.map((p) => {
         const b = p.item;
         const lanes = p.lanes;
+        const box = drawnBox(p, hourPx, MIN_BLOCK_PX);
+        const room = blockText(box.height);
         const finding = overlapping.has(`${b.id}@${key}`) ? 'Overlaps another entry. ' : '';
         const name = `${b.title}${b.subtitle ? `, ${b.subtitle}` : ''}. ${clockText(b.start)} to ${b.running ? 'now' : clockText(b.end)}, ${minutesText(b.end - b.start)}${b.running ? ', running' : ''}. ${finding}`.trim();
         return (
@@ -320,32 +349,33 @@ function DayColumn({
             key={`${b.id}${b.start}`}
             class={`tlg-block${b.running ? ' running' : ''}`}
             aria-label={`${name} Edit`}
+            title={b.title}
             onClick={() => {
               const spaceId = spaceOf(b.id);
               if (spaceId) onOpen({ spaceId, id: b.id });
             }}
             style={{
-              top: `${px(p.top)}px`,
-              height: `${Math.max(px(p.bottom - p.top), 4)}px`,
+              top: `${box.top}px`,
+              height: `${box.height}px`,
               left: `${(p.lane / lanes) * 100}%`,
               width: `${100 / lanes}%`,
               '--tlg-color': b.color ?? 'var(--muted)',
             }}
           >
-            <span class="tlg-title">{b.title}</span>
-            {b.subtitle && <span class="tlg-sub">{b.subtitle}</span>}
+            {room.title && <span class="tlg-title">{b.title}</span>}
+            {room.subtitle && b.subtitle && <span class="tlg-sub">{b.subtitle}</span>}
           </button>
         );
       })}
       {overlaps.map((o) => {
-        const pos = drawnPosition(o.start, o.end, dayStart);
+        const box = drawnBox(drawnPosition(o.start, o.end, dayStart), hourPx, MIN_BLOCK_PX);
         return (
-          <div key={`${o.firstId}${o.secondId}${o.start}`} class="tlg-overlap" style={{ top: `${px(pos.top)}px`, height: `${Math.max(px(pos.bottom - pos.top), 4)}px` }} aria-hidden="true">
+          <div key={`${o.firstId}${o.secondId}${o.start}`} class="tlg-overlap" style={{ top: `${box.top}px`, height: `${box.height}px` }} aria-hidden="true">
             <span>Overlap</span>
           </div>
         );
       })}
-      {startOfDay(now) === dayStart && <div class="tlg-now" style={{ top: `${px(wallMinutes(now, dayStart))}px` }} aria-hidden="true" />}
+      {startOfDay(now) === dayStart && <div class="tlg-now" style={{ top: `${minutesToPx(wallMinutes(now, dayStart), hourPx)}px` }} aria-hidden="true" />}
     </div>
   );
 }

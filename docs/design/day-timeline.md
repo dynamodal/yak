@@ -13,7 +13,7 @@ Design for #68; #114 (time-boxing) and calendar events are later layers, not bui
 - A new **Calendar** segment on the Time page: List | Week | Calendar | Reports, at `#/time/calendar`.
 - Day or Week inside it, with Previous, Next and Today; the last choice is kept like `timer-view`.
 - Same component at every width (`ui-direction.md`): one column on phones, seven when there is room; a phone opens on Day.
-- Hour axis over all 24 hours, scrolled on open to just before the first entry of the range (08:00 when empty).
+- Hour axis over all 24 hours at 30, 60 (default), 120 or 240 px per hour (Zoom in and Zoom out), scrolled on open to just before the first entry of the range (08:00 when empty).
 - Blocks use the project colour and show the description, then the project when tall enough.
 - Under the grid, **Gaps and overlaps**: the same findings as a plain list.
 
@@ -92,9 +92,10 @@ interface TimelineBlock {
 
 One PR each, all `Refs #68` until the last.
 
-1. Read only: grid, Day and Week, blocks, highlights, the list, moving `splitByDay`.
-2. Fixes: gap and overlap actions, block opens the editor.
-3. Drag block edges.
+1. Read only: grid, Day and Week, blocks, highlights, the list, moving `splitByDay`. Shipped.
+2. Fixes: gap and overlap actions, block opens the editor. Shipped.
+3. Zoom: four hour heights (30, 60, 120, 240 px), kept per device. Every pixel conversion takes the scale. Buttons only, no wheel or pinch.
+4. Drag block edges. Left.
 
 ## Out of scope
 

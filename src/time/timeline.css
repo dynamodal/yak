@@ -1,0 +1,33 @@
+/* Calendar (day timeline, #68): a minute is a pixel; hatch, dashes and text carry the findings, never colour alone. */
+.tlg-scroll { max-height: 70vh; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); margin-top: var(--space-2); }
+.tlg { --tlg-cols: 1; --tlg-hour: 60px; min-width: 0; }
+.tlg-head, .tlg-body { display: grid; grid-template-columns: 3.25rem repeat(var(--tlg-cols), minmax(0, 1fr)); }
+.tlg-head { position: sticky; top: 0; z-index: 4; background: var(--surface); border-bottom: 1px solid var(--border); }
+.tlg-dayhead { padding: var(--space-1); text-align: center; font-size: var(--text-sm); font-weight: var(--weight-medium); border-left: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tlg-dayhead.today { color: var(--accent); }
+.tlg-body { height: calc(24 * var(--tlg-hour)); }
+.tlg-axis { position: relative; }
+.tlg-hour { position: absolute; right: 0.35rem; transform: translateY(-0.5em); font-size: var(--text-xs); color: var(--muted); }
+.tlg-hour:first-child { transform: none; }
+.tlg-col { position: relative; min-width: 0; border-left: 1px solid var(--border); background: repeating-linear-gradient(to bottom, var(--border) 0, var(--border) 1px, transparent 1px, transparent var(--tlg-hour)); }
+.tlg-block { --tlg-color: var(--muted); position: absolute; box-sizing: border-box; overflow: hidden; padding: 1px 4px; font-size: var(--text-xs); line-height: 1.25; border: 1px solid var(--tlg-color); border-left-width: 4px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--tlg-color) 22%, var(--surface)); color: var(--text); z-index: 2; display: flex; flex-direction: column; min-width: 0; }
+.tlg-block.running { border-bottom-style: dotted; }
+.tlg-title, .tlg-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tlg-sub { color: var(--muted); }
+.tlg-gap { position: absolute; left: 2px; right: 2px; box-sizing: border-box; border: 2px dashed var(--warn); border-radius: var(--radius-xs); z-index: 1; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); color: var(--warn); overflow: hidden; }
+.tlg-gap span { white-space: nowrap; }
+.tlg-overlap { position: absolute; left: 0; right: 0; z-index: 3; pointer-events: none; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--danger); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--danger) 55%, transparent) 0 3px, transparent 3px 7px); overflow: hidden; }
+.tlg-overlap span { background: var(--surface); padding: 0 3px; border-radius: var(--radius-xs); }
+.tlg-now { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid var(--danger); z-index: 3; pointer-events: none; }
+.tlg-findings { margin-top: var(--space-4); }
+.tlg-list { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: var(--space-1); }
+.tlg-note { margin: 0 0 var(--space-2); font-size: var(--text-sm); }
+.tlg-page .seg button { font: inherit; display: inline-flex; align-items: center; min-height: calc(var(--control-h) - 2px); padding: 0 var(--space-3); color: var(--text); background: none; border: 0; border-radius: 0; cursor: pointer; }
+.tlg-page .seg button + button { border-left: 1px solid var(--border); }
+.tlg-page .seg button:hover { background: var(--surface-2); }
+.tlg-page .seg button.active { background: var(--accent); color: var(--accent-text); }
+@media (max-width: 40rem) {
+  .tlg-head, .tlg-body { grid-template-columns: 2.6rem repeat(var(--tlg-cols), minmax(0, 1fr)); }
+  .tlg-dayhead { font-size: var(--text-xs); padding-inline: 1px; }
+  .tlg-block { padding-inline: 2px; }
+}

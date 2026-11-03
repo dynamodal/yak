@@ -1,3 +1,4 @@
+import './timeline.css';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { rememberTimelineSpan, savedTimelineSpan, type TimelineSpan } from '../app/timer-views';
 import { useNow } from '../app/hooks';

@@ -231,3 +231,63 @@ export function clockText(ms: number): string {
   const d = new Date(ms);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
+
+// ------------------------------------------------------------------ scale
+
+/** Pixels per hour the Calendar can show, smallest first (T-68d). Every pixel conversion below takes one of these. */
+export const ZOOM_LEVELS = [30, 60, 120, 240] as const;
+/** The scale of T-68b: a minute is a pixel. */
+export const DEFAULT_HOUR_PX = 60;
+
+/** A stored or typed scale as one of the levels; anything else reads as the default. */
+export function zoomLevel(value: unknown): number {
+  return (ZOOM_LEVELS as readonly number[]).includes(value as number) ? (value as number) : DEFAULT_HOUR_PX;
+}
+
+/** The next level in or out (`1` is in, `-1` out); at the end of the list it stays where it is. */
+export function zoomStep(hourPx: number, direction: 1 | -1): number {
+  const i = (ZOOM_LEVELS as readonly number[]).indexOf(zoomLevel(hourPx));
+  return ZOOM_LEVELS[Math.min(ZOOM_LEVELS.length - 1, Math.max(0, i + direction))] as number;
+}
+
+export const minutesToPx = (minutes: number, hourPx: number): number => (minutes / 60) * hourPx;
+export const pxToMinutes = (px: number, hourPx: number): number => (px / hourPx) * 60;
+
+/** Blocks and overlaps never get shorter than this, so a one-minute entry can still be seen and hit. */
+export const MIN_BLOCK_PX = 4;
+
+export interface Box {
+  top: number;
+  height: number;
+}
+
+/** A drawn position in pixels at a scale; `minHeight` keeps a thin piece visible. */
+export function drawnBox(pos: Drawn, hourPx: number, minHeight = 0): Box {
+  return { top: minutesToPx(pos.top, hourPx), height: Math.max(minutesToPx(pos.bottom - pos.top, hourPx), minHeight) };
+}
+
+/** Where the grid opens: `LEAD_MINUTES` before the first entry, or 08:00 when there is none. */
+export function openingScrollTop(firstMinute: number | undefined, hourPx: number): number {
+  const minute = firstMinute === undefined ? DEFAULT_TOP_HOUR * 60 : firstMinute - LEAD_MINUTES;
+  return Math.max(0, minutesToPx(minute, hourPx));
+}
+const DEFAULT_TOP_HOUR = 8;
+const LEAD_MINUTES = 30;
+
+/**
+ * The scroll position that keeps the time at the middle of the visible grid where it was when the scale changes.
+ * `visibleHeight` is the scroller's height without the sticky day header.
+ */
+export function scrollForZoom(scrollTop: number, visibleHeight: number, fromHourPx: number, toHourPx: number): number {
+  return Math.max(0, ((scrollTop + visibleHeight / 2) * toHourPx) / fromHourPx - visibleHeight / 2);
+}
+
+/** What text a block of this height can hold without clipping a line in half. */
+export function blockText(heightPx: number): { title: boolean; subtitle: boolean } {
+  return { title: heightPx >= 14, subtitle: heightPx >= 30 };
+}
+
+/** Whether a gap of this height has room for its "50 min gap" label. */
+export function gapLabelFits(heightPx: number): boolean {
+  return heightPx >= 15;
+}

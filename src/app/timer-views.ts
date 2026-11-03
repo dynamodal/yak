@@ -57,3 +57,23 @@ export function rememberTimelineSpan(span: TimelineSpan): void {
     // ignore
   }
 }
+
+const ZOOM_KEY = 'timeline-zoom';
+
+/** The Calendar's pixels per hour on this device; the view accepts only its own levels, so anything else reads as unset. */
+export function savedTimelineZoom(): number | undefined {
+  try {
+    const v = Number(localStorage.getItem(ZOOM_KEY));
+    return Number.isFinite(v) && v > 0 ? v : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function rememberTimelineZoom(hourPx: number): void {
+  try {
+    localStorage.setItem(ZOOM_KEY, String(hourPx));
+  } catch {
+    // ignore
+  }
+}

@@ -642,6 +642,36 @@ const addTag = async (p, scope, name) => {
   await p.evaluate(() => { location.hash = '#/time/calendar'; });
   await p.locator('.tlg-col').first().waitFor();
   check((await p.locator('.tlg-col').count()) === 7, 'an unknown remembered span falls back to Week on a wide screen');
+  // ---- zoom (T-68d) ----
+  await p.getByRole('button', { name: 'Day', exact: true }).click();
+  const hourPx = () => p.locator('.tlg').evaluate((el) => Number(el.dataset.hourPx));
+  const blockH = (name) => p.locator('.tlg-block', { hasText: name }).evaluate((el) => el.getBoundingClientRect().height);
+  const zin = p.getByRole('button', { name: 'Zoom in' });
+  const zout = p.getByRole('button', { name: 'Zoom out' });
+  check((await hourPx()) === 60 && (await blockH('Cal A')) === 60, 'zoom starts at 60 px per hour');
+  const midTime = () => p.locator('.tlg-scroll').evaluate((el) => (el.scrollTop + (el.clientHeight - el.querySelector('.tlg-head').offsetHeight) / 2) / Number(el.querySelector('.tlg').dataset.hourPx));
+  const before = await midTime();
+  await zin.click();
+  check((await hourPx()) === 120 && (await blockH('Cal A')) === 120, 'Zoom in doubles the hour height');
+  check(Math.abs((await midTime()) - before) < 0.05, 'the time at the middle of the grid stays in view');
+  await zin.click();
+  check((await hourPx()) === 240 && (await zin.isDisabled()) && !(await zout.isDisabled()), 'Zoom in stops at the top level, where its button is disabled');
+  const five = 5 / 60 * 240;
+  check(Math.abs((await blockH('Cal E')) - 30 / 60 * 240) < 1 && five >= 14, 'at the top level a 5 minute entry has room for a line of text');
+  await p.reload();
+  await p.locator('.tlg-col').first().waitFor();
+  check((await hourPx()) === 240, 'the zoom level survives a reload');
+  await zout.click();
+  await zout.click();
+  await zout.click();
+  check((await hourPx()) === 30 && (await zout.isDisabled()) && !(await zin.isDisabled()), 'Zoom out stops at the lowest level, where its button is disabled');
+  check((await p.locator('.tlg-gap span').count()) === 1 && (await p.locator('.tlg-gap span').innerText()).includes('1 h gap') && (await p.locator('button.tlg-gap').count()) === 2, 'at the lowest level the 20 minute gap drops its label, the hour-long one keeps it, and both stay buttons');
+  check((await p.locator('.tlg-block').count()) === 5 && /Cal A.*08:00 to 09:00/.test((await p.locator('.tlg-block', { hasText: 'Cal A' }).or(p.locator('.tlg-block[aria-label^="Cal A"]')).first().getAttribute('aria-label')) ?? ''), 'blocks keep their accessible names at every level');
+  check((await p.locator('.tlg-findings').innerText()).includes('Gap 09:00–09:20 (20 min)'), 'the findings do not change with the zoom');
+  await p.evaluate(() => localStorage.setItem('timeline-zoom', 'nonsense'));
+  await p.reload();
+  await p.locator('.tlg-col').first().waitFor();
+  check((await hourPx()) === 60, 'an unknown remembered zoom falls back to 60 px per hour');
   await p.close();
 
   const narrow = await open('calendar-narrow', { viewport: { width: 375, height: 800 }, hash: '#/time/calendar' });
@@ -650,6 +680,12 @@ const addTag = async (p, scope, name) => {
   check((await overflow(narrow)) <= 0, `375 px: no horizontal scroll on the Calendar day (${await overflow(narrow)})`);
   await narrow.getByRole('button', { name: 'Week', exact: true }).click();
   check((await narrow.locator('.tlg-col').count()) === 7 && (await overflow(narrow)) <= 0, `375 px: Week fits without horizontal scroll (${await overflow(narrow)})`);
+  const nzin = narrow.getByRole('button', { name: 'Zoom in' });
+  await nzin.click();
+  await nzin.click();
+  const box = await nzin.boundingBox();
+  check(box && box.x >= 0 && box.x + box.width <= 375, '375 px: the zoom buttons are on screen');
+  check((await overflow(narrow)) <= 0, `375 px: no horizontal scroll when zoomed in (${await overflow(narrow)})`);
   await narrow.close();
 }
 

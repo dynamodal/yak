@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addDays } from './dates';
 import { type EntryRecord } from './entries';
 import { at, useTimeZone } from './testing';
-import { cutByDay, drawnPosition, entryBlocks, findGaps, findOverlaps, layoutLanes, minutesText, spansTouching } from './timeline';
+import { blockText, cutByDay, DEFAULT_HOUR_PX, drawnBox, drawnPosition, gapLabelFits, minutesToPx, openingScrollTop, pxToMinutes, scrollForZoom, ZOOM_LEVELS, zoomLevel, zoomStep, entryBlocks, findGaps, findOverlaps, layoutLanes, minutesText, spansTouching } from './timeline';
 
 const MIN = 60_000;
 const H = 60 * MIN;
@@ -148,5 +148,90 @@ describe('entryBlocks and text', () => {
   });
   it('words minutes', () => {
     expect([minutesText(50 * MIN), minutesText(H), minutesText(65 * MIN), minutesText(10)]).toEqual(['50 min', '1 h', '1 h 5 min', '1 min']);
+  });
+});
+
+describe('scale (T-68d)', () => {
+  useTimeZone('Europe/Berlin');
+  const MIN = 60_000;
+
+  it('knows its levels, the default among them, and reads anything else as the default', () => {
+    expect(ZOOM_LEVELS).toContain(DEFAULT_HOUR_PX);
+    expect(DEFAULT_HOUR_PX).toBe(60);
+    for (const px of ZOOM_LEVELS) expect(zoomLevel(px)).toBe(px);
+    for (const bad of [undefined, null, 0, -60, 90, NaN, '60', 'x']) expect(zoomLevel(bad)).toBe(60);
+  });
+
+  it('steps one level and stops at the ends', () => {
+    expect(zoomStep(60, 1)).toBe(120);
+    expect(zoomStep(60, -1)).toBe(30);
+    expect(zoomStep(ZOOM_LEVELS[ZOOM_LEVELS.length - 1] as number, 1)).toBe(ZOOM_LEVELS[ZOOM_LEVELS.length - 1]);
+    expect(zoomStep(ZOOM_LEVELS[0] as number, -1)).toBe(ZOOM_LEVELS[0]);
+    expect(zoomStep(77, 1)).toBe(120);
+  });
+
+  it('converts minutes and pixels both ways at every level', () => {
+    for (const px of ZOOM_LEVELS) {
+      expect(minutesToPx(60, px)).toBe(px);
+      expect(pxToMinutes(minutesToPx(95, px), px)).toBeCloseTo(95);
+    }
+  });
+
+  it('the top level makes five minutes tall enough for a line of text', () => {
+    const top = ZOOM_LEVELS[ZOOM_LEVELS.length - 1] as number;
+    expect(blockText(minutesToPx(5, top)).title).toBe(true);
+    expect(blockText(minutesToPx(5, DEFAULT_HOUR_PX)).title).toBe(false);
+    expect(blockText(minutesToPx(15, DEFAULT_HOUR_PX)).title).toBe(true);
+    expect(blockText(minutesToPx(15, DEFAULT_HOUR_PX)).subtitle).toBe(false);
+    expect(blockText(minutesToPx(60, DEFAULT_HOUR_PX)).subtitle).toBe(true);
+  });
+
+  it('the shortest gap keeps its label at 60 px per hour and drops it at 30', () => {
+    expect(gapLabelFits(minutesToPx(15, 60))).toBe(true);
+    expect(gapLabelFits(minutesToPx(15, 30))).toBe(false);
+    expect(gapLabelFits(minutesToPx(15, 240))).toBe(true);
+  });
+
+  it('draws a box from the drawn position and keeps thin ones visible', () => {
+    expect(drawnBox({ top: 90, bottom: 150 }, 60)).toEqual({ top: 90, height: 60 });
+    expect(drawnBox({ top: 90, bottom: 150 }, 240)).toEqual({ top: 360, height: 240 });
+    expect(drawnBox({ top: 90, bottom: 150 }, 30)).toEqual({ top: 45, height: 30 });
+    expect(drawnBox({ top: 90, bottom: 91 }, 30, 4).height).toBe(4);
+    expect(drawnBox({ top: 90, bottom: 91 }, 240, 4).height).toBe(4);
+  });
+
+  it('on a 25-hour day the repeated hour is one row at every scale', () => {
+    const dayStart = at(2026, 10, 25);
+    const start = at(2026, 10, 25, 2, 50);
+    const pos = drawnPosition(start, start + 40 * MIN, dayStart);
+    expect(drawnBox(pos, 60)).toEqual({ top: 170, height: 10 });
+    expect(drawnBox(pos, 120)).toEqual({ top: 340, height: 20 });
+    expect(drawnBox(pos, 240)).toEqual({ top: 680, height: 40 });
+  });
+
+  it('on a 23-hour day an entry after the change sits at its wall clock position', () => {
+    const dayStart = at(2026, 3, 29);
+    const pos = drawnPosition(at(2026, 3, 29, 3), at(2026, 3, 29, 4), dayStart);
+    expect(drawnBox(pos, 60)).toEqual({ top: 180, height: 60 });
+    expect(drawnBox(pos, 240)).toEqual({ top: 720, height: 240 });
+  });
+
+  it('opens 30 minutes before the first entry, or at 08:00, at any scale', () => {
+    expect(openingScrollTop(9 * 60, 60)).toBe(510);
+    expect(openingScrollTop(9 * 60, 240)).toBe(2040);
+    expect(openingScrollTop(undefined, 60)).toBe(480);
+    expect(openingScrollTop(undefined, 30)).toBe(240);
+    expect(openingScrollTop(10, 240)).toBe(0);
+  });
+
+  it('keeps the middle of the visible grid on the same time when the scale changes', () => {
+    const view = 400;
+    for (const [from, to] of [[60, 120], [120, 60], [60, 240], [240, 30]] as const) {
+      const scrollTop = 2000;
+      const middleBefore = pxToMinutes(scrollTop + view / 2, from);
+      const next = scrollForZoom(scrollTop, view, from, to);
+      expect(pxToMinutes(next + view / 2, to)).toBeCloseTo(middleBefore);
+    }
+    expect(scrollForZoom(0, 400, 120, 30)).toBe(0);
   });
 });

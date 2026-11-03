@@ -202,7 +202,8 @@ function SplitControl({ entry, onSplit }: { entry: EntryRecord; onSplit(at: numb
   );
 }
 
-function EntryEditPanel({ entry, data, onClose }: { entry: EntryRecord; data: TimeData; onClose(): void }) {
+/** The editor of one entry: fields, times, split. The Calendar opens it in a dialog; `data` is the entry's own space. */
+export function EntryEditPanel({ entry, data, onClose }: { entry: EntryRecord; data: TimeData; onClose(): void }) {
   const [error, setError] = useState('');
   const patch = (p: Partial<Values>): void => {
     const r = editEntry(data.privateDoc, entry.id, p);

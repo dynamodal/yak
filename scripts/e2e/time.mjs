@@ -565,7 +565,7 @@ const addTag = async (p, scope, name) => {
 // ---- calendar: blocks, gap, overlap, Day and Week, remembered view, narrow width ----
 {
   const addAt = async (p, description, from, to) => {
-    await p.getByRole('button', { name: 'Add entry' }).click();
+    await p.locator('.add-entry').click();
     const dlg = p.getByRole('dialog', { name: 'Add entry' });
     await dlg.getByLabel('Description', { exact: true }).fill(description);
     await dlg.getByLabel('From').fill(from);
@@ -593,8 +593,42 @@ const addTag = async (p, scope, name) => {
   check((await p.locator('.tlg-block').count()) === 0 && (await p.getByText('No gaps or overlaps').count()) === 1, 'Previous shows the day before, empty');
   await p.getByRole('button', { name: 'Today', exact: true }).click();
   check((await p.locator('.tlg-block').count()) === 3, 'Today comes back');
+  // ---- fixes (slice 2): block opens the editor, gap actions, overlap trim with Undo, a contained entry ----
+  const hm = (iso) => (iso ? new Date(iso).toTimeString().slice(0, 5) : null);
+  const stopOf = async (d) => hm((await all(p)).find((e) => e.description === d)?.stop);
+  await p.locator('.tlg-block', { hasText: 'Cal A' }).click();
+  const editor = p.getByRole('dialog', { name: 'Edit entry' });
+  await editor.waitFor();
+  check((await editor.getByLabel('Entry Description').count()) + (await editor.getByRole('button', { name: 'Done' }).count()) > 0, 'a block opens the entry editor');
+  await editor.getByRole('button', { name: 'Done' }).click();
+  await p.locator('.tlg-gap').click();
+  const manual = p.getByRole('dialog', { name: 'Add entry' });
+  await manual.waitFor();
+  check((await manual.getByLabel('From').inputValue()) === '09:00' && (await manual.getByLabel('To').inputValue()) === '09:20', 'a gap opens Add entry with its times filled in');
+  await p.keyboard.press('Escape');
+  await p.getByRole('button', { name: /^Extend previous/ }).click();
+  await poll(async () => (await stopOf('Cal A')) === '09:20');
+  check((await stopOf('Cal A')) === '09:20' && (await p.locator('.tlg-gap').count()) === 0, 'Extend previous ends the entry before the gap where the gap ended');
+  await p.getByRole('button', { name: 'Undo' }).click();
+  await poll(async () => (await stopOf('Cal A')) === '09:00');
+  check((await stopOf('Cal A')) === '09:00', 'Undo puts the gap back');
+  await p.getByRole('button', { name: /^Trim first/ }).click();
+  await poll(async () => (await stopOf('Cal B')) === '09:45');
+  check((await stopOf('Cal B')) === '09:45' && (await p.locator('.tlg-overlap').count()) === 0, 'Trim first ends the first entry where the second starts');
+  await p.getByRole('button', { name: 'Undo' }).click();
+  await poll(async () => (await stopOf('Cal B')) === '10:00');
+  check((await stopOf('Cal B')) === '10:00' && (await p.locator('.tlg-overlap').count()) === 1, 'Undo restores the overlap');
+  await addAt(p, 'Cal D', '05:00', '07:00');
+  await addAt(p, 'Cal E', '05:30', '06:00');
+  const parts = async () => (await all(p)).filter((e) => e.description === 'Cal D').map((e) => `${hm(e.start)}-${hm(e.stop)}`).sort();
+  await p.getByRole('button', { name: /^Split around inner/ }).click();
+  await poll(async () => (await parts()).length === 2);
+  check(JSON.stringify(await parts()) === JSON.stringify(['05:00-05:30', '06:00-07:00']) && (await all(p)).filter((e) => e.description === 'Cal E').length === 1, 'one entry inside another: the outer one is split around it and nothing is deleted');
+  await p.getByRole('button', { name: 'Undo' }).click();
+  await poll(async () => (await parts()).length === 1);
+  check(JSON.stringify(await parts()) === JSON.stringify(['05:00-07:00']), 'Undo joins the split back');
   await p.getByRole('button', { name: 'Week', exact: true }).click();
-  check((await p.locator('.tlg-col').count()) === 7 && (await p.locator('.tlg-block').count()) === 3, 'Week shows seven columns');
+  check((await p.locator('.tlg-col').count()) === 7 && (await p.locator('.tlg-block').count()) === 5, 'Week shows seven columns');
   await p.reload();
   await p.locator('.tlg-col').first().waitFor();
   check((await p.locator('.tlg-col').count()) === 7, 'the Week choice is remembered');

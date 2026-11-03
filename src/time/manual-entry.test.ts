@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { endsNextDay, manualDefaults, manualProblem, manualRange } from './manual-entry';
+import { endsNextDay, manualDefaults, manualProblem, manualRange, manualTimes } from './manual-entry';
 import { at } from './testing';
 
 describe('manual entry helpers', () => {
@@ -29,5 +29,17 @@ describe('manual entry messages', () => {
     expect(endsNextDay('09:00', '09:00')).toBe(false);
     expect(endsNextDay('9:00', '10:00')).toBe(false);
     expect(endsNextDay('', '10:00')).toBe(false);
+  });
+});
+
+describe('manualTimes', () => {
+  it('rounds inward to whole minutes so the entry stays inside the gap', () => {
+    const start = new Date(2026, 2, 4, 9, 0, 30).getTime();
+    const end = new Date(2026, 2, 4, 9, 20, 40).getTime();
+    expect(manualTimes(start, end)).toEqual({ date: '2026-03-04', from: '09:01', to: '09:20' });
+  });
+  it('still gives a usable minute when the gap is shorter than one', () => {
+    const start = new Date(2026, 2, 4, 9, 0, 10).getTime();
+    expect(manualTimes(start, start + 20_000)).toEqual({ date: '2026-03-04', from: '09:00', to: '09:01' });
   });
 });

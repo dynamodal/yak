@@ -4,7 +4,7 @@ import { Button, Dialog, IconBillable, toast } from '../app/ui';
 import { ensureTag } from './catalog';
 import { addManualEntry } from './entries';
 import { type TimeData, useCatalogs } from './hooks';
-import { endsNextDay, manualDefaults, manualProblem, manualRange } from './manual-entry';
+import { endsNextDay, manualDefaults, manualProblem, manualRange, manualTimes } from './manual-entry';
 import { ProjectPicker, TagPicker } from './pickers';
 import { DescriptionField } from './widgets';
 
@@ -23,11 +23,11 @@ const EMPTY: Form = { description: '', project_id: null, tags: [], billable: fal
  * "Add entry" on the Time page (F-33m): the form for a finished entry that the timer bar used to hold as its clock mode.
  * Description, project, tags, billable, a date and a from and to time; a to time before from means the next day; equal times are rejected.
  */
-export function ManualEntryDialog({ data, onClose }: { data: TimeData; onClose(): void }) {
+export function ManualEntryDialog({ data, onClose, initial }: { data: TimeData; onClose(): void; /** Start and stop (epoch ms) to fill in, instead of the past hour. */ initial?: { start: number; end: number } }) {
   const { setSpaceId } = useApp();
   const catalogs = useCatalogs();
   const [form, setForm] = useState<Form>(EMPTY);
-  const [times, setTimes] = useState(() => manualDefaults());
+  const [times, setTimes] = useState(() => (initial ? manualTimes(initial.start, initial.end) : manualDefaults()));
   const [error, setError] = useState('');
   const spaceId = form.spaceId ?? data.spaceId;
   const space = catalogs.find((c) => c.spaceId === spaceId);

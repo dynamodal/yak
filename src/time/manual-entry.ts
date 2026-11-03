@@ -10,6 +10,14 @@ export function manualDefaults(now: number = Date.now()): { date: string; from: 
   return { date: dayKey(from), from: timeOf(from), to: timeOf(to) };
 }
 
+/** The form's starting values for a given stretch (a gap on the Calendar): whole minutes, rounded inward so the entry never overlaps its neighbours. */
+export function manualTimes(start: number, end: number): { date: string; from: string; to: string } {
+  const from = Math.ceil(start / 60000) * 60000;
+  const to = Math.floor(end / 60000) * 60000;
+  if (to <= from) return { date: dayKey(start), from: timeOf(Math.floor(start / 60000) * 60000), to: timeOf(Math.floor(start / 60000) * 60000 + 60000) };
+  return { date: dayKey(from), from: timeOf(from), to: timeOf(to) };
+}
+
 /** Date and two times to a range; a stop before the start is on the next day; equal times are rejected. Null when a value is missing, malformed or equal. */
 export function manualRange(date: string, from: string, to: string): { start: number; stop: number } | null {
   const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);

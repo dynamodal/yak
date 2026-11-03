@@ -136,30 +136,6 @@ export function rangeDays(range: DateRange): string[] {
   return days;
 }
 
-export interface DaySlice {
-  day: string;
-  ms: number;
-}
-
-/**
- * Clip `[start, end)` to the range and cut it at local midnights. The pieces add up to the clipped
- * length, so an entry that crosses midnight, a range edge or a daylight-saving change is counted
- * exactly once for the time that really passed.
- */
-export function splitByDay(start: number, end: number, range: DateRange): DaySlice[] {
-  const s = Math.max(start, range.from);
-  const e = Math.min(end, range.to);
-  const out: DaySlice[] = [];
-  let cursor = s;
-  while (cursor < e) {
-    const next = addDays(cursor, 1);
-    const sliceEnd = Math.min(e, next);
-    out.push({ day: dayKey(cursor), ms: sliceEnd - cursor });
-    cursor = sliceEnd;
-  }
-  return out;
-}
-
 /** The last day a range covers, as a day key. */
 export function lastDayKey(range: DateRange): string {
   return dayKey(addDays(range.from, -1 + rangeDays(range).length));

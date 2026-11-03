@@ -35,3 +35,25 @@ export function savedJoinedView(parentId: string): string | undefined {
   const saved = savedTimerView();
   return saved !== undefined && joinedViews(parentId).some((v) => v.path === saved) ? saved : undefined;
 }
+
+const SPAN_KEY = 'timeline-span';
+
+export type TimelineSpan = 'day' | 'week';
+
+/** The Day or Week choice of the Calendar on this device; anything else stored (or no storage) reads as unset. */
+export function savedTimelineSpan(): TimelineSpan | undefined {
+  try {
+    const v = localStorage.getItem(SPAN_KEY);
+    return v === 'day' || v === 'week' ? v : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function rememberTimelineSpan(span: TimelineSpan): void {
+  try {
+    localStorage.setItem(SPAN_KEY, span);
+  } catch {
+    // ignore
+  }
+}

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { canStepNext, dayKey, dayLabel, dayShortLabel, parseDayKey, presetFor, rangeDays, resolveRange, splitByDay, startOfWeek, stepRange, toCustom } from './dates';
+import { canStepNext, dayKey, dayLabel, dayShortLabel, parseDayKey, presetFor, rangeDays, resolveRange, startOfWeek, stepRange, toCustom } from './dates';
+import { splitByDay } from '../core/split-by-day';
 import { at, useTimeZone } from './testing';
 
 const H = 3_600_000;

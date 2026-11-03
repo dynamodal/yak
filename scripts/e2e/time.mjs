@@ -562,6 +562,63 @@ const addTag = async (p, scope, name) => {
   await p.close();
 }
 
+// ---- calendar: blocks, gap, overlap, Day and Week, remembered view, narrow width ----
+{
+  const addAt = async (p, description, from, to) => {
+    await p.getByRole('button', { name: 'Add entry' }).click();
+    const dlg = p.getByRole('dialog', { name: 'Add entry' });
+    await dlg.getByLabel('Description', { exact: true }).fill(description);
+    await dlg.getByLabel('From').fill(from);
+    await dlg.getByLabel('To').fill(to);
+    await dlg.getByRole('button', { name: 'Add', exact: true }).click();
+    await dlg.waitFor({ state: 'detached' });
+  };
+  const p = await open('calendar', { clock: 'noon' });
+  await addAt(p, 'Cal A', '08:00', '09:00');
+  await addAt(p, 'Cal B', '09:20', '10:00');
+  await addAt(p, 'Cal C', '09:45', '10:30');
+  await p.getByRole('navigation', { name: 'Time views' }).getByRole('link', { name: 'Calendar' }).click();
+  await p.locator('.tlg-block').first().waitFor();
+  check(p.url().endsWith('#/time/calendar') && (await p.getByRole('navigation', { name: 'Time views' }).getByRole('link', { name: 'Calendar' }).getAttribute('aria-current')) === 'page', 'the Calendar segment opens #/time/calendar');
+  await p.getByRole('button', { name: 'Day', exact: true }).click();
+  check((await p.locator('.tlg-block').count()) === 3 && (await p.locator('.tlg-gap').count()) === 1 && (await p.locator('.tlg-overlap').count()) === 1, 'Day shows three blocks, one dashed gap and one hatched overlap');
+  check((await p.locator('.tlg-gap').innerText()).includes('20 min gap'), 'the gap says how long it is, in text');
+  const list = p.getByRole('region', { name: 'Gaps and overlaps' }).or(p.locator('.tlg-findings'));
+  const listText = await list.innerText();
+  check(listText.includes('Gap 09:00–09:20 (20 min)') && listText.includes('Overlap 09:45–10:00 (15 min): Cal B and Cal C'), 'the Gaps and overlaps list repeats the findings');
+  check(/Cal A.*08:00 to 09:00/.test((await p.locator('.tlg-block').first().getAttribute('aria-label')) ?? ''), 'blocks are focusable and labelled with their times');
+  const top = await p.locator('.tlg-scroll').evaluate((el) => el.scrollTop);
+  check(top > 0 && top <= 8 * 60, `the grid opens just before the first entry (scrolled ${top} px)`);
+  await p.getByRole('button', { name: 'Previous day' }).click();
+  check((await p.locator('.tlg-block').count()) === 0 && (await p.getByText('No gaps or overlaps').count()) === 1, 'Previous shows the day before, empty');
+  await p.getByRole('button', { name: 'Today', exact: true }).click();
+  check((await p.locator('.tlg-block').count()) === 3, 'Today comes back');
+  await p.getByRole('button', { name: 'Week', exact: true }).click();
+  check((await p.locator('.tlg-col').count()) === 7 && (await p.locator('.tlg-block').count()) === 3, 'Week shows seven columns');
+  await p.reload();
+  await p.locator('.tlg-col').first().waitFor();
+  check((await p.locator('.tlg-col').count()) === 7, 'the Week choice is remembered');
+  await p.evaluate(() => { location.hash = '#/time'; });
+  await p.locator('.tlg-col').first().waitFor();
+  check(true, 'a bare #/time opens the Calendar when it was the last view');
+  await p.evaluate(() => { localStorage.setItem('timer-view', 'nonsense'); localStorage.setItem('timeline-span', 'nonsense'); });
+  await p.reload();
+  await p.getByRole('navigation', { name: 'Time views' }).waitFor();
+  check((await p.locator('.tlg-col').count()) === 0 && (await rows(p).count()) > 0, 'an unknown remembered view falls back to the List');
+  await p.evaluate(() => { location.hash = '#/time/calendar'; });
+  await p.locator('.tlg-col').first().waitFor();
+  check((await p.locator('.tlg-col').count()) === 7, 'an unknown remembered span falls back to Week on a wide screen');
+  await p.close();
+
+  const narrow = await open('calendar-narrow', { viewport: { width: 375, height: 800 }, hash: '#/time/calendar' });
+  await narrow.locator('.tlg-col').first().waitFor();
+  check((await narrow.locator('.tlg-col').count()) === 1, '375 px: the Calendar opens on Day');
+  check((await overflow(narrow)) <= 0, `375 px: no horizontal scroll on the Calendar day (${await overflow(narrow)})`);
+  await narrow.getByRole('button', { name: 'Week', exact: true }).click();
+  check((await narrow.locator('.tlg-col').count()) === 7 && (await overflow(narrow)) <= 0, `375 px: Week fits without horizontal scroll (${await overflow(narrow)})`);
+  await narrow.close();
+}
+
 // ---- narrow screens: 375 px phone, 360 px "mini" window ----
 for (const viewport of [{ width: 375, height: 800 }, { width: 360, height: 560 }]) {
   const w = viewport.width;

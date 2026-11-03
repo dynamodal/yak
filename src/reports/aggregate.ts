@@ -6,10 +6,10 @@ import {
   dayLabel,
   parseDayKey,
   rangeDays,
-  splitByDay,
   startOfMonth,
   startOfWeek,
 } from './dates';
+import { splitByDay } from '../core/split-by-day';
 
 /**
  * Report aggregation: plain functions over plain data, no Yjs and no DOM, so every rule here is

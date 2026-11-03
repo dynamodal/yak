@@ -22,10 +22,11 @@ registerView({
   path: 'time',
   icon: IconClock,
   order: 10,
-  // The List | Week switch; views that join the page (Reports) add their own segments after these.
+  // The List | Week | Calendar switch; views that join the page (Reports) add their own segments after these.
   modes: [
     { id: 'list', label: 'List' },
     { id: 'week', label: 'Week' },
+    { id: 'calendar', label: 'Calendar' },
   ],
   component: TimerView,
 });

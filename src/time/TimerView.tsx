@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { lazyComponent } from '../app/lazy';
 import { Button, IconPlus, Page } from '../app/ui';
 import { addDays, startOfDay } from './dates';
 import { BulkEntries } from './EntrySelection';
@@ -7,18 +8,23 @@ import { WeekEntries } from './EntriesView';
 import { recentlyDeleted, startMs } from './entries';
 import { savedTimerView } from '../app/timer-views';
 import type { ViewProps } from '../app/registry';
-import { useAllTime } from './hooks';
+import { type AllTime, useAllTime } from './hooks';
 import { ManualEntryDialog } from './ManualEntryDialog';
 import { entriesInRange, groupByDay } from './stats';
 import { TimerPageHeader } from '../app/views/TimerPageHeader';
 
 const PAGE_DAYS = 7;
 
-type Mode = 'list' | 'week';
+/** The calendar loads when first opened; it is the only part of the Time page with a grid to draw. */
+const Timeline = lazyComponent<{ all: AllTime }>(() => import('./TimelineView'));
+
+type Mode = 'list' | 'week' | 'calendar';
 
 /** The view shown: the one in the address, else the last used (X24; a remembered Reports opens through the shell); storage may be unavailable. */
 function modeFor(picked: Mode | undefined): Mode {
-  return picked ?? (savedTimerView() === 'week' ? 'week' : 'list');
+  if (picked) return picked;
+  const saved = savedTimerView();
+  return saved === 'week' || saved === 'calendar' ? saved : 'list';
 }
 
 export function TimerView({ params }: ViewProps) {
@@ -26,7 +32,7 @@ export function TimerView({ params }: ViewProps) {
   const { data } = all;
   const [days, setDays] = useState(PAGE_DAYS);
   const [adding, setAdding] = useState(false);
-  const picked: Mode | undefined = params[0] === 'week' || params[0] === 'list' ? params[0] : undefined;
+  const picked: Mode | undefined = params[0] === 'week' || params[0] === 'list' || params[0] === 'calendar' ? params[0] : undefined;
   const mode = modeFor(picked);
   const now = Date.now();
   const todayStart = startOfDay(now);
@@ -49,7 +55,9 @@ export function TimerView({ params }: ViewProps) {
           }
         />
         {adding && <ManualEntryDialog data={data} onClose={() => setAdding(false)} />}
-        {mode === 'week' ? (
+        {mode === 'calendar' ? (
+          <Timeline all={all} />
+        ) : mode === 'week' ? (
           <WeekEntries all={all} />
         ) : (
           <div class="tl-list">

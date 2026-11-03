@@ -28,7 +28,7 @@ const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
   check((await p.locator('.tabs button, .tabs [aria-haspopup]').count()) === 0, 'wide: no tab opens a menu');
   check((await p.locator('.tabs a', { hasText: /^Reports$/ }).count()) === 0, 'wide: Reports is not a tab');
   const views = p.getByRole('navigation', { name: 'Time views' });
-  check((await views.getByRole('link').allInnerTexts()).join() === 'List,Week,Reports', 'wide: the Time page switch is List, Week, Reports');
+  check((await views.getByRole('link').allInnerTexts()).join() === 'List,Week,Calendar,Reports', 'wide: the Time page switch is List, Week, Calendar, Reports');
   await views.getByRole('link', { name: 'Reports' }).click();
   await p.locator('.rp-nav').waitFor();
   check((await route(p)) === '#/time/reports' && (await p.locator('.tabs a.active').innerText()) === 'Time', 'wide: Reports opens at #/time/reports with the Time tab lit');

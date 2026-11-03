@@ -1,3 +1,4 @@
+import { afterEach, beforeEach } from 'vitest';
 import * as Y from 'yjs';
 import { initSpaceDoc } from '../core/schema';
 import type { TimeDocs } from './entries';
@@ -35,3 +36,16 @@ export function mulberry32(seed: number): () => number {
 }
 
 export const at = (y: number, mo: number, d: number, h = 0, mi = 0, s = 0): number => new Date(y, mo - 1, d, h, mi, s).getTime();
+
+/** Run the tests of a `describe` block in a given time zone, restoring the previous one afterwards. */
+export function useTimeZone(tz: string): void {
+  let previous: string | undefined;
+  beforeEach(() => {
+    previous = process.env.TZ;
+    process.env.TZ = tz;
+  });
+  afterEach(() => {
+    if (previous === undefined) delete process.env.TZ;
+    else process.env.TZ = previous;
+  });
+}

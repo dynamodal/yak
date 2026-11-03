@@ -10,7 +10,7 @@ import { isoToMs } from './dates';
  * and the bulk transaction (`tx`, from `bulkEdit`), so one action is one Undo. Running entries are
  * left alone: they are being timed. Entries are edited in the space they live in.
  */
-interface SpaceHandle {
+export interface SpaceHandle {
   /** The space's main document: projects, clients, tags. */
   doc: Y.Doc;
   /** The space's time document: `time_entries`. */

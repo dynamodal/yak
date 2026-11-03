@@ -21,6 +21,12 @@
 .tlg-now { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid var(--danger); z-index: 3; pointer-events: none; }
 .tlg-findings { margin-top: var(--space-4); }
 .tlg-list { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: var(--space-1); }
+.tlg-actions { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); margin-left: var(--space-2); vertical-align: middle; }
+.tlg-actions > button { padding: 0.15rem 0.6rem; font-size: var(--text-sm); }
+.tlg-list > li { margin-bottom: var(--space-2); }
+button.tlg-block { text-align: left; font: inherit; font-size: var(--text-xs); cursor: pointer; }
+button.tlg-gap { background: none; font: inherit; font-size: var(--text-xs); cursor: pointer; padding: 0; }
+button.tlg-gap:hover { background: var(--warn-wash); }
 .tlg-note { margin: 0 0 var(--space-2); font-size: var(--text-sm); }
 .tlg-page .seg button { font: inherit; display: inline-flex; align-items: center; min-height: calc(var(--control-h) - 2px); padding: 0 var(--space-3); color: var(--text); background: none; border: 0; border-radius: 0; cursor: pointer; }
 .tlg-page .seg button + button { border-left: 1px solid var(--border); }

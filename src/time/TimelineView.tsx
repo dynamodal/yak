@@ -2,11 +2,16 @@ import './timeline.css';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { rememberTimelineSpan, savedTimelineSpan, type TimelineSpan } from '../app/timer-views';
 import { useNow } from '../app/hooks';
-import { Button, IconChevronLeft, IconChevronRight, useMedia } from '../app/ui';
+import { Button, Dialog, IconChevronLeft, IconChevronRight, toast, useMedia } from '../app/ui';
 import { addDays, dayKey, startOfDay } from './dates';
+import { EntryEditPanel } from './entry-ui';
+import { isRunning, startMs } from './entries';
 import { formatDayLabel } from './format';
+import { ManualEntryDialog } from './ManualEntryDialog';
 import { type AllTime, useSpaceName } from './hooks';
 import { weekRange } from './stats';
+import { type FixEntry, type Plan, type Reader, type Ref, planExtendPrevious, planSplitAround, planStartNextEarlier, planTrimFirst, planTrimSecond, isInside, runFix } from './timeline-fix';
+import { isoToMs } from './dates';
 import {
   clockText,
   cutByDay,
@@ -52,6 +57,8 @@ export default function TimelineView({ all }: { all: AllTime }) {
   const [anchor, setAnchor] = useState(() => Date.now());
   const now = useNow(30_000);
   const spaceName = useSpaceName();
+  const [editing, setEditing] = useState<Ref | null>(null);
+  const [adding, setAdding] = useState<{ start: number; end: number } | null>(null);
   const { weekStart } = all.data;
   const setSpan = (s: TimelineSpan): void => {
     setSpanState(s);
@@ -91,6 +98,20 @@ export default function TimelineView({ all }: { all: AllTime }) {
     const firstMinute = blocks.length ? Math.min(...blocks.map((b) => wallMinutes(b.start, startOfDay(b.start)))) : DEFAULT_TOP_HOUR * 60;
     el.scrollTop = Math.max(0, ((blocks.length ? firstMinute - LEAD_MINUTES : firstMinute) / 60) * HOUR_PX);
   }, [range.from, span]);
+
+  const handles = useMemo(() => new Map([...all.slices].map(([id, s]) => [id, { doc: s.doc, privateDoc: s.privateDoc }])), [all.slices]);
+  const fixes = useMemo(
+    () => new Map(all.entries.map((e): [string, FixEntry] => [e.id, { id: e.id, spaceId: e.spaceId ?? all.data.spaceId, start: startMs(e), end: isRunning(e) ? null : isoToMs(e.stop), title: e.description }])),
+    [all.entries, all.data.spaceId],
+  );
+  const refOf = (f: FixEntry | undefined): Ref | undefined => f && { spaceId: f.spaceId, id: f.id };
+  /** Plan from the entries as they are now, make the edits in their own space as one change, and offer Undo. */
+  const fix = (planner: (read: Reader) => Plan): void => {
+    const r = runFix(handles, all.data.deviceId, planner, Date.now());
+    if (r.ok) toast(r.message, { action: { label: 'Undo', run: r.undo } });
+    else toast(r.reason);
+  };
+  const editingEntry = editing ? all.entries.find((e) => e.id === editing.id) : undefined;
 
   const filtered = all.multi && all.filter !== 'all';
   const isCurrent = range.from <= now && now < range.to;
@@ -139,7 +160,7 @@ export default function TimelineView({ all }: { all: AllTime }) {
               ))}
             </div>
             {days.map((d) => (
-              <DayColumn key={d} dayStart={d} blocks={blocks} found={found} overlapping={overlapping} now={now} label={label(d)} />
+              <DayColumn key={d} dayStart={d} blocks={blocks} found={found} overlapping={overlapping} now={now} label={label(d)} spaceOf={(id) => fixes.get(id)?.spaceId} onOpen={(ref) => setEditing(ref)} onAdd={(g) => setAdding(g)} />
             ))}
           </div>
         </div>
@@ -155,20 +176,73 @@ export default function TimelineView({ all }: { all: AllTime }) {
         ) : (
           <ul class="tlg-list">
             {[
-              ...found.gaps.map((g) => ({ at: g.start, key: `g${g.start}`, text: gapText(g, label(g.dayStart), span) })),
-              ...found.overlaps.map((o) => ({
-                at: o.start,
-                key: `o${o.firstId}${o.secondId}${o.start}`,
-                text: `${span === 'week' ? `${label(o.dayStart)}: ` : ''}Overlap ${clockText(o.start)}–${clockText(o.end)} (${minutesText(o.end - o.start)}): ${describe(o.firstId)} and ${describe(o.secondId)}${all.multi ? ` (${spaceOf(o.firstId)}, ${spaceOf(o.secondId)})` : ''}`,
-              })),
+              ...found.gaps.map((g) => {
+                const list = [...fixes.values()];
+                const prev = list.find((f) => f.end === g.start);
+                const next = list.find((f) => f.start === g.end);
+                const actions: Action[] = [{ label: 'Add entry', run: () => setAdding({ start: g.start, end: g.end }) }];
+                if (prev && planExtendPrevious(prev, g).ok) {
+                  actions.push({ label: 'Extend previous', name: `Extend previous: ${quote(prev.title)}`, run: () => fix((read) => planExtendPrevious(read(refOf(prev) as Ref), g)) });
+                }
+                if (next && planStartNextEarlier(next, g).ok) {
+                  actions.push({ label: 'Start next earlier', name: `Start next earlier: ${quote(next.title)}`, run: () => fix((read) => planStartNextEarlier(read(refOf(next) as Ref), g)) });
+                }
+                return { at: g.start, key: `g${g.start}`, text: gapText(g, label(g.dayStart), span), actions, note: '' };
+              }),
+              ...found.overlaps.map((o) => {
+                const first = fixes.get(o.firstId);
+                const second = fixes.get(o.secondId);
+                const actions: Action[] = [];
+                const reasons: string[] = [];
+                if (first && second) {
+                  const [fr, sr] = [refOf(first) as Ref, refOf(second) as Ref];
+                  if (isInside(first, second, now)) {
+                    actions.push({ label: 'Split around inner', name: `Split around inner: ${quote(first.title)} around ${quote(second.title)}`, run: () => fix((read) => planSplitAround(read(fr), read(sr), Date.now())) });
+                  } else {
+                    const trimFirst = planTrimFirst(first, second, now);
+                    const trimSecond = planTrimSecond(first, second, now);
+                    if (trimFirst.ok) actions.push({ label: 'Trim first', name: `Trim first: end ${quote(first.title)} at ${clockText(second.start)}`, run: () => fix((read) => planTrimFirst(read(fr), read(sr), Date.now())) });
+                    else reasons.push(trimFirst.reason);
+                    if (trimSecond.ok) actions.push({ label: 'Trim second', name: `Trim second: start ${quote(second.title)} at ${first.end === null ? '' : clockText(first.end)}`, run: () => fix((read) => planTrimSecond(read(fr), read(sr), Date.now())) });
+                    else reasons.push(trimSecond.reason);
+                  }
+                  actions.push({ label: 'Edit first', name: `Edit first: ${quote(first.title)}`, run: () => setEditing(fr) });
+                  actions.push({ label: 'Edit second', name: `Edit second: ${quote(second.title)}`, run: () => setEditing(sr) });
+                }
+                return {
+                  at: o.start,
+                  key: `o${o.firstId}${o.secondId}${o.start}`,
+                  text: `${span === 'week' ? `${label(o.dayStart)}: ` : ''}Overlap ${clockText(o.start)}–${clockText(o.end)} (${minutesText(o.end - o.start)}): ${describe(o.firstId)} and ${describe(o.secondId)}${all.multi ? ` (${spaceOf(o.firstId)}, ${spaceOf(o.secondId)})` : ''}`,
+                  actions,
+                  note: reasons.length && !actions.some((a) => a.label.startsWith('Trim')) ? `No trim keeps a running timer going: ${reasons.join(' ')}` : '',
+                };
+              }),
             ]
               .sort((a, b) => a.at - b.at)
               .map((f) => (
-                <li key={f.key}>{f.text}</li>
+                <li key={f.key}>
+                  <span>{f.text}</span>
+                  {f.note && <span class="muted tlg-reason"> {f.note}</span>}
+                  <span class="tlg-actions">
+                    {f.actions.map((a) => (
+                      <Button key={a.label} aria-label={a.name} onClick={a.run}>
+                        {a.label}
+                      </Button>
+                    ))}
+                  </span>
+                </li>
               ))}
           </ul>
         )}
       </section>
+
+      {adding && <ManualEntryDialog data={all.data} initial={adding} onClose={() => setAdding(null)} />}
+      {editing && editingEntry && (
+        <Dialog label="Edit entry" class="manual-dialog" onClose={() => setEditing(null)}>
+          <h2 class="manual-title">Edit entry</h2>
+          <EntryEditPanel entry={editingEntry} data={all.slices.get(editing.spaceId) ?? all.data} onClose={() => setEditing(null)} />
+        </Dialog>
+      )}
     </div>
   );
 
@@ -178,11 +252,40 @@ export default function TimelineView({ all }: { all: AllTime }) {
   }
 }
 
+interface Action {
+  label: string;
+  /** The accessible name when it needs the entry's title. */
+  name?: string;
+  run(): void;
+}
+
+const quote = (title: string): string => `"${title || '(no description)'}"`;
+
 function gapText(g: Gap, dayLabelText: string, span: TimelineSpan): string {
   return `${span === 'week' ? `${dayLabelText}: ` : ''}Gap ${clockText(g.start)}–${clockText(g.end)} (${minutesText(g.end - g.start)})`;
 }
 
-function DayColumn({ dayStart, blocks, found, overlapping, now, label }: { dayStart: number; blocks: TimelineBlock[]; found: Found; overlapping: Set<string>; now: number; label: string }) {
+function DayColumn({
+  dayStart,
+  blocks,
+  found,
+  overlapping,
+  now,
+  label,
+  spaceOf,
+  onOpen,
+  onAdd,
+}: {
+  dayStart: number;
+  blocks: TimelineBlock[];
+  found: Found;
+  overlapping: Set<string>;
+  now: number;
+  label: string;
+  spaceOf(id: string): string | undefined;
+  onOpen(ref: Ref): void;
+  onAdd(span: { start: number; end: number }): void;
+}) {
   const key = dayKey(dayStart);
   const own = blocks.filter((b) => dayKey(b.start) === key);
   const placed = layoutLanes(own, dayStart);
@@ -194,9 +297,16 @@ function DayColumn({ dayStart, blocks, found, overlapping, now, label }: { daySt
       {gaps.map((g) => {
         const pos = drawnPosition(g.start, g.end, dayStart);
         return (
-          <div key={g.start} class="tlg-gap" style={{ top: `${px(pos.top)}px`, height: `${px(pos.bottom - pos.top)}px` }}>
+          <button
+            type="button"
+            key={g.start}
+            class="tlg-gap"
+            style={{ top: `${px(pos.top)}px`, height: `${px(pos.bottom - pos.top)}px` }}
+            aria-label={`${minutesText(g.end - g.start)} gap, ${clockText(g.start)} to ${clockText(g.end)}. Add an entry`}
+            onClick={() => onAdd({ start: g.start, end: g.end })}
+          >
             <span>{minutesText(g.end - g.start)} gap</span>
-          </div>
+          </button>
         );
       })}
       {placed.map((p) => {
@@ -205,12 +315,15 @@ function DayColumn({ dayStart, blocks, found, overlapping, now, label }: { daySt
         const finding = overlapping.has(`${b.id}@${key}`) ? 'Overlaps another entry. ' : '';
         const name = `${b.title}${b.subtitle ? `, ${b.subtitle}` : ''}. ${clockText(b.start)} to ${b.running ? 'now' : clockText(b.end)}, ${minutesText(b.end - b.start)}${b.running ? ', running' : ''}. ${finding}`.trim();
         return (
-          <div
+          <button
+            type="button"
             key={`${b.id}${b.start}`}
             class={`tlg-block${b.running ? ' running' : ''}`}
-            tabIndex={0}
-            role="group"
-            aria-label={name}
+            aria-label={`${name} Edit`}
+            onClick={() => {
+              const spaceId = spaceOf(b.id);
+              if (spaceId) onOpen({ spaceId, id: b.id });
+            }}
             style={{
               top: `${px(p.top)}px`,
               height: `${Math.max(px(p.bottom - p.top), 4)}px`,
@@ -221,7 +334,7 @@ function DayColumn({ dayStart, blocks, found, overlapping, now, label }: { daySt
           >
             <span class="tlg-title">{b.title}</span>
             {b.subtitle && <span class="tlg-sub">{b.subtitle}</span>}
-          </div>
+          </button>
         );
       })}
       {overlaps.map((o) => {

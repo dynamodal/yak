@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addManualEntry, isRunning, liveEntries, startTimer } from './entries';
 import type { Spaces } from './bulk-edit';
 import { at, makeSpaceDocs, useTimeZone } from './testing';
-import { type FixEntry, isInside, planExtendPrevious, planSplitAround, planStartNextEarlier, planTrimFirst, planTrimSecond, runFix } from './timeline-fix';
+import { type FixEntry, isInside, planExtendPrevious, planSplitAround, planStartNextEarlier, planDrag, planTrimFirst, planTrimSecond, runFix } from './timeline-fix';
 
 const MIN = 60_000;
 const H = 60 * MIN;
@@ -163,5 +163,45 @@ describe('real time on daylight-saving days', () => {
       expect(gap.end - gap.start).toBe(20 * MIN);
       expect(planExtendPrevious(a, gap)).toMatchObject({ ok: true, steps: [{ stop: gap.end }] });
     });
+  });
+});
+
+describe('drag plan', () => {
+  const a = e('a', at(2026, 3, 4, 9), at(2026, 3, 4, 10));
+  it('moves one edge', () => {
+    expect(planDrag(a, a, 'stop', at(2026, 3, 4, 10, 15))).toMatchObject({ ok: true, steps: [{ kind: 'edit', stop: at(2026, 3, 4, 10, 15) }] });
+    expect(planDrag(a, a, 'start', at(2026, 3, 4, 8, 30))).toMatchObject({ ok: true, steps: [{ kind: 'edit', start: at(2026, 3, 4, 8, 30) }] });
+  });
+  it('refuses when the entry changed or was deleted during the drag', () => {
+    expect(planDrag(undefined, a, 'stop', a.end as number).ok).toBe(false);
+    expect(planDrag(e('a', a.start, (a.end as number) + MIN), a, 'stop', a.start + 2 * H).ok).toBe(false);
+  });
+  it('writes nothing when nothing changes, and never crosses the other edge', () => {
+    expect(planDrag(a, a, 'stop', a.end as number).ok).toBe(false);
+    expect(planDrag(a, a, 'stop', a.start - MIN).ok).toBe(false);
+    expect(planDrag(a, a, 'start', (a.end as number) + MIN).ok).toBe(false);
+  });
+  it('gives a running entry no stop', () => {
+    const run = e('r', at(2026, 3, 4, 9), null);
+    expect(planDrag(run, run, 'stop', at(2026, 3, 4, 10)).ok).toBe(false);
+    expect(planDrag(run, run, 'start', at(2026, 3, 4, 8))).toMatchObject({ ok: true });
+  });
+});
+
+describe('runFix with a drag', () => {
+  useTimeZone('Europe/Berlin');
+  it('moves the edge in one change, Undo puts it back, and a changed entry is refused', () => {
+    const { spaces, add, ref, times } = setup();
+    const a = add('a', at(2026, 3, 4, 9), at(2026, 3, 4, 10));
+    const before = times();
+    const o = e('a', at(2026, 3, 4, 9), at(2026, 3, 4, 10));
+    const r = runFix(spaces, 'dev', (read) => planDrag(read(ref(a)), o, 'stop', at(2026, 3, 4, 10, 25)));
+    expect(r.ok).toBe(true);
+    expect(times()).toEqual([['a', at(2026, 3, 4, 9), at(2026, 3, 4, 10, 25)]]);
+    if (r.ok) r.undo();
+    expect(times()).toEqual(before);
+    const stale = runFix(spaces, 'dev', (read) => planDrag(read(ref(a)), e('a', at(2026, 3, 4, 9), at(2026, 3, 4, 10, 5)), 'stop', at(2026, 3, 4, 10, 25)));
+    expect(stale.ok).toBe(false);
+    expect(times()).toEqual(before);
   });
 });

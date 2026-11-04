@@ -672,6 +672,57 @@ const addTag = async (p, scope, name) => {
   await p.reload();
   await p.locator('.tlg-col').first().waitFor();
   check((await hourPx()) === 60, 'an unknown remembered zoom falls back to 60 px per hour');
+  // ---- dragging an edge (T-68e) ----
+  const blockA = () => p.locator('.tlg-block[aria-label^="Cal A"]');
+  const handleAt = async (which) => {
+    await blockA().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    const bb = await blockA().boundingBox();
+    return { x: bb.x + bb.width / 2, y: which === 'bottom' ? bb.y + bb.height - 2 : bb.y + 2 };
+  };
+  const dragBy = async (which, dy, { escape = false } = {}) => {
+    const h = await handleAt(which);
+    await p.mouse.move(h.x, h.y);
+    await p.mouse.down();
+    await p.mouse.move(h.x, h.y + dy / 2, { steps: 4 });
+    await p.mouse.move(h.x, h.y + dy, { steps: 4 });
+    await new Promise((r) => setTimeout(r, 100));
+    const tip = await p.locator('.tlg-tip').count() ? await p.locator('.tlg-tip').innerText() : '';
+    if (escape) await p.keyboard.press('Escape');
+    await p.mouse.up();
+    return tip;
+  };
+  const stopA = () => stopOf('Cal A');
+  const startA = async () => hm((await all(p)).find((e) => e.description === 'Cal A')?.start);
+  check((await p.locator('.tlg-handle').count()) > 0, 'blocks have edge handles');
+  const tip = await dragBy('bottom', 15);
+  await poll(async () => (await stopA()) === '09:15');
+  check((await stopA()) === '09:15' && tip.includes('08:00') && tip.includes('09:15'), `dragging the bottom edge 15 px sets the stop to 09:15, and the block shows it while dragging (${tip})`);
+  check((await p.getByRole('dialog', { name: 'Edit entry' }).count()) === 0, 'a drag does not also open the editor');
+  await p.getByRole('button', { name: 'Undo' }).click();
+  await poll(async () => (await stopA()) === '09:00');
+  check((await stopA()) === '09:00', 'Undo puts the stop back');
+  await dragBy('top', -30, { escape: true });
+  await new Promise((r) => setTimeout(r, 300));
+  check((await startA()) === '08:00' && (await stopA()) === '09:00', 'Esc during a drag leaves the entry unchanged');
+  await blockA().click({ position: { x: 20, y: 25 } });
+  await p.getByRole('dialog', { name: 'Edit entry' }).waitFor();
+  check(true, 'a plain click on a block still opens the editor');
+  await p.getByRole('dialog', { name: 'Edit entry' }).getByRole('button', { name: 'Done' }).click();
+  await zin.click();
+  await zin.click();
+  check((await hourPx()) === 240, 'zoomed in to 240 px per hour for the next drag');
+  await dragBy('top', -20);
+  await poll(async () => (await startA()) === '07:55', 3000).catch(() => undefined);
+  check((await startA()) === '07:55', `at 240 px per hour 20 px is five minutes: the start snaps to 07:55 (${await startA()})`);
+  await p.getByRole('button', { name: 'Undo' }).click();
+  await poll(async () => (await startA()) === '08:00');
+  await zout.click();
+  await zout.click();
+  await fillDesc(p, 'Cal Run');
+  await desc(p).press('Enter');
+  await p.locator('.tlg-block.running').first().waitFor();
+  const run = p.locator('.tlg-block.running').first();
+  check((await run.locator('.tlg-handle.bottom').count()) === 0 && (await run.locator('.tlg-handle.top').count()) === 1, 'a running entry has a start handle and no stop handle');
   await p.close();
 
   const narrow = await open('calendar-narrow', { viewport: { width: 375, height: 800 }, hash: '#/time/calendar' });

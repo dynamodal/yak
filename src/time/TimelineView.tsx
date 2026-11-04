@@ -10,7 +10,7 @@ import { formatDayLabel } from './format';
 import { ManualEntryDialog } from './ManualEntryDialog';
 import { type AllTime, useSpaceName } from './hooks';
 import { weekRange } from './stats';
-import { type FixEntry, type Plan, type Reader, type Ref, planExtendPrevious, planSplitAround, planStartNextEarlier, planTrimFirst, planTrimSecond, isInside, runFix } from './timeline-fix';
+import { type FixEntry, type Plan, type Reader, type Ref, planDrag, planExtendPrevious, planSplitAround, planStartNextEarlier, planTrimFirst, planTrimSecond, isInside, runFix } from './timeline-fix';
 import { isoToMs } from './dates';
 import {
   blockText,
@@ -18,10 +18,12 @@ import {
   cutByDay,
   drawnBox,
   drawnPosition,
+  dragEdge,
   gapLabelFits,
   MIN_BLOCK_PX,
   minutesToPx,
   openingScrollTop,
+  pxToMinutes,
   scrollForZoom,
   zoomLevel,
   zoomStep,
@@ -64,6 +66,8 @@ export default function TimelineView({ all }: { all: AllTime }) {
   const now = useNow(30_000);
   const spaceName = useSpaceName();
   const [editing, setEditing] = useState<Ref | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const coarse = useMedia('(pointer: coarse)');
   const [adding, setAdding] = useState<{ start: number; end: number } | null>(null);
   const [hourPx, setHourPxState] = useState(() => zoomLevel(savedTimelineZoom()));
   const { weekStart } = all.data;
@@ -129,6 +133,11 @@ export default function TimelineView({ all }: { all: AllTime }) {
     if (r.ok) toast(r.message, { action: { label: 'Undo', run: r.undo } });
     else toast(r.reason);
   };
+  /** A drag was released: move the edge in the entry's own space as one change, with Undo. */
+  const moveEdge = (orig: FixEntry, edge: 'start' | 'stop', time: number): void => {
+    const ref = refOf(orig) as Ref;
+    fix((read) => planDrag(read(ref), orig, edge, time));
+  };
   const editingEntry = editing ? all.entries.find((e) => e.id === editing.id) : undefined;
 
   const filtered = all.multi && all.filter !== 'all';
@@ -186,7 +195,7 @@ export default function TimelineView({ all }: { all: AllTime }) {
               ))}
             </div>
             {days.map((d) => (
-              <DayColumn key={d} dayStart={d} blocks={blocks} found={found} overlapping={overlapping} now={now} hourPx={hourPx} label={label(d)} spaceOf={(id) => fixes.get(id)?.spaceId} onOpen={(ref) => setEditing(ref)} onAdd={(g) => setAdding(g)} />
+              <DayColumn key={d} dayStart={d} blocks={blocks} found={found} overlapping={overlapping} now={now} hourPx={hourPx} label={label(d)} spaceOf={(id) => fixes.get(id)?.spaceId} entryOf={(id) => fixes.get(id)} coarse={coarse} selected={selected} onSelect={setSelected} onMove={moveEdge} onOpen={(ref) => setEditing(ref)} onAdd={(g) => setAdding(g)} />
             ))}
           </div>
         </div>
@@ -291,6 +300,19 @@ function gapText(g: Gap, dayLabelText: string, span: TimelineSpan): string {
   return `${span === 'week' ? `${dayLabelText}: ` : ''}Gap ${clockText(g.start)}–${clockText(g.end)} (${minutesText(g.end - g.start)})`;
 }
 
+/** An edge being dragged in a day column. `minutes` is the pointer's position on the wall clock of the day. */
+interface Drag {
+  id: string;
+  edge: 'start' | 'stop';
+  /** The entry as it was when the drag began. */
+  entry: FixEntry;
+  minutes: number;
+  downY: number;
+  moved: boolean;
+  pieceStart: number;
+  pieceEnd: number;
+}
+
 function DayColumn({
   dayStart,
   blocks,
@@ -300,6 +322,11 @@ function DayColumn({
   hourPx,
   label,
   spaceOf,
+  entryOf,
+  coarse,
+  selected,
+  onSelect,
+  onMove,
   onOpen,
   onAdd,
 }: {
@@ -311,16 +338,66 @@ function DayColumn({
   hourPx: number;
   label: string;
   spaceOf(id: string): string | undefined;
+  entryOf(id: string): FixEntry | undefined;
+  coarse: boolean;
+  selected: string | null;
+  onSelect(id: string | null): void;
+  onMove(entry: FixEntry, edge: 'start' | 'stop', time: number): void;
   onOpen(ref: Ref): void;
   onAdd(span: { start: number; end: number }): void;
 }) {
   const key = dayKey(dayStart);
+  const colRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const dragging = useRef<Drag | null>(null);
+  const swallowClick = useRef(false);
+  const canDrag = typeof window !== 'undefined' && 'PointerEvent' in window;
+  const show = (d: Drag | null): void => {
+    dragging.current = d;
+    setDrag(d);
+  };
+  /** End the drag; a drag that moved also swallows the click that follows the release. */
+  const finish = (commit: boolean): void => {
+    const d = dragging.current;
+    if (!d) return;
+    show(null);
+    if (!d.moved) return;
+    swallowClick.current = true;
+    setTimeout(() => (swallowClick.current = false), 250);
+    if (commit) {
+      const result = dragEdge(d.edge, d.minutes, { start: d.entry.start, end: d.entry.end ?? now }, dayStart);
+      if (result.changed) onMove(d.entry, d.edge, result.time);
+    }
+  };
+  useEffect(() => {
+    if (!drag) return;
+    const esc = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') finish(false);
+    };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [drag === null]);
+  const startDrag = (e: PointerEvent & { currentTarget: HTMLElement }, b: TimelineBlock, edge: 'start' | 'stop'): void => {
+    const entry = entryOf(b.id);
+    if (!entry || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    const minutes = pxToMinutes(e.clientY - (colRef.current?.getBoundingClientRect().top ?? 0), hourPx);
+    show({ id: b.id, edge, entry, minutes, downY: e.clientY, moved: false, pieceStart: b.start, pieceEnd: b.end });
+  };
+  const moveDrag = (e: PointerEvent & { currentTarget: HTMLElement }): void => {
+    const d = dragging.current;
+    if (!d) return;
+    const minutes = pxToMinutes(e.clientY - (colRef.current?.getBoundingClientRect().top ?? 0), hourPx);
+    show({ ...d, minutes, moved: d.moved || Math.abs(e.clientY - d.downY) > 3 });
+  };
   const own = blocks.filter((b) => dayKey(b.start) === key);
   const placed = layoutLanes(own, dayStart);
   const gaps = found.gaps.filter((g) => g.day === key);
   const overlaps = found.overlaps.filter((o) => o.day === key);
   return (
-    <div class="tlg-col" role="group" aria-label={label}>
+    <div class="tlg-col" role="group" aria-label={label} ref={colRef}>
       {gaps.map((g) => {
         const box = drawnBox(drawnPosition(g.start, g.end, dayStart), hourPx);
         return (
@@ -339,8 +416,25 @@ function DayColumn({
       {placed.map((p) => {
         const b = p.item;
         const lanes = p.lanes;
-        const box = drawnBox(p, hourPx, MIN_BLOCK_PX);
+        const entry = entryOf(b.id);
+        const live = drag?.moved && drag.id === b.id ? dragEdge(drag.edge, drag.minutes, { start: drag.entry.start, end: drag.entry.end ?? now }, dayStart) : undefined;
+        const shownStart = live && drag?.edge === 'start' ? live.time : b.start;
+        const shownEnd = live && drag?.edge === 'stop' ? live.time : b.end;
+        const box = drawnBox(live ? drawnPosition(shownStart, shownEnd, dayStart) : p, hourPx, MIN_BLOCK_PX);
         const room = blockText(box.height);
+        const handles = canDrag && entry && (!coarse || selected === b.id);
+        const edge = Math.min(8, Math.max(2, Math.floor(box.height / 3)));
+        const grip = (which: 'start' | 'stop') => (
+          <span
+            class={`tlg-handle ${which === 'start' ? 'top' : 'bottom'}`}
+            aria-hidden="true"
+            style={{ height: `${coarse ? 14 : edge}px` }}
+            onPointerDown={(e) => startDrag(e, b, which)}
+            onPointerMove={moveDrag}
+            onPointerUp={() => finish(true)}
+            onPointerCancel={() => finish(false)}
+          />
+        );
         const finding = overlapping.has(`${b.id}@${key}`) ? 'Overlaps another entry. ' : '';
         const name = `${b.title}${b.subtitle ? `, ${b.subtitle}` : ''}. ${clockText(b.start)} to ${b.running ? 'now' : clockText(b.end)}, ${minutesText(b.end - b.start)}${b.running ? ', running' : ''}. ${finding}`.trim();
         return (
@@ -351,6 +445,11 @@ function DayColumn({
             aria-label={`${name} Edit`}
             title={b.title}
             onClick={() => {
+              if (swallowClick.current) return;
+              if (coarse && canDrag && entry && selected !== b.id) {
+                onSelect(b.id);
+                return;
+              }
               const spaceId = spaceOf(b.id);
               if (spaceId) onOpen({ spaceId, id: b.id });
             }}
@@ -364,9 +463,22 @@ function DayColumn({
           >
             {room.title && <span class="tlg-title">{b.title}</span>}
             {room.subtitle && b.subtitle && <span class="tlg-sub">{b.subtitle}</span>}
+            {handles && b.start === entry.start && grip('start')}
+            {handles && !b.running && entry.end !== null && b.end === entry.end && grip('stop')}
           </button>
         );
       })}
+      {drag?.moved &&
+        (() => {
+          const r = dragEdge(drag.edge, drag.minutes, { start: drag.entry.start, end: drag.entry.end ?? now }, dayStart);
+          const from = drag.edge === 'start' ? r.time : drag.pieceStart;
+          const to = drag.edge === 'stop' ? r.time : drag.pieceEnd;
+          return (
+            <div class="tlg-tip" style={{ top: `${minutesToPx(drawnPosition(r.time, r.time, dayStart).top, hourPx)}px` }} role="status">
+              {clockText(from)} – {clockText(to)} ({minutesText(to - from)})
+            </div>
+          );
+        })()}
       {overlaps.map((o) => {
         const box = drawnBox(drawnPosition(o.start, o.end, dayStart), hourPx, MIN_BLOCK_PX);
         return (

@@ -44,6 +44,34 @@ A service worker (`/sw.js`, scope `/`, production builds only) makes both pages 
 It never answers `/signal/*`, `/probe/*` or cross-origin requests.
 Details and the kill switch: `offline.md`.
 
+## Calendar (day timeline)
+
+The Calendar segment of the Time page (#68): Day or Week, a 24-hour grid of entries, gaps and overlaps, fixes and edge dragging.
+Decisions: `decisions/time.md` (T-68 to T-68e).
+
+- `src/time/timeline.ts`: pure and unit-tested. Cut by day, `findOverlaps`, `findGaps`, lanes, the scale (`ZOOM_LEVELS`, `minutesToPx`, `drawnBox`), and drag maths (`dragEdge`, `wallToMs`).
+- `src/time/timeline-fix.ts`: pure `plan…` functions say which edits a fix or drag makes; `runFix` re-reads the entries and applies them as one `bulkEdit` transaction in the entry's own space, with one Undo.
+- `src/time/TimelineView.tsx`: lazy loaded; blocks are buttons, the list under the grid has every fix as a button. Dragging uses pointer events with capture, feature-detected, and is only a shortcut: the entry editor does the same.
+- Real time for findings, wall clock for drawing: a week's columns stay aligned on a 23- or 25-hour day.
+- Findings use the spaces the filter shows; running entries end at now; blocks are cut at local midnight (R4).
+- Colour is never the only signal: hatch, dashes and text too.
+- The grid draws a list of blocks, so a later layer only adds blocks. Only the `entries` layer counts toward gaps and overlaps.
+
+```ts
+interface TimelineBlock {
+  id: string;
+  layer: 'entries' | 'events' | 'planned';
+  start: number;
+  end: number;
+  title: string;
+  color: string | null;
+  editable: boolean;
+}
+```
+
+- Later layers (not built): `planned` blocks for time-boxing (#114), a Yjs collection with fresh UUIDs and soft deletes; `events` from an `.ics` import or an opt-in subscription, listed in `docs/user/privacy.md`.
+- Out of scope so far: moving a whole block, drawing a new one.
+
 ## Layers
 
 ```mermaid

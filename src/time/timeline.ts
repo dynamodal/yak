@@ -291,3 +291,42 @@ export function blockText(heightPx: number): { title: boolean; subtitle: boolean
 export function gapLabelFits(heightPx: number): boolean {
   return heightPx >= 15;
 }
+
+// ------------------------------------------------------------------ dragging an edge
+
+/** A dragged edge snaps to this many minutes (T-68e), at every zoom level. */
+export const SNAP_MINUTES = 5;
+const SNAP_MS = SNAP_MINUTES * MINUTE;
+
+/** The nearest multiple of the snap step. */
+export function snapMinutes(minutes: number, step: number = SNAP_MINUTES): number {
+  return Math.round(minutes / step) * step;
+}
+
+/**
+ * The real time whose wall clock reads `minutes` into the local day of `dayStart` (the day's end, 1440, is the next
+ * midnight). The hour a spring-forward day skips lands an hour later; in the repeated hour of a 25-hour day it
+ * means the first occurrence, so the editor stays the exact way there.
+ */
+export function wallToMs(dayStart: number, minutes: number): number {
+  const d = new Date(dayStart);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, minutes).getTime();
+}
+
+export interface DragResult {
+  /** The snapped and clamped real time for the dragged edge. */
+  time: number;
+  changed: boolean;
+}
+
+/**
+ * Where a dragged edge lands. `minutes` is the pointer's wall-clock position in the day column; `span` is the entry's
+ * real start and end (a running entry's end is `now`). The edge snaps to 5 minutes, stays inside the day, and cannot
+ * cross the other edge: at least one snap step is left, or the original length if it was already shorter.
+ */
+export function dragEdge(edge: 'start' | 'stop', minutes: number, span: { start: number; end: number }, dayStart: number): DragResult {
+  const wall = Math.min(DAY_MINUTES, Math.max(0, snapMinutes(minutes)));
+  const at = wallToMs(dayStart, wall);
+  const time = edge === 'start' ? Math.min(at, Math.max(span.end - SNAP_MS, span.start)) : Math.max(at, Math.min(span.start + SNAP_MS, span.end));
+  return { time, changed: time !== (edge === 'start' ? span.start : span.end) };
+}

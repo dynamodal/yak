@@ -39,3 +39,14 @@ button.tlg-gap:hover { background: var(--warn-wash); }
 }
 .tlg-zoom button { min-width: var(--control-h); justify-content: center; font-size: var(--text-lg, 1.1rem); }
 .tlg-zoom button:disabled { opacity: 0.4; cursor: default; background: none; }
+
+.tlg-handle { position: absolute; left: 0; right: 0; z-index: 3; cursor: ns-resize; }
+.tlg-handle.top { top: 0; }
+.tlg-handle.bottom { bottom: 0; }
+.tlg-handle::after { content: ''; position: absolute; left: 25%; right: 25%; top: 50%; border-top: 2px solid var(--tlg-color); opacity: 0; }
+.tlg-block:hover .tlg-handle::after, .tlg-block:focus-visible .tlg-handle::after { opacity: 0.8; }
+@media (pointer: coarse) {
+  .tlg-handle { touch-action: none; background: color-mix(in srgb, var(--tlg-color) 35%, transparent); }
+  .tlg-handle::after { opacity: 0.9; }
+}
+.tlg-tip { position: absolute; left: 4px; z-index: 5; transform: translateY(-120%); padding: 1px 6px; font-size: var(--text-xs); white-space: nowrap; background: var(--text); color: var(--surface); border-radius: var(--radius-xs); pointer-events: none; }

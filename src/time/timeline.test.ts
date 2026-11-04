@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { addDays } from './dates';
 import { type EntryRecord } from './entries';
 import { at, useTimeZone } from './testing';
-import { blockText, cutByDay, DEFAULT_HOUR_PX, drawnBox, drawnPosition, gapLabelFits, minutesToPx, openingScrollTop, pxToMinutes, scrollForZoom, ZOOM_LEVELS, zoomLevel, zoomStep, entryBlocks, findGaps, findOverlaps, layoutLanes, minutesText, spansTouching } from './timeline';
+import { blockText, dragEdge, snapMinutes, wallToMs, cutByDay, DEFAULT_HOUR_PX, drawnBox, drawnPosition, gapLabelFits, minutesToPx, openingScrollTop, pxToMinutes, scrollForZoom, ZOOM_LEVELS, zoomLevel, zoomStep, entryBlocks, findGaps, findOverlaps, layoutLanes, minutesText, spansTouching } from './timeline';
 
 const MIN = 60_000;
 const H = 60 * MIN;
@@ -233,5 +233,89 @@ describe('scale (T-68d)', () => {
       expect(pxToMinutes(next + view / 2, to)).toBeCloseTo(middleBefore);
     }
     expect(scrollForZoom(0, 400, 120, 30)).toBe(0);
+  });
+});
+
+describe('dragging an edge (T-68e)', () => {
+  const MIN = 60_000;
+  describe('Europe/Berlin', () => {
+    useTimeZone('Europe/Berlin');
+    let dayStart = 0;
+    let span = { start: 0, end: 0 };
+    beforeEach(() => {
+      dayStart = at(2026, 6, 10);
+      span = { start: at(2026, 6, 10, 9), end: at(2026, 6, 10, 10) };
+    });
+
+    it('snaps to 5 minutes', () => {
+      expect([0, 2, 3, 7.4, 7.6, 62].map((m) => snapMinutes(m))).toEqual([0, 0, 5, 5, 10, 60]);
+    });
+
+    it('moves the stop to the snapped pointer time at every scale', () => {
+      for (const px of ZOOM_LEVELS) {
+        const y = minutesToPx(10 * 60 + 23, px);
+        const r = dragEdge('stop', pxToMinutes(y, px), span, dayStart);
+        expect(r).toEqual({ time: at(2026, 6, 10, 10, 25), changed: true });
+      }
+    });
+
+    it('one snap step is five minutes of pointer travel at 240 and still five at 30', () => {
+      for (const px of [30, 240]) {
+        const r = dragEdge('start', pxToMinutes(minutesToPx(9 * 60, px) + minutesToPx(5, px), px), span, dayStart);
+        expect(r.time).toBe(at(2026, 6, 10, 9, 5));
+      }
+    });
+
+    it('cannot cross the other edge: a snap step is left', () => {
+      expect(dragEdge('start', 11 * 60, span, dayStart).time).toBe(at(2026, 6, 10, 9, 55));
+      expect(dragEdge('stop', 8 * 60, span, dayStart).time).toBe(at(2026, 6, 10, 9, 5));
+    });
+
+    it('an entry already shorter than a step can grow but not be pushed', () => {
+      const short = { start: at(2026, 6, 10, 9), end: at(2026, 6, 10, 9) + 3 * MIN };
+      expect(dragEdge('start', 9 * 60 + 2, short, dayStart)).toEqual({ time: short.start, changed: false });
+      expect(dragEdge('stop', 9 * 60 + 20, short, dayStart).time).toBe(at(2026, 6, 10, 9, 20));
+    });
+
+    it('stays inside the day and writes nothing when nothing changes', () => {
+      expect(dragEdge('stop', 5000, span, dayStart).time).toBe(at(2026, 6, 11));
+      expect(dragEdge('start', -50, span, dayStart).time).toBe(dayStart);
+      expect(dragEdge('stop', 10 * 60 + 1, span, dayStart)).toEqual({ time: span.end, changed: false });
+    });
+
+    it('a running entry uses now as its end', () => {
+      const now = at(2026, 6, 10, 12, 7);
+      expect(dragEdge('start', 12 * 60 + 5, { start: at(2026, 6, 10, 11), end: now }, dayStart).time).toBe(at(2026, 6, 10, 12, 2));
+    });
+  });
+
+  describe('Berlin daylight saving', () => {
+    useTimeZone('Europe/Berlin');
+    it('25-hour day: the repeated hour is the first occurrence, and a stop never lands before the start', () => {
+      const dayStart = at(2026, 10, 25);
+      const first = wallToMs(dayStart, 2 * 60 + 30);
+      expect(first).toBe(at(2026, 10, 25, 2, 30));
+      expect(wallToMs(dayStart, 1440)).toBe(addDays(dayStart, 1));
+      // an entry that started in the second 02:xx; dragging its stop to 02:40 lands on the first occurrence, so a step is kept
+      const secondStart = first + 60 * MIN;
+      const r = dragEdge('stop', 2 * 60 + 40, { start: secondStart, end: secondStart + 30 * MIN }, dayStart);
+      expect(r.time).toBeGreaterThanOrEqual(secondStart + 5 * MIN);
+    });
+
+    it('23-hour day: the skipped hour lands an hour later and the day end is the next midnight', () => {
+      const dayStart = at(2026, 3, 29);
+      expect(wallToMs(dayStart, 2 * 60 + 30)).toBe(at(2026, 3, 29, 3, 30));
+      expect(wallToMs(dayStart, 4 * 60)).toBe(at(2026, 3, 29, 4));
+      expect(wallToMs(dayStart, 1440)).toBe(addDays(dayStart, 1));
+    });
+  });
+
+  describe('New York daylight saving', () => {
+    useTimeZone('America/New_York');
+    it('gives the same answers', () => {
+      expect(wallToMs(at(2026, 11, 1), 1440)).toBe(addDays(at(2026, 11, 1), 1));
+      expect(wallToMs(at(2026, 3, 8), 2 * 60 + 15)).toBe(at(2026, 3, 8, 3, 15));
+      expect(wallToMs(at(2026, 3, 8), 4 * 60)).toBe(at(2026, 3, 8, 4));
+    });
   });
 });

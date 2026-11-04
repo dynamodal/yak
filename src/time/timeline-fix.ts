@@ -107,6 +107,18 @@ export function planSplitAround(outerEntry: FixEntry | undefined, innerEntry: Fi
   };
 }
 
+/** Move one edge of an entry to `time` (a drag, #68). `orig` is the entry as it was when the drag began. */
+export function planDrag(current: FixEntry | undefined, orig: FixEntry, edge: 'start' | 'stop', time: number): Plan {
+  if (!current) return fail('That entry no longer exists.');
+  if (current.start !== orig.start || current.end !== orig.end) return fail('The entry changed during the drag. Nothing was edited.');
+  if (edge === 'stop' && current.end === null) return fail(`${name(current)} is running; its stop has no handle.`);
+  if (edge === 'stop' ? time === current.end : time === current.start) return fail('Nothing changed.');
+  if (edge === 'start' && current.end !== null && time > current.end) return fail('The start would be after the stop. Nothing was edited.');
+  if (edge === 'stop' && time < current.start) return fail('The stop would be before the start. Nothing was edited.');
+  const step: Step = edge === 'start' ? { kind: 'edit', entry: current, start: time } : { kind: 'edit', entry: current, stop: time };
+  return { ok: true, message: `Moved the ${edge} of ${name(current)} to ${clockText(time)}.`, steps: [step] };
+}
+
 // ------------------------------------------------------------------ applying
 
 export type Reader = (ref: Ref) => FixEntry | undefined;

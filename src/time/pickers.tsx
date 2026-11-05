@@ -245,10 +245,12 @@ export interface TagPickerProps {
   class?: string;
   /** Show the tag names on the button, not only the icon and count. */
   showNames?: boolean;
+  /** Text beside the icon while no tag is chosen (the icon alone otherwise). */
+  emptyText?: string;
 }
 
 /** A tag picker: a button with the tags, opening a searchable checklist; Enter adds a new tag. */
-export function TagPicker({ value, known, onChange, onCreate, label = 'Tags', class: extra, showNames = true }: TagPickerProps) {
+export function TagPicker({ value, known, onChange, onCreate, label = 'Tags', class: extra, showNames = true, emptyText }: TagPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const anchor = useRef<HTMLButtonElement>(null);
@@ -286,7 +288,7 @@ export function TagPicker({ value, known, onChange, onCreate, label = 'Tags', cl
         onClick={() => (open ? close() : setOpen(true))}
       >
         <IconTag />
-        {value.length > 0 && <span class="picker-text">{showNames ? value.join(', ') : value.length}</span>}
+        {value.length > 0 ? <span class="picker-text">{showNames ? value.join(', ') : value.length}</span> : emptyText && <span class="picker-text">{emptyText}</span>}
       </Button>
       <Popover open={open} anchor={anchor} onClose={close} label={`Choose ${label.toLowerCase()}`} class="picker">
         <input

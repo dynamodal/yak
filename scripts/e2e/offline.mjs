@@ -109,8 +109,8 @@ try {
   await bar().getByRole('button', { name: 'Start timer' }).click();
   await bar().getByRole('button', { name: 'Stop timer' }).waitFor();
   await bar().locator('.tp-label').click();
-  await page.getByRole('dialog', { name: 'Timer details' }).getByLabel('Description', { exact: true }).fill('Offline work');
-  await page.getByRole('dialog', { name: 'Timer details' }).getByLabel('Description', { exact: true }).press('Enter');
+  await page.locator('.timer-pill').getByLabel('Description', { exact: true }).fill('Offline work');
+  await page.locator('.timer-pill').getByLabel('Description', { exact: true }).press('Enter');
   await page.getByRole('dialog', { name: 'Timer details' }).waitFor({ state: 'detached' });
   await sleep(1200);
   await bar().getByRole('button', { name: 'Stop timer' }).click();

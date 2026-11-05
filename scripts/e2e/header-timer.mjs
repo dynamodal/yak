@@ -8,7 +8,7 @@
 //   npm run e2e header-timer
 //
 import { join } from 'node:path';
-import { BASE, launch, sleep, ok, fail, check, watchPage, poll, finish, pill, startRound, stopRound, detailsDialog, openDetails, startWith } from './lib.mjs';
+import { BASE, launch, sleep, ok, fail, check, watchPage, poll, finish, pill, startRound, stopRound, detailsDialog, openDetails, startWith, descInput } from './lib.mjs';
 
 
 const browser = await launch();
@@ -94,16 +94,17 @@ const clockSeconds = async (p) => {
 
   // Recent: the first row continues the entry that stopped last ("Header check" came before the empty one, which has nothing to pick).
   let d = await openDetails(p);
-  const rowTexts = await d.locator('.tp-recent-row').allInnerTexts();
+  const rowTexts = await d.locator('.tp-row').allInnerTexts();
   check(rowTexts[0]?.startsWith('Continue:') && rowTexts[0].includes('stopped'), `the first Recent row is Continue with a stopped time (${rowTexts[0]})`);
   check(rowTexts.some((t) => t.includes('Header check')), 'Recent lists earlier work');
   check((await d.getByRole('button', { name: 'Start', exact: true }).count()) === 1, 'the stopped popover has Start');
-  check(await d.getByLabel('Description', { exact: true }).evaluate((el) => el === document.activeElement), 'the description has focus when the popover opens');
+  check(await descInput(p).evaluate((el) => el === document.activeElement), 'the description has focus when the popover opens');
   // Esc closes and focus returns to the label.
+  check((await header(p).locator('.tp-label').count()) === 0 && (await descInput(p).count()) === 1, 'open, the description is typed in the pill where the label was (X-160)');
   await p.keyboard.press('Escape');
-  check(!(await popoverOpen(p)) && (await p.evaluate(() => document.activeElement?.classList.contains('tp-label'))), 'Esc closes the popover and returns focus to its opener');
+  check(!(await popoverOpen(p)) && (await poll(() => p.evaluate(() => document.activeElement?.classList.contains('tp-label')))), 'Esc closes the popover and returns focus to its opener');
   d = await openDetails(p);
-  await d.locator('.tp-recent-row').first().click();
+  await d.locator('.tp-row').first().click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === (rowTexts[0].includes('Header check') ? 'Header check' : r[0].description); }), 'picking Continue starts the entry again');
   check(!(await popoverOpen(p)), 'picking a recent closes the popover');
 
@@ -111,18 +112,18 @@ const clockSeconds = async (p) => {
   await stopRound(p).click();
   await poll(async () => (await running(p)).length === 0);
   d = await openDetails(p);
-  await d.getByLabel('Description', { exact: true }).fill('half typed');
+  await descInput(p).fill('half typed');
   await p.keyboard.press('Escape');
   await p.evaluate(() => { location.hash = '#/time/week'; });
   d = await openDetails(p);
-  check((await d.getByLabel('Description', { exact: true }).inputValue()) === 'half typed', 'a half-typed description survives navigation');
+  check((await descInput(p).inputValue()) === 'half typed', 'a half-typed description survives navigation');
   await p.keyboard.press('Escape');
   await startRound(p).click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === 'half typed'; }), 'the round button starts with the draft');
   await stopRound(p).click();
   await poll(async () => (await running(p)).length === 0);
   d = await openDetails(p);
-  check((await d.getByLabel('Description', { exact: true }).inputValue()) === '', 'the draft is empty after it started');
+  check((await descInput(p).inputValue()) === '', 'the draft is empty after it started');
   await p.keyboard.press('Escape');
 
   // Alt+S: starts at once, opens the popover with focus in the description; Esc keeps it running and returns focus.
@@ -131,7 +132,7 @@ const clockSeconds = async (p) => {
   await p.keyboard.press('Alt+s');
   check(await poll(async () => (await running(p)).length === 1), 'Alt+S starts the timer at once');
   check(await poll(async () => await popoverOpen(p)), 'Alt+S opens the popover');
-  check(await poll(async () => await detailsDialog(p).getByLabel('Description', { exact: true }).evaluate((el) => el === document.activeElement)), 'Alt+S puts keyboard focus in the description');
+  check(await poll(async () => await descInput(p).evaluate((el) => el === document.activeElement)), 'Alt+S puts keyboard focus in the description');
   check((await detailsDialog(p).getByRole('button', { name: 'Update' }).count()) === 1, 'while running the popover offers Update');
   await p.keyboard.press('Escape');
   check(!(await popoverOpen(p)) && (await running(p)).length === 1, 'Esc closes the popover and leaves the timer running');
@@ -144,10 +145,11 @@ const clockSeconds = async (p) => {
   // Alt+S, then pick a past entry from Recent to fill the running one (description, project, tags).
   await p.keyboard.press('Alt+s');
   await detailsDialog(p).waitFor();
-  const pickRow = detailsDialog(p).locator('.tp-recent-row', { hasText: 'Header check' }).first();
+  const pickRow = detailsDialog(p).locator('.tp-row', { hasText: 'Header check' }).first();
   await pickRow.waitFor();
   await p.keyboard.press('ArrowDown');
-  check(await p.evaluate(() => document.activeElement?.classList.contains('tp-recent-row')), 'ArrowDown moves from the description into Recent');
+  const activeRow = await descInput(p).getAttribute('aria-activedescendant');
+  check(activeRow && (await p.locator('#' + activeRow).getAttribute('aria-selected')) === 'true' && (await descInput(p).evaluate((el) => el === document.activeElement)), 'ArrowDown makes the first Recent row active while focus stays in the description');
   await pickRow.click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === 'Header check'; }), 'picking a recent while running fills the running entry (one entry, no new one)');
   await stopRound(p).click();
@@ -156,7 +158,7 @@ const clockSeconds = async (p) => {
   // Update on a running entry edits its description.
   await startRound(p).click();
   d = await openDetails(p);
-  await d.getByLabel('Description', { exact: true }).fill('Renamed while running');
+  await descInput(p).fill('Renamed while running');
   await d.getByRole('button', { name: 'Update' }).click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === 'Renamed while running'; }), 'Update changes the running entry');
 
@@ -181,16 +183,16 @@ const clockSeconds = async (p) => {
   d = await openDetails(p);
   // A start without a project goes to the latest entry's space (T-62), so Work is chosen in the popover.
   await d.getByLabel('Space for this entry').selectOption({ label: 'Work' });
-  await d.getByLabel('Description', { exact: true }).fill('Work item');
+  await descInput(p).fill('Work item');
   await d.getByRole('button', { name: 'Start', exact: true }).click();
   await poll(async () => (await running(p)).some((r) => r.description === 'Work item' && r.space === 'space/work'));
   await stopRound(p).click();
   await poll(async () => (await running(p)).length === 0);
   await inPersonal(p);
   d = await openDetails(p);
-  const first = await d.locator('.tp-recent-row').first().innerText();
+  const first = await d.locator('.tp-row').first().innerText();
   check(first.startsWith('Continue:') && first.includes('Work item') && first.includes('Work'), `Continue is the last entry in any space, labelled with its space (${first})`);
-  await d.locator('.tp-recent-row').first().click();
+  await d.locator('.tp-row').first().click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].description === 'Work item' && r[0].space === 'space/work'; }), 'Continue starts in the entry\'s own space');
   await stopRound(p).click();
   await poll(async () => (await running(p)).length === 0);
@@ -202,7 +204,7 @@ const clockSeconds = async (p) => {
   await stopRound(p).click();
   await poll(async () => (await running(p)).length === 0);
   d = await openDetails(p);
-  await d.locator('.tp-recent-row').first().click();
+  await d.locator('.tp-row').first().click();
   check(await poll(async () => { const r = await running(p); return r.length === 1 && r[0].space === 'space/work'; }), 'Continue with another space\'s note open keeps the entry\'s space (#62)');
   await stopRound(p).click();
   await poll(async () => (await running(p)).length === 0);
@@ -235,7 +237,7 @@ const clockSeconds = async (p) => {
   await poll(async () => (await running(p)).length === 1);
   {
     const d = await openDetails(p);
-    await d.getByLabel('Description', { exact: true }).fill('A long description that will not fit on a narrow phone screen at all');
+    await descInput(p).fill('A long description that will not fit on a narrow phone screen at all');
     await d.getByRole('button', { name: 'Update' }).click();
   }
   await poll(async () => (await running(p))[0]?.description?.startsWith('A long'));

@@ -26,7 +26,8 @@ async function open(name, { viewport, hash = '#/time', clock } = {}) {
 
 // The timer has no bar on the Time page any more: description, project, tags and billable live in the pill's details popover.
 const bar = (p) => detailsDialog(p);
-const desc = (p) => bar(p).getByLabel('Description', { exact: true });
+// Open, the description is typed in the pill itself (X-160).
+const desc = (p) => p.locator('.timer-pill').getByLabel('Description', { exact: true });
 const fillDesc = async (p, text) => { await openDetails(p); await desc(p).fill(text); };
 const isBillable = async (p) => (await bar(p).getByRole('button', { name: 'Billable' }).getAttribute('aria-pressed')) === 'true';
 const rows = (p) => p.locator('li.entry');
@@ -109,7 +110,7 @@ const addTag = async (p, scope, name) => {
   // hover reveals the row actions
   const actionsOpacity = () => row.locator('.te-actions').evaluate((el) => getComputedStyle(el).opacity);
   await p.mouse.move(0, 0);
-  check((await actionsOpacity()) === '0', 'row actions are hidden until hover');
+  check(await poll(async () => (await actionsOpacity()) === '0'), 'row actions are hidden until hover');
   await row.hover();
   await until(async () => (await actionsOpacity()) === '1', 1000);
   check((await actionsOpacity()) === '1', 'hovering a row shows continue and more actions');
@@ -240,7 +241,7 @@ const addTag = async (p, scope, name) => {
   const headings = await p.locator('.picker-heading').allInnerTexts();
   check(headings.map((h) => h.toLowerCase()).join(',') === 'personal,work', `project list is grouped by space (${headings})`);
   await p.getByRole('option', { name: /Ops/ }).click();
-  check((await bar(p).getByRole('button', { name: /^Project/ }).getAttribute('aria-label')) === 'Project: Ops in Work' && (await bar(p).locator('.picker-space').innerText()) === 'Work', 'the bar labels a project from another space with its space');
+  check((await bar(p).getByRole('button', { name: /^Project/ }).getAttribute('aria-label')) === 'Project: Ops in Work' && (await bar(p).getByLabel('Space for this entry').evaluate((el) => el.selectedOptions[0]?.textContent)) === 'Work', 'a project from another space switches the Space choice to it (the project button names it too)');
   await bar(p).getByRole('button', { name: 'Start', exact: true }).click();
   await until(async () => (await runningCount(p)) === 1);
   const started = (await all(p)).find((e) => e.description === 'On call');
@@ -286,7 +287,7 @@ const addTag = async (p, scope, name) => {
   await p.getByRole('link', { name: 'Time', exact: true }).click();
   await openDetails(p);
   await bar(p).getByRole('button', { name: /^Tags/ }).click();
-  check((await p.getByRole('option', { name: 'fresh-tag' }).count()) === 0, 'the hidden tag is not offered in the picker');
+  check((await p.getByRole('option', { name: 'fresh-tag', exact: true }).count()) === 0, 'the hidden tag is not offered in the picker');
   await p.keyboard.press('Escape');
   await p.evaluate(() => { location.hash = '#/settings/organize'; });
   await p.locator('.projects-page').waitFor();
@@ -486,41 +487,51 @@ const addTag = async (p, scope, name) => {
 
   d = await openDetails(p);
   const box = desc(p);
-  check((await box.getAttribute('role')) === 'combobox' && (await box.getAttribute('aria-autocomplete')) === 'list' && (await box.getAttribute('aria-expanded')) === 'false', 'description is a combobox, closed while nothing is typed');
+  const options = (scope) => scope.getByRole('listbox').getByRole('option');
+  check((await box.getAttribute('role')) === 'combobox' && (await box.getAttribute('aria-autocomplete')) === 'list', 'description is a combobox');
+  check((await d.locator('.tp-heading').innerText()).toLowerCase() === 'recent' && (await options(d).count()) >= 1, 'untouched, the one list is Recent');
   await box.fill('rev onb');
-  const suggestions = (scope) => scope.getByRole('listbox', { name: 'Suggested past work' }).getByRole('option');
-  const opts = suggestions(d);
-  check(await poll(async () => (await opts.count()) === 1), 'typing "rev onb" offers one suggestion');
+  const opts = options(d);
+  check(await poll(async () => (await opts.count()) === 1), 'typing "rev onb" filters the same list to one match');
+  check((await d.locator('.tp-heading').innerText()).toLowerCase() === 'matching past work', 'the heading says the list now shows matches');
+  check((await p.locator('.combo-list').count()) === 0 && (await d.getByRole('listbox').count()) === 1, 'no list floats over the popover: one list, in place (X-160)');
   const text = await opts.first().innerText();
-  check(await d.locator('.tp-recent').evaluateAll((els) => els.every((e) => getComputedStyle(e).visibility === 'hidden')), 'the recent list is hidden while suggestions are open, so nothing shows through (#106)');
-  check(text.includes('Review onboarding') && text.includes('Website') && text.includes('ux'), `the suggestion shows description, project and tags (${text.replace(/\s+/g, ' ')})`);
-  check((await box.getAttribute('aria-expanded')) === 'true' && (await box.getAttribute('aria-controls')) === (await d.getByRole('listbox').getAttribute('id')), 'aria-expanded and aria-controls point at the open listbox');
+  check(text.includes('Review onboarding') && text.includes('Website') && text.includes('ux'), `the match shows description, project and tags (${text.replace(/\s+/g, ' ')})`);
+  check((await box.getAttribute('aria-expanded')) === 'true' && (await box.getAttribute('aria-controls')) === (await d.getByRole('listbox').getAttribute('id')), 'aria-expanded and aria-controls point at the listbox');
+  const goBox = await d.getByRole('button', { name: 'Start', exact: true }).boundingBox();
+  const panelBox = await d.boundingBox();
+  check(goBox && panelBox && goBox.y + goBox.height <= panelBox.y + panelBox.height + 1, 'Start stays in view under the list');
   await box.fill('reveiw onbaording');
   check(await poll(async () => (await opts.count()) === 1), 'a typo in each word still finds it');
-  await box.fill('rev onb');
-  await box.press('Escape');
-  check(!(await opts.count()) || !(await opts.first().isVisible()), 'Esc closes the list');
-  check((await detailsDialog(p).count()) === 1, 'the first Esc leaves the popover open');
+  await box.fill('zzqx nothing like it');
+  check(await poll(async () => (await opts.count()) === 0) && (await d.locator('.tp-empty').count()) === 1, 'no match: the list says so');
   await box.fill('onb rev');
   await box.press('ArrowDown');
   const activeId = await box.getAttribute('aria-activedescendant');
-  check(activeId && (await p.locator('#' + activeId).getAttribute('aria-selected')) === 'true', 'ArrowDown makes the first suggestion active (aria-activedescendant)');
-  await box.press('Enter');
-  check((await box.inputValue()) === 'Review onboarding' && (await detailsDialog(p).count()) === 1 && (await stopRound(p).count()) === 0, 'Enter picks: the field is filled, the popover stays open and nothing started');
-  check((await d.getByRole('button', { name: /^Project/ }).first().innerText()).includes('Website') && (await d.getByRole('button', { name: /^Tags/ }).first().innerText()).includes('ux'), 'the pick fills the project and tags');
+  check(activeId && (await p.locator('#' + activeId).getAttribute('aria-selected')) === 'true', 'ArrowDown makes the first match active (aria-activedescendant)');
   await box.press('Enter');
   await stopRound(p).waitFor();
+  check((await detailsDialog(p).count()) === 0, 'Enter on a match uses it at once: the timer starts and the popover closes');
   const started = await all(p).then((a) => a.find((e) => e.stop === null));
-  check(started && started.description === 'Review onboarding' && started.project_id && started.tags.includes('ux'), 'starting after the pick uses the picked project and tags');
+  check(started && started.description === 'Review onboarding' && started.project_id && started.tags.includes('ux'), 'the started entry has the picked project and tags');
   await stopRound(p).click();
   await startRound(p).waitFor();
 
   // A click picks too, and Add entry has the same field.
+  await startRound(p).click();
+  await stopRound(p).waitFor();
   d = await openDetails(p);
   await desc(p).fill('onboarding');
-  await suggestions(d).first().click();
-  check((await desc(p).inputValue()) === 'Review onboarding', 'a click on a suggestion picks it');
+  await options(d).first().click();
+  check(await poll(async () => { const r = await all(p).then((a) => a.filter((e) => e.stop === null)); return r.length === 1 && r[0].description === 'Review onboarding' && r[0].tags.includes('ux'); }), 'running, a click on a match fills the running entry');
+  check((await detailsDialog(p).count()) === 0, 'and closes the popover');
+  d = await openDetails(p);
+  await desc(p).fill('typed then Esc');
   await p.keyboard.press('Escape');
+  check(await poll(async () => (await all(p).then((a) => a.find((e) => e.stop === null)))?.description === 'Review onboarding'), 'Esc drops a description typed for the running entry');
+  await stopRound(p).click();
+  await startRound(p).waitFor();
+  const suggestions = (scope) => scope.getByRole('listbox', { name: 'Suggested past work' }).getByRole('option');
   await p.getByRole('button', { name: 'Add entry' }).click();
   const dlg = p.getByRole('dialog', { name: 'Add entry' });
   await dlg.getByLabel('Description', { exact: true }).fill('rev onb');

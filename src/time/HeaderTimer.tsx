@@ -44,8 +44,9 @@ function useAnnouncement(): string {
 /**
  * The timer pill in the app header, on every page while the Time feature is on (F-33j). Idle: "Start" with the shortcut
  * and a round play button. Running: project colour, description, elapsed time and a round stop button. Two hit areas:
- * the round button starts or stops at once and never opens anything; the label opens the details popover. Alt+S starts
- * the timer and opens the popover with focus in the description (`pill-events.ts`); when it stops the timer it opens nothing.
+ * the round button starts or stops at once and never opens anything; the label opens the details: it turns into the
+ * description input in place and the panel opens under the pill (X-160). Alt+S starts the timer and opens the details with
+ * focus in the description (`pill-events.ts`); when it stops the timer it opens nothing.
  */
 export function HeaderTimer() {
   const hidden = effectiveHidden(useHiddenModules()).has('time');
@@ -63,6 +64,7 @@ function Pill() {
   const keys = command ? shortcutsOf(command, overrides)[0] : undefined;
   const [open, setOpen] = useState(false);
   const labelRef = useRef<HTMLButtonElement>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
   const returnTo = useRef<HTMLElement | null>(null);
   const escaped = useRef(false);
   const popoverId = useId();
@@ -84,50 +86,59 @@ function Pill() {
     hadCurrent.current = !!current;
   }, [current?.id]);
 
-  const close = (): void => {
+  const close = (focusPill = false): void => {
     setOpen(false);
     const back = returnTo.current;
+    const esc = escaped.current;
     returnTo.current = null;
-    // Escape returns focus to where Alt+S was pressed (the popover itself focuses the label first, so wait a tick).
-    if (escaped.current && back && back.isConnected) setTimeout(() => back.focus(), 0);
     escaped.current = false;
+    // The input gives way to the label again, so focus moves after the render: Escape returns it to where Alt+S was
+    // pressed, else to the label, as a pick, Start or Update do; a click outside leaves it where the click put it.
+    if (esc || focusPill)
+      setTimeout(() => {
+        if (esc && back && back.isConnected) back.focus();
+        else labelRef.current?.focus();
+      }, 0);
   };
 
   const text = current ? current.entry.description || '(no description)' : '';
   const shortcutName = keys ? ` (${formatShortcut(keys)})` : '';
   return (
-    <div class={current ? 'timer-pill running' : 'timer-pill'} role="group" aria-label="Timer">
-      <button
-        type="button"
-        ref={labelRef}
-        class="tp-label"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-controls={open ? popoverId : undefined}
-        aria-label={current ? undefined : 'Start, timer details'}
-        title={current ? `${text}: timer details` : 'Timer details'}
-        onClick={() => {
-          returnTo.current = null;
-          setOpen(!open);
-        }}
-      >
-        {current ? (
-          <>
-            {color && <Swatch color={color} />}
-            <span class="tp-desc">{text}</span>
-            <LiveClock since={startMs(current.entry)} />
-          </>
-        ) : (
-          <>
-            <span class="tp-start-text">Start</span>
-            {keys && (
-              <kbd class="tp-chip" aria-hidden="true">
-                {formatShortcut(keys)}
-              </kbd>
-            )}
-          </>
-        )}
-      </button>
+    <div ref={pillRef} class={['timer-pill', current && 'running', open && 'editing'].filter(Boolean).join(' ')} role="group" aria-label="Timer">
+      {open ? (
+        <TimerPopover id={popoverId} anchor={pillRef} current={current} color={color} onClose={close} onEscape={() => (escaped.current = true)} />
+      ) : (
+        <button
+          type="button"
+          ref={labelRef}
+          class="tp-label"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-label={current ? undefined : 'Start, timer details'}
+          title={current ? `${text}: timer details` : 'Timer details'}
+          onClick={() => {
+            returnTo.current = null;
+            setOpen(true);
+          }}
+        >
+          {current ? (
+            <>
+              {color && <Swatch color={color} />}
+              <span class="tp-desc">{text}</span>
+              <LiveClock since={startMs(current.entry)} />
+            </>
+          ) : (
+            <>
+              <span class="tp-start-text">Start</span>
+              {keys && (
+                <kbd class="tp-chip" aria-hidden="true">
+                  {formatShortcut(keys)}
+                </kbd>
+              )}
+            </>
+          )}
+        </button>
+      )}
       <button
         type="button"
         class="tp-round"
@@ -135,6 +146,7 @@ function Pill() {
         aria-keyshortcuts={keys}
         title={`${current ? 'Stop timer' : 'Start timer'}${shortcutName}`}
         onClick={() => {
+          if (open) close();
           if (current) controller.stop(current);
           else startFromDraft(controller, spaceId, spaceDocs, setSpaceId);
         }}
@@ -144,7 +156,6 @@ function Pill() {
       <span class="visually-hidden" role="status" aria-live="polite">
         {announcement}
       </span>
-      {open && <TimerPopover id={popoverId} anchor={labelRef} current={current} onClose={close} onEscape={() => (escaped.current = true)} />}
     </div>
   );
 }

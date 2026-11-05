@@ -19,7 +19,7 @@ await p.keyboard.press('Enter');
 await until(async () => (await p.evaluate(() => Object.values(window.__app.json('space/personal', 'notes')).filter((n) => n.path === 'Zebra plan.md').length)) === 1);
 await p.evaluate(() => { location.hash = '#/time'; });
 await p.locator('.tp-label').click();
-await p.getByRole('dialog', { name: 'Timer details' }).getByLabel('Description', { exact: true }).fill('Feeding the zebra');
+await p.locator('.timer-pill').getByLabel('Description', { exact: true }).fill('Feeding the zebra');
 await p.getByRole('dialog', { name: 'Timer details' }).getByRole('button', { name: 'Start', exact: true }).click();
 await until(async () => (await p.getByRole('button', { name: 'Stop timer' }).count()) === 1);
 await p.getByRole('button', { name: 'Stop timer' }).click();

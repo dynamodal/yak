@@ -203,30 +203,42 @@ button.te-dur:hover { background: var(--surface); box-shadow: inset 0 0 0 1px va
 /* Idle, the pill is a round button under 60rem (where the full pill no longer fits beside the controls). */
 @media (max-width: 59.99rem) {
   .timer-pill:not(.running) .tp-label { display: none; }
-  .timer-pill:not(.running) { padding: 0; border-color: transparent; background: transparent; }
+  .timer-pill:not(.running, .editing) { padding: 0; border-color: transparent; background: transparent; }
 }
 /* Running, the pill has a row of its own at every width: the description takes what the clock leaves. */
 .timer-pill.running .tp-label { flex: 1 1 auto; justify-content: flex-start; }
 .timer-pill.running .tp-desc { flex: 1 1 auto; max-width: none; }
-.tp-popover { width: min(26rem, calc(100vw - 1rem)); max-width: none; padding: var(--space-3); }
-.tp-form { display: flex; flex-direction: column; gap: var(--space-2); }
-.tp-description { width: 100%; font-size: var(--text-lg); }
+/* Open (X-160): the label becomes the description input in place; the panel under it lists, then the fields and the button. */
+.timer-pill.editing { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.tp-edit { display: flex; align-items: center; gap: var(--space-2); flex: 1 1 auto; min-width: 0; padding-left: var(--space-2); }
+.tp-input { flex: 1 1 auto; min-width: 0; min-height: var(--control-h); padding: 0; font: inherit; color: var(--text); background: transparent; border: 0; outline: none; }
+.tp-input::placeholder { color: var(--muted); }
+/* A column: only the list scrolls, so the fields and Start/Update stay in view (the script caps the height at the visible bottom). */
+.tp-popover { display: flex; flex-direction: column; width: min(26rem, calc(100vw - 1rem)); max-width: none; max-height: calc(100dvh - 8rem); overflow: hidden; padding: var(--space-3); }
+.tp-form { display: flex; flex-direction: column; gap: var(--space-2); flex: 1 1 auto; min-height: 0; }
+.tp-form > :not(.tp-list) { flex: none; }
+.tp-list { flex: 0 1 auto; min-height: 3rem; margin: 0; padding: 0; list-style: none; overflow-y: auto; overscroll-behavior: contain; }
+.tp-list[hidden] { display: none; }
+.tp-row { display: flex; flex-direction: column; gap: 0.1rem; min-height: var(--control-h); padding: 0.4rem var(--space-2); border-radius: var(--radius-sm); cursor: pointer; }
+.tp-row:hover { background: var(--surface-2); }
+.tp-row.active { background: var(--surface-2); outline: 2px solid var(--accent); outline-offset: -2px; }
+.tp-empty { margin: 0; font-size: var(--text-sm); }
 .tp-heading { margin: var(--space-1) 0 0; font-size: var(--text-xs); font-weight: var(--weight-semibold); text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
-.tp-recent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; max-height: min(13rem, 28vh); overflow-y: auto; }
-.tp-recent-row, .combo-opt { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--space-2); width: 100%; min-height: var(--control-h); padding: 0.3rem var(--space-2); text-align: left; background: none; border: 0; border-radius: var(--radius-sm); color: var(--text); }
-.tp-recent-row:hover, .tp-recent-row:focus-visible, .combo-opt:hover, .combo-opt.active { background: var(--surface-2); }
-.combo-opt { cursor: pointer; flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 0.1rem; padding-block: 0.4rem; }
+/* The floating suggestions of Add entry and the entry editor. `flex: none`: in the height-capped column a row would otherwise
+   shrink to its min-height and a two-line row would spill over the next one. */
+.combo-opt { display: flex; flex: none; flex-direction: column; gap: 0.1rem; min-height: var(--control-h); padding: 0.4rem var(--space-2); text-align: left; border-radius: var(--radius-sm); color: var(--text); cursor: pointer; }
+.combo-opt:hover, .combo-opt.active { background: var(--surface-2); }
 .combo-meta { overflow-wrap: anywhere; }
-/* While suggestions float over the details popover, the recent list under them is hidden (it keeps its room, so nothing moves) and cannot show through. */
-.tp-form:has(.combo-list) .tp-heading, .tp-form:has(.combo-list) .tp-recent { visibility: hidden; }
 .combo-opt.active { outline: 2px solid var(--accent); outline-offset: -2px; }
 .tp-continue-label { color: var(--accent); font-weight: var(--weight-medium); }
 .tp-r-desc { font-weight: var(--weight-medium); overflow-wrap: anywhere; }
-.tp-r-meta { color: var(--muted); font-size: var(--text-sm); }
+.tp-r-meta { color: var(--muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
 .tp-fields { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+/* The project wraps the other fields to a second line before it shrinks to a few letters. */
+.tp-fields > .picker-btn:not(.tag-btn) { flex: 1 1 12rem; min-width: min(12rem, 100%); max-width: none; justify-content: flex-start; }
 .tp-billable { display: inline-flex; align-items: center; gap: 0.35rem; min-height: var(--control-h); padding: 0 var(--space-2); background: transparent; border: 1px solid transparent; border-radius: var(--radius); color: var(--muted); }
 .tp-billable:hover { background: var(--surface-2); }
-.tp-billable.on { color: var(--billable); }
+.tp-billable.on { color: var(--billable); background: color-mix(in srgb, var(--billable) 14%, transparent); border-color: color-mix(in srgb, var(--billable) 50%, var(--border)); }
 .tp-billable .ui-icon { width: 1.15rem; height: 1.15rem; }
 .tp-footer { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-1); }
 .manual-dialog { width: min(30rem, calc(100vw - 1rem)); }

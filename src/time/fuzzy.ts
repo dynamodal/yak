@@ -16,13 +16,21 @@ export interface Candidate {
 export const norm = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const split = (s: string): string[] => norm(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 
-/** Distinct past work: one candidate per description + project + space, the newest entry's fields, most used counted. */
-export function buildCandidates(docs: TimeDocs, projectName: (spaceId: string, projectId: string) => string): Candidate[] {
+/**
+ * Distinct past work: one candidate per description + project + space, the newest entry's fields, most used counted.
+ * Entries of a project for which `hidden` is true (archived or deleted) are left out.
+ */
+export function buildCandidates(
+  docs: TimeDocs,
+  projectName: (spaceId: string, projectId: string) => string,
+  hidden: (spaceId: string, projectId: string) => boolean = () => false,
+): Candidate[] {
   const by = new Map<string, Candidate>();
   for (const [spaceId, doc] of docs) {
     for (const entry of liveEntries(doc)) {
       const text = norm(entry.description.trim().replace(/\s+/g, ' '));
       if (!text || isRunning(entry)) continue;
+      if (entry.project_id && hidden(spaceId, entry.project_id)) continue;
       const key = `${text}\u0000${entry.project_id ?? ''}\u0000${spaceId}`;
       const at = startMs(entry);
       const hit = by.get(key);
@@ -63,8 +71,15 @@ const best = (t: string, words: readonly string[]): number => {
   return s;
 };
 
-/** Candidates for what is typed: every typed word must match (in any order), best first, then most used, then newest. */
-export function matchCandidates(query: string, candidates: readonly Candidate[], limit = 8): Candidate[] {
+const DAY = 86_400_000;
+/** Points for how recently a candidate was used: 30 today, halving every 14 days, so old work sinks among equal matches. */
+export function recencyBonus(latest: number, now: number): number {
+  const days = Math.max(0, (now - latest) / DAY);
+  return 30 * 0.5 ** (days / 14);
+}
+
+/** Candidates for what is typed: every typed word must match (in any order), best first (recent and much used count), then newest. */
+export function matchCandidates(query: string, candidates: readonly Candidate[], limit = 8, now = Date.now()): Candidate[] {
   const tokens = split(query);
   if (tokens.length === 0) return [];
   const q = tokens.join(' ');
@@ -81,7 +96,7 @@ export function matchCandidates(query: string, candidates: readonly Candidate[],
     }
     if (score < 0) continue;
     if (c.text.startsWith(q)) score += 50;
-    scored.push({ c, score: score + Math.min(c.count, 5) });
+    scored.push({ c, score: score + Math.min(c.count, 5) + recencyBonus(c.latest, now) });
   }
   scored.sort((a, b) => b.score - a.score || b.c.latest - a.c.latest);
   return scored.slice(0, limit).map((s) => s.c);

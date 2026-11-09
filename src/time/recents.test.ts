@@ -46,6 +46,15 @@ describe('buildRecents', () => {
     expect(buildRecents(docs).others).toHaveLength(2);
   });
 
+  it('leaves out entries of a hidden (archived or deleted) project', () => {
+    const docs = makeSpaceDocs();
+    track(docs, 'personal', T0, 30, { description: 'a', project_id: 'keep' });
+    track(docs, 'personal', T0 + 40 * MIN, 30, { description: 'b', project_id: 'gone' });
+    const r = buildRecents(docs, { hidden: (_s, p) => p === 'gone' });
+    expect(r.last?.entry.description).toBe('a');
+    expect(r.others).toEqual([]);
+  });
+
   it('limits the further rows to five', () => {
     const docs = makeSpaceDocs();
     for (let i = 0; i < 9; i++) track(docs, 'personal', T0 + i * 20 * MIN, 10, { description: `job ${i}` });

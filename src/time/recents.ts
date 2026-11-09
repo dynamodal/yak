@@ -25,14 +25,19 @@ export function recentKey(e: Pick<EntryRecord, 'description' | 'project_id' | 't
 /**
  * The recent list across every space. `running` is the running entry (if any): its combination is left out, because
  * picking it would change nothing. Deleted entries and entries without a stop time never appear; an entry with no
- * description, project or tags is skipped from `others` (nothing to pick), but can still be `last`.
+ * description, project or tags is skipped from `others` (nothing to pick), but can still be `last`. Entries of a project
+ * for which `hidden` is true (archived or deleted) never appear.
  */
-export function buildRecents(docs: TimeDocs, opts: { limit?: number; running?: { entry: EntryRecord; spaceId: string } } = {}): Recents {
+export function buildRecents(
+  docs: TimeDocs,
+  opts: { limit?: number; running?: { entry: EntryRecord; spaceId: string }; hidden?: (spaceId: string, projectId: string) => boolean } = {},
+): Recents {
   const limit = opts.limit ?? 5;
   const stopped: RecentItem[] = [];
   for (const [spaceId, doc] of docs) {
     for (const entry of liveEntries(doc)) {
       if (isRunning(entry)) continue;
+      if (entry.project_id && opts.hidden?.(spaceId, entry.project_id)) continue;
       const stoppedAt = isoToMs(entry.stop);
       if (Number.isNaN(stoppedAt)) continue;
       stopped.push({ spaceId, entry, stoppedAt });

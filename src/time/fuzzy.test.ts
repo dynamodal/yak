@@ -44,6 +44,15 @@ describe('matchCandidates', () => {
   it('ranks a start-of-description match first, then the newer', () => {
     expect(names('onboarding', c)[0]).toBe('Onboarding call');
   });
+  it('ranks recent work above old work that matches as well, even when the old was used more', () => {
+    const old = setup([{ d: 'Plan sprint', day: 1 }, { d: 'Plan sprint', day: 2 }, { d: 'Plan sprint', day: 3 }, { d: 'Plan launch', day: 28 }]);
+    const now = at(2026, 10, 29, 9, 0);
+    // Shift the sprint entries a year back: same quality of match, but old.
+    for (const x of old) if (x.text === 'plan sprint') x.latest -= 365 * 86_400_000;
+    expect(matchCandidates('plan', old, 8, now).map((x) => x.entry.description)).toEqual(['Plan launch', 'Plan sprint']);
+    // A clearly better match still wins over recency.
+    expect(matchCandidates('sprint', old, 8, now)[0]!.entry.description).toBe('Plan sprint');
+  });
 });
 
 describe('buildCandidates', () => {
@@ -53,6 +62,17 @@ describe('buildCandidates', () => {
     const web = c.find((x) => x.entry.project_id === 'web')!;
     expect(web.count).toBe(2);
     expect(web.entry.tags).toEqual(['b']);
+  });
+  it('skips work of a hidden (archived or deleted) project', () => {
+    const docs = makeSpaceDocs();
+    for (const [i, it] of [{ d: 'Old site', p: 'web' }, { d: 'Report', p: 'ops' }, { d: 'No project' }].entries()) {
+      const t = at(2026, 10, 1 + i, 9, 0);
+      const { id } = startTimer(docs, 'personal', 'dev', { description: it.d, project_id: it.p ?? null }, t);
+      stopTimer(docs.get('personal')!, id, t + 60_000);
+    }
+    expect(buildCandidates(docs, () => '')).toHaveLength(3);
+    const kept = buildCandidates(docs, () => '', (_s, p) => p === 'web');
+    expect(kept.map((x) => x.entry.description).sort()).toEqual(['No project', 'Report']);
   });
   it('skips running and empty descriptions', () => {
     const docs = makeSpaceDocs();

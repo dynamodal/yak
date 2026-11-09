@@ -41,6 +41,30 @@ function useAllEntriesVersion(): number {
   return version;
 }
 
+/** Bumps whenever any space's `projects` changes (archive, restore, rename). */
+function useAllProjectsVersion(): number {
+  const { spaceDocs } = useApp();
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    const bump = (): void => setVersion((v) => v + 1);
+    const maps = [...spaceDocs.values()].map((d) => collection(d, 'projects'));
+    for (const m of maps) m.observeDeep(bump);
+    return () => {
+      for (const m of maps) m.unobserveDeep(bump);
+    };
+  }, [spaceDocs]);
+  return version;
+}
+
+/** True for a project that is archived or deleted: its past work is not suggested. A project not (yet) known is not hidden. */
+function projectHidden(spaceDocs: ReadonlyMap<string, Y.Doc>): (spaceId: string, projectId: string) => boolean {
+  return (sid, pid) => {
+    const doc = spaceDocs.get(sid);
+    const p = doc && collection(doc, 'projects').get(pid);
+    return !!p && (p.get('active') === false || p.get('deleted') === true);
+  };
+}
+
 /** Running entries across every space, oldest start first (the one that counts is last). */
 export function useRunning(): RunningRef[] {
   const { privateDocs } = useApp();
@@ -82,16 +106,17 @@ export function useRecentEntries(limit: number): EntryRecord[] {
 export function useCandidates(): () => Candidate[] {
   const { privateDocs, spaceDocs } = useApp();
   const version = useAllEntriesVersion();
+  const projects = useAllProjectsVersion();
   const cache = useRef<{ key: unknown; list: Candidate[] }>({ key: null, list: [] });
   return () => {
-    const key = [privateDocs, spaceDocs, version];
+    const key = [privateDocs, spaceDocs, version, projects];
     const c = cache.current;
-    if (!Array.isArray(c.key) || c.key[0] !== privateDocs || c.key[1] !== spaceDocs || c.key[2] !== version) {
+    if (!Array.isArray(c.key) || key.some((k, i) => (c.key as unknown[])[i] !== k)) {
       const names = (sid: string, pid: string): string => {
         const doc = spaceDocs.get(sid);
         return (doc && (collection(doc, 'projects').get(pid)?.get('name') as string | undefined)) || '';
       };
-      cache.current = { key, list: buildCandidates(privateDocs, names) };
+      cache.current = { key, list: buildCandidates(privateDocs, names, projectHidden(spaceDocs)) };
     }
     return cache.current.list;
   };
@@ -99,10 +124,11 @@ export function useCandidates(): () => Candidate[] {
 
 /** The pill popover's recent list: the entry that stopped last, then distinct recent work, across every space (never the running one). */
 export function useRecents(running: RunningRef | undefined): Recents {
-  const { privateDocs } = useApp();
+  const { privateDocs, spaceDocs } = useApp();
   const version = useAllEntriesVersion();
+  const projects = useAllProjectsVersion();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => buildRecents(privateDocs, { running }), [privateDocs, version, running?.id, running?.entry.description, running?.entry.project_id, running?.entry.tags.join('\u0000')]);
+  return useMemo(() => buildRecents(privateDocs, { running, hidden: projectHidden(spaceDocs) }), [privateDocs, spaceDocs, version, projects, running?.id, running?.entry.description, running?.entry.project_id, running?.entry.tags.join('\u0000')]);
 }
 
 export interface TimeData {

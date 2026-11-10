@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { migratePairing } from './sync-service';
 
 const RELAY = 'wss://yak.example/signal';
@@ -58,5 +58,51 @@ describe('SyncService file frames', () => {
     feed('peer', piece, 'direct');
     feed('peer', want, 'direct');
     expect(calls).toEqual(['piece', 'control']);
+  });
+});
+
+describe('SyncService reconnect triggers', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('a log line written to the shared log is not a local edit; an edit to a space is (#164)', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('window', { addEventListener: () => undefined });
+    vi.stubGlobal('document', { addEventListener: () => undefined, visibilityState: 'visible' });
+    const { SyncService } = await import('./sync-service');
+    const { DocumentStore } = await import('../core/doc-store');
+    const { SharedLogWriter } = await import('./shared-log');
+    const store = new DocumentStore(() => ({ whenLoaded: Promise.resolve(), destroy: () => Promise.resolve() }));
+    const svc = new SyncService(store, { deviceId: 'me' });
+    const reconnect = vi.fn();
+    // A mesh with a peer that is not connected: the state in which edits trigger reconnects.
+    (svc as unknown as { mesh: unknown }).mesh = { peers: [{ id: 'peer', state: 'reconnecting' }], reconnect };
+    const accountLog = await store.open('account/aaaaaaaaaaaaaaaaaaaaaaaa/log'); // open before the triggers are installed
+    (svc as unknown as { installTriggers(): void }).installTriggers();
+    const writer = new SharedLogWriter({
+      log: svc.log,
+      device: 'me',
+      openAccountLog: () => Promise.resolve(accountLog),
+      openSpaceLog: () => store.open('space/s1/log'), // opened after
+    });
+    writer.start();
+    for (let i = 0; i < 20; i++) {
+      svc.log.log('link', `line ${i}`);
+      svc.log.log('space', `space line ${i}`, 's1');
+      await vi.advanceTimersByTimeAsync(300);
+    }
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(accountLog.getMap('lines').size).toBeGreaterThan(0);
+    expect((await store.open('space/s1/log')).getMap('lines').size).toBeGreaterThan(0);
+    expect(reconnect).not.toHaveBeenCalled();
+
+    const space = await store.open('space/s1');
+    space.getMap('m').set('k', 1);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(reconnect).toHaveBeenCalledTimes(1);
+    expect(reconnect.mock.calls[0]![0]).toBe('local edit');
+    writer.close();
   });
 });

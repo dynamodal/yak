@@ -138,6 +138,8 @@ A browser hides the status and body of a failed WebSocket handshake, so the per-
 - Event-driven: after sleep, a network change or a reload, the device announces itself (`hello`); the initiator answers with an offer.
 - Automatic triggers (visible, focus, edits, a 3-minute safety timer while disconnected) only announce, backing off from 20 s to 15 min while nobody answers.
 - Forced triggers (`online`, resume, back-forward restore, Reconnect now) make fresh offers.
+- Edits to the shared debug logs are not edits for this (S-164).
+- The signaling stream restarts at most every 15 s on forced triggers and every 60 s on others; between restarts the transport retries with its own backoff (S-164).
 - No answer to an offer: retry after 15 s and 60 s, then wait for the peer's hello.
 - An HTTP 429 from ntfy pauses publishing for 60 s.
 - State exchange repeats 1 s after a link opens and every 30 s, so a lost message heals.

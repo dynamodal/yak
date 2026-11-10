@@ -62,6 +62,10 @@ export interface PeerMeshOptions {
   maxTriggerIntervalMs?: number;
   /** After the signaling server answers 429, publish nothing for at least this long. */
   rateLimitPauseMs?: number;
+  /** Forced triggers restart the signaling stream at most this often (S-164). Default 15 s, the connect timeout. */
+  restartIntervalMs?: number;
+  /** Other triggers restart a down or silent stream at most this often (S-164); the transport retries on its own meanwhile. Default 60 s. */
+  backgroundRestartIntervalMs?: number;
   /** At most this many peers; further devices holding the key are ignored. */
   maxPeers?: number;
   /** Devices the owner removed: their messages are ignored. */
@@ -115,6 +119,12 @@ export class PeerMesh {
   private lastTriggerAt = 0;
   private pausedUntil = 0;
   private pauseLogged = false;
+  private pauseSkipLogged = false;
+  /** When the signaling stream was last (re)started, and whether a skipped restart was logged since. */
+  private lastRestartAt = 0;
+  private restartSkipLogged = false;
+  private readonly restartInterval: number;
+  private readonly backgroundRestartInterval: number;
   private resumeTimer: ReturnType<typeof setTimeout> | undefined;
   /** When the signaling stream last went down (0 while it is up); see `signalingProblem`. */
   private signalDownSince = 0;
@@ -138,6 +148,8 @@ export class PeerMesh {
     this.maxTriggerInterval = opts.maxTriggerIntervalMs ?? 15 * 60_000;
     this.triggerInterval = this.minTriggerInterval;
     this.rateLimitPause = opts.rateLimitPauseMs ?? 60_000;
+    this.restartInterval = opts.restartIntervalMs ?? scaledMs(15_000);
+    this.backgroundRestartInterval = opts.backgroundRestartIntervalMs ?? scaledMs(60_000);
     this.maxPeers = opts.maxPeers ?? 8;
     this.guard = new ReplayGuard(opts.maxMessageAgeMs ?? 5 * 60_000);
     for (const id of opts.knownPeers ?? []) {
@@ -193,6 +205,8 @@ export class PeerMesh {
     if (this.started) return;
     this.started = true;
     this.markSignalDown();
+    this.lastRestartAt = Date.now();
+    this.restartSkipLogged = false;
     this.subscribe();
     void this.say('hello');
     for (const s of this.sessions.values()) if (s.isInitiator) void s.attempt('start');
@@ -254,6 +268,7 @@ export class PeerMesh {
     if (until <= this.pausedUntil) return;
     this.pausedUntil = until;
     this.pauseLogged = false;
+    this.pauseSkipLogged = false;
     this.opts.log.log('signal', `the relay is refusing this network; no new connections for ${Math.round(ms / 1000)} s`);
     this.unsubscribe?.();
     this.unsubscribe = undefined;
@@ -280,16 +295,12 @@ export class PeerMesh {
   reconnect(reason: string, options: { force?: boolean; streamLikelyDead?: boolean; wake?: boolean } = {}): void {
     if (!this.started) return;
     if (this.signalingPausedUntil !== undefined) {
-      this.opts.log.log('link', `${reason}: skipped while paused`);
+      if (!this.pauseSkipLogged) this.opts.log.log('link', `${reason}: skipped while paused`);
+      this.pauseSkipLogged = true;
       return;
     }
     const now = Date.now();
-    const stale = now - this.lastSignalActivity > this.staleStreamMs;
-    if (options.streamLikelyDead === true || options.force === true || !this.signalUp || stale) {
-      this.opts.log.log('link', `${reason}: restarting signaling stream`);
-      this.unsubscribe?.();
-      this.subscribe();
-    }
+    this.restartStream(reason, options.force === true || options.streamLikelyDead === true, now);
     const waiting = [...this.sessions.values()].filter((s) => !s.linkOpen);
     if (this.sessions.size > 0 && waiting.length === 0) return;
 
@@ -370,6 +381,7 @@ export class PeerMesh {
         const pause = Math.max(this.rateLimitPause, e.retryAfterMs ?? 0);
         this.pausedUntil = Date.now() + pause;
         this.pauseLogged = false;
+        this.pauseSkipLogged = false;
         this.opts.log.log('signal', `pausing signaling for ${Math.round(pause / 1000)} s`);
         this.changed();
       }
@@ -377,6 +389,35 @@ export class PeerMesh {
   }
 
   // ---- signaling -------------------------------------------------------------------------------
+
+  /**
+   * Restart the signaling stream when it is likely dead, at most once per interval (S-164). The
+   * transport already reconnects a dropped stream with backoff; a restart throws away its socket,
+   * which may still be connecting, and starts the backoff over, so a stream of triggers must not
+   * become a stream of sockets. Logs one line per restart and at most one skipped restart per window.
+   */
+  private restartStream(reason: string, likelyDead: boolean, now: number): void {
+    if (!this.unsubscribe) {
+      // No stream at all (after a pause): open one.
+      this.lastRestartAt = now;
+      this.restartSkipLogged = false;
+      this.subscribe();
+      return;
+    }
+    const stale = now - this.lastSignalActivity > this.staleStreamMs;
+    if (!likelyDead && this.signalUp && !stale) return;
+    const interval = likelyDead ? this.restartInterval : this.backgroundRestartInterval;
+    if (now - this.lastRestartAt < interval) {
+      if (!this.restartSkipLogged) this.opts.log.log('link', `${reason}: signaling stream restarted lately; the transport keeps retrying`);
+      this.restartSkipLogged = true;
+      return;
+    }
+    this.opts.log.log('link', `${reason}: restarting signaling stream`);
+    this.lastRestartAt = now;
+    this.restartSkipLogged = false;
+    this.unsubscribe();
+    this.subscribe();
+  }
 
   private subscribe(): void {
     this.unsubscribe = this.opts.transport.subscribe(

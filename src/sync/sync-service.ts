@@ -657,15 +657,17 @@ export class SyncService {
       }
     }, this.options.safetyTimerMs ?? 3 * 60_000);
     // A local edit while disconnected is a reason to try again (rate-limited and backed off by the mesh).
-    const watch = (doc: import('yjs').Doc): void => {
+    // The shared debug log is not: every log line is written there, so it would feed itself (S-164).
+    const watch = (id: string, doc: import('yjs').Doc): void => {
+      if (isLogDoc(id)) return;
       doc.on('update', (_u: Uint8Array, origin: unknown) => {
         if (!(origin instanceof DocSync) && this.mesh && this.mesh.peers.some((p) => p.state !== 'connected')) {
           this.trigger('local edit');
         }
       });
     };
-    for (const doc of this.store.opened().values()) watch(doc);
-    this.store.onOpened((_id, doc) => watch(doc));
+    for (const [id, doc] of this.store.opened()) watch(id, doc);
+    this.store.onOpened(watch);
   }
 
   private load(): StoredPairing | undefined {

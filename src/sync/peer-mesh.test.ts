@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { seal } from './envelope';
 import { EventLog } from './event-log';
 import type { LinkEndpoint } from './types';
@@ -981,5 +981,78 @@ describe('signed handshake (#256)', () => {
     await new Promise((r) => setTimeout(r, 300));
     expect(a.opens).not.toContain('ccc');
     expect(logText(c)).toContain('relay skipped');
+  });
+});
+
+describe('PeerMesh signaling restarts (#164)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  /** A signaling server that cannot be reached: every subscription reports down at once. */
+  function downTransport(): SignalingTransport & { subscribes: number } {
+    return {
+      subscribes: 0,
+      publish: () => Promise.reject(new Error('not connected')),
+      subscribe(_mailbox: string, handlers: SubscribeHandlers) {
+        this.subscribes++;
+        handlers.onStatus?.('disconnected', 'could not connect');
+        return () => undefined;
+      },
+    };
+  }
+
+  async function downMesh(): Promise<{ mesh: PeerMesh; transport: ReturnType<typeof downTransport>; log: EventLog }> {
+    const keys = await deriveKeys(generateSecret());
+    const transport = downTransport();
+    const log = new EventLog();
+    const mesh = new PeerMesh({
+      selfId: 'zzz',
+      knownPeers: ['aaa'], // the lower id offers: this device only says hello
+      topic: keys.topic,
+      key: keys.key,
+      transport,
+      createLink: () => {
+        throw new Error('no links in this test');
+      },
+      log,
+      onPeersChanged: () => undefined,
+      onLinkOpen: () => undefined,
+      onLinkData: () => undefined,
+      onLinkClose: () => undefined,
+    });
+    return { mesh, transport, log };
+  }
+
+  const lines = (log: EventLog, text: string): number => log.all().filter((e) => e.detail.includes(text)).length;
+
+  it('a trigger every 500 ms for a minute while the stream is down opens at most two streams', async () => {
+    const { mesh, transport, log } = await downMesh();
+    vi.useFakeTimers();
+    mesh.start();
+    for (let i = 0; i < 120; i++) {
+      await vi.advanceTimersByTimeAsync(500);
+      mesh.reconnect('local edit');
+    }
+    // The start, and at most one restart a minute later; the transport retries on its own meanwhile.
+    expect(transport.subscribes).toBeLessThanOrEqual(2);
+    expect(lines(log, 'restarting signaling stream')).toBeLessThanOrEqual(1);
+    expect(lines(log, 'restarted lately')).toBeLessThanOrEqual(2);
+    mesh.stop();
+  });
+
+  it('a burst of forced triggers restarts the stream once per interval', async () => {
+    const { mesh, transport } = await downMesh();
+    vi.useFakeTimers();
+    mesh.start();
+    await vi.advanceTimersByTimeAsync(20_000);
+    const before = transport.subscribes;
+    for (let i = 0; i < 20; i++) {
+      mesh.reconnect(i % 2 ? 'online' : 'reconnect button', { force: true, streamLikelyDead: true });
+      await vi.advanceTimersByTimeAsync(100);
+    }
+    expect(transport.subscribes - before).toBe(1);
+    await vi.advanceTimersByTimeAsync(15_000);
+    mesh.reconnect('online', { force: true, streamLikelyDead: true });
+    expect(transport.subscribes - before).toBe(2);
+    mesh.stop();
   });
 });

@@ -2,7 +2,7 @@ import type * as Y from 'yjs';
 import { base64, encodeText } from './bytes';
 import { keysMap, type AccountKeyRecord } from './account-keys';
 import type { DeviceCert } from './key-certs';
-import { fingerprint, sign, verifyText } from './keys';
+import { fingerprint, sign, verifyText, type PublicKeyJwk } from './keys';
 import { setRemoved } from './devices';
 
 /**
@@ -63,4 +63,10 @@ export async function removeDevices(doc: Y.Doc, fp: string, accountKey: CryptoKe
       setRemoved(doc, id, true);
     }
   });
+}
+
+/** True when the account key signed a removal of this device id with exactly this sign key (an asking device still holds removed keys, #168). */
+export async function isKeyRemoved(doc: Y.Doc, account: AccountKeyRecord | undefined, deviceId: string, sign: PublicKeyJwk): Promise<boolean> {
+  const tag = removalTag({ deviceId, key: await fingerprint(sign) });
+  return (await readRemovals(doc, account)).some((r) => removalTag(r) === tag);
 }

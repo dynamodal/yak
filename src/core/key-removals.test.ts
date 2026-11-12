@@ -2,7 +2,7 @@ import * as Y from 'yjs';
 import { describe, expect, it } from 'vitest';
 import { keysMap, publishAccountKey, publishDeviceKeys, readAccountKeys, readDeviceKey } from './account-keys';
 import { readCerts, requireKeys, certifyDevice } from './key-certs';
-import { readRemovals, removalTag, removeDevices } from './key-removals';
+import { isKeyRemoved, readRemovals, removalTag, removeDevices } from './key-removals';
 import { maintainGrants, readGrants } from './key-grants';
 import { isRemoved, setRemoved } from './devices';
 import { setKeeps } from './keeps';
@@ -82,5 +82,17 @@ describe('removing a device (#258, #295)', () => {
     const fresh = await generateDeviceKeys();
     await certifyDevice(s.doc, s.fp, s.acc.privateKey, 'c', fresh.publicKeys, true);
     expect([...(await trust(s)).certs.keys()].sort()).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('an asking device with removed keys (#168)', () => {
+  it('is recognised by its sign key, not by its id alone', async () => {
+    const s = await account(['a', 'b']);
+    await remove(s, 'b');
+    const record = (await readAccountKeys(s.doc)).find((k) => k.fingerprint === s.fp);
+    expect(await isKeyRemoved(s.doc, record, 'b', s.devices.get('b')!.publicKeys.sign)).toBe(true);
+    expect(await isKeyRemoved(s.doc, record, 'a', s.devices.get('a')!.publicKeys.sign)).toBe(false);
+    const fresh = await generateDeviceKeys();
+    expect(await isKeyRemoved(s.doc, record, 'b', fresh.publicKeys.sign)).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import type { RoomKind } from '../core/protocol-ids';
 import { readAccountKeys } from '../core/account-keys';
 import { KEYS_REQUIRED_LEVEL } from '../core/account-keys';
 import { checkApproval } from '../core/key-certs';
+import { isKeyRemoved } from '../core/key-removals';
 import { deviceName, setDeviceName, suggestedName } from '../core/devices';
 import { encodeText } from '../core/bytes';
 import { wrapFor } from '../core/keys';
@@ -54,6 +55,9 @@ interface Deps {
   me: string;
   transport?: (url: string, kind?: RoomKind) => SignalingTransport;
 }
+
+export const REMOVED_KEYS_MESSAGE =
+  'This device still uses keys that were removed from the account, so it cannot join with them. On it, update the Yak Sync plugin or choose Join again (which makes new keys), then make a new code here and decline this request.';
 
 class Invites {
   private deps: Deps | undefined;
@@ -235,6 +239,11 @@ class Invites {
     this.update(deviceId, { state: 'approving' });
     try {
       const { request } = r;
+      // A device that kept keys removed from this account: a certificate for them would be dropped, so approve nothing (#168).
+      const fp = keyTrust.accountFp;
+      if (fp && (await isKeyRemoved(d.state.doc, (await readAccountKeys(d.state.doc)).find((k) => k.fingerprint === fp), deviceId, request.sign))) {
+        throw new Error(REMOVED_KEYS_MESSAGE);
+      }
       const records = await ownerKeys.current.approve(deviceId, { keys: request, ...(request.name ? { name: request.name } : {}) });
       await host.approve(deviceId, {
         accountId: d.state.id,

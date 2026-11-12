@@ -26,8 +26,10 @@ Then:
 2. Settings, Yak Sync: the top line says whether the vault is joined and syncing. Paste the sync code or a one-time code from the app (Settings › Devices and sync › + Add a device), Join.
    - When your account requires device keys, use a one-time code (Make a one-time code).
      A notice in Obsidian shows a code. If the app shows the same, choose "The codes match" in the plugin's settings, then approve the vault in the app.
-3. In the app, Settings › Devices and sync: open the row named after the vault (default `Obsidian (<vault name>, desktop or mobile, <4 characters>)`; rename it with Device name in the plugin's settings) and tick the spaces it keeps.
+3. Choose the spaces the vault keeps: switch them on under "Spaces kept in this vault" in the plugin's settings, or tick them in the app, Settings › Devices and sync, in the row named after the vault (default `Obsidian (<vault name>, desktop or mobile, <4 characters>)`; rename it with Device name in the plugin's settings).
    Nothing is written until you do.
+   The plugin's settings also list your other devices (connected or last seen, spaces kept), read-only.
+   Approving, removing devices and passphrases stay in the app: a vault is often copied by vault sync.
 
 An account can require device keys only once every vault runs version 0.2.0 or later of the plugin: until then Settings › Devices and sync lists the vault as not ready.
 

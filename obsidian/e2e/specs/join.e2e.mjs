@@ -130,6 +130,22 @@ describe('Yak Sync in real Obsidian', function () {
     await browser.waitUntil(async () => (await vaultText('Yak/Personal/Ideas/Plan.md')) === 'edited in Obsidian + app', { timeout: 30000, timeoutMsg: 'the app edit never reached the vault' });
   });
 
+  it('lists the spaces and other devices, and a toggle writes only this vault\'s keeps cell', async function () {
+    const kept = () => obsidian(({ plugins }) => { const p = plugins.yakSync; const d = p.accountDoc().doc.getMap('keeps'); return [...d.keys()].filter((k) => k.startsWith(p.data.deviceId)).map((k) => `${k.slice(-8)}=${d.get(k)}`); });
+    const others = () => obsidian(({ plugins }) => { const p = plugins.yakSync; const d = p.accountDoc().doc.getMap('keeps'); return [...d.keys()].filter((k) => !k.startsWith(p.data.deviceId)).sort().map((k) => `${k}=${d.get(k)}`); });
+    const before = await others();
+    await expect(settingRow('Spaces kept in this vault')).toBeDisplayed();
+    await expect(settingRow('Other devices')).toBeDisplayed();
+    expect(await rowDesc('Personal')).toMatch(/Kept here/);
+    const toggle = settingRow('Personal').$('.checkbox-container');
+    await toggle.click();
+    await browser.waitUntil(async () => /Not kept here/.test(await rowDesc('Personal')), { timeout: 20000, timeoutMsg: 'the toggle did not stop keeping the space' });
+    expect((await kept()).some((k) => k.endsWith('=false'))).toBe(true);
+    await settingRow('Personal').$('.checkbox-container').click();
+    await browser.waitUntil(async () => /Kept here|Waiting for its notes/.test(await rowDesc('Personal')), { timeout: 20000, timeoutMsg: 'the toggle did not keep the space again' });
+    expect(await others()).toEqual(before);
+  });
+
   it('says so when the vault is removed on the Devices page, and offers to join again', async function () {
     const id = await obsidian(({ plugins }) => plugins.yakSync.data.deviceId);
     const row = app.locator(`[data-device-row="${id}"]`);

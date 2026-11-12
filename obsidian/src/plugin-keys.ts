@@ -5,7 +5,6 @@ import { decodeText } from '../../src/core/bytes';
 import { devicesMap, deviceName } from '../../src/core/devices';
 import { keepsMap } from '../../src/core/keeps';
 import { checkApproval, checkChosen, type PinnedChoice } from '../../src/core/key-certs';
-import { isKeyRemoved } from '../../src/core/key-removals';
 import { exportDeviceKeys, generateDeviceKeys, importDeviceKeys, unwrap, type DeviceKeyPairs, type DeviceKeysJwk } from '../../src/core/keys';
 import { kvDb, type KvDb } from '../../src/core/kv-db';
 import type { DocumentStore } from '../../src/core/doc-store';
@@ -180,31 +179,13 @@ export class PluginKeys {
     await this.ready;
   }
 
-  /**
-   * Whether to make new keys before asking to join. Yes when they are known to be removed, or when the account needs
-   * approvals (S-258g): the local copy of the account may predate a removal made while this vault was not syncing, and
-   * new keys cost only the approval the invite gives anyway. A first join (no account yet) and a join into a compatible
-   * account keep the keys.
-   */
-  async keysUnusable(): Promise<boolean> {
-    if (this.removed) return true;
-    const doc = this.doc;
-    const keys = this.keys;
-    if (!doc || !keys) return false;
-    const fp = chosenFingerprint(doc);
-    if (!fp) return false;
-    const record = (await readAccountKeys(doc)).find((k) => k.fingerprint === fp);
-    if (await isKeyRemoved(doc, record, this.o.me, keys.publicKeys.sign)) return true;
-    return this.trust.isRequired;
-  }
-
   private last: { code: string; relay: string; name: string } | undefined;
 
   /** Join with a code, and ask to be approved in case it is a one-time invite (#257). */
   async joinWithCode(code: string, relay: string, name: string): Promise<void> {
     await this.ready;
-    // Keys that cannot be approved (removed while this vault was not syncing, #168) are replaced before asking (S-258g).
-    if (await this.keysUnusable()) await this.dropKeys();
+    // Always new keys (S-295c, O-168b): a one-time code needs an approval anyway, and the old keys may be removed without this vault knowing.
+    await this.dropKeys();
     if (this.removed) {
       delete this.o.data.removed;
       await this.o.save();

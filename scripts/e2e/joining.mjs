@@ -4,7 +4,7 @@
 //
 //   npm run e2e joining
 //
-import { BASE, launch, ok, fail, check, watchPage, until, finish, openJoin, startSyncing, joinByInvite } from './lib.mjs';
+import { BASE, launch, ok, fail, check, watchPage, until, finish, openJoin, startSyncing, joinByInvite, keepAllSpaces } from './lib.mjs';
 
 const RELAY = BASE.replace(/^http/, 'ws').replace(/\/$/, '') + '/signal';
 
@@ -38,7 +38,18 @@ await a.evaluate(() => window.__app.append('space/personal', 't', 'from A '));
 
 // A fresh device joins: it adopts A's account and spaces, and keeps none of its own empty ones.
 const b = await mk('B');
-await joinByInvite(a, b);
+await joinByInvite(a, b, { keep: false });
+// A new device keeps nothing until chosen (S9, S-177): it lands on Settings with the notice, and keeps one space at a time.
+await b.locator('[data-undecided]').waitFor({ timeout: 30000 });
+check(!/^#\/(time|home)/.test(await b.evaluate(() => location.hash)), 'the joined device stays on Settings, not the first tab');
+check(JSON.stringify(await spaceNames(b)) === '[]', 'the joined device keeps no space yet');
+{
+  const row = b.locator('.undecided li').first();
+  await row.getByRole('button', { name: /^Keep / }).click();
+  (await until(async () => (await spaceNames(b)).length === 1, 15000)) >= 0 ? ok('it keeps the one space chosen') : fail('keeping one space did not stick');
+  check((await b.locator('.undecided li').count()) === Object.keys(await hook(b, () => window.__app.allSpaces())).length - 1, 'the other spaces stay undecided');
+}
+await keepAllSpaces(b);
 (await until(async () => (await accountId(b)) === accountA, 30000)) >= 0 ? ok('fresh device adopted the account') : fail(`B account ${await accountId(b)} vs ${accountA}`);
 (await until(async () => JSON.stringify(await spaces(b)) === JSON.stringify(spacesA), 20000)) >= 0 ? ok('fresh device has exactly the account\'s spaces') : fail(`B spaces ${JSON.stringify(await spaces(b))}`);
 (await until(async () => ((await hook(b, () => window.__app.text('space/personal', 't'))) ?? '').includes('from A'), 20000)) >= 0 ? ok('fresh device received the data') : fail('B has no data from A');

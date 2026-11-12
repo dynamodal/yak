@@ -9,7 +9,8 @@ Sync is optional and only between your own devices. Everything works without it.
 1. On the first device open **Settings**, choose **+ Add a device**, then **Start syncing my devices**. If you have no passphrase yet, a sheet asks you to create one: Yak suggests words, or you type your own, and you tick **I've written it down**.
 2. On the new device choose **Join my other device** when it starts, or open **Settings** and choose **+ Add a device** if it already runs. Enter the one-time code from step 3.
 3. On the first device choose **Make a one-time code** on the same page. It shows a QR code and a link first: scan the QR code on the new device, or choose **Send link** (where your browser has a share sheet) or **Copy link** and open it there. To type instead, the code is shown in groups of four with a **Copy code** button, and the new device's code field also takes a pasted link. Both screens then show a short code. If they match, choose **The codes match** on the new device and **Approve** on the other. If not, start again. A code adds one device and works for 15 minutes.
-4. Pairing is done once. Devices reconnect by themselves while the app is open.
+4. The new device starts with no spaces. It stays on **Settings** and asks about each space of your account: **Keep** the ones you want there, or **Keep all spaces**. Nothing of a space reaches it until you choose.
+5. Pairing is done once. Devices reconnect by themselves while the app is open.
 
 - A new passphrase needs at least 20 characters. Under 28 it works but is warned about: four or more random words is best.
 - Approving, removing a device and sharing ask for your passphrase in a sheet, and then carry on by themselves. It stays unlocked for 5 minutes after you last used it, so a run of actions asks once.

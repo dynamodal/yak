@@ -161,29 +161,15 @@ export async function finish(...closables) {
 }
 
 /**
- * A device that joined by an approved one-time code keeps the account's spaces by itself and opens on
- * the Timer (F-20). Waits for that; a device that still shows the "Keep all spaces" notice (a space it
- * has not decided on) gets it pressed.
+ * A device that joined by an approved one-time code keeps none of the account's spaces (S-177): it
+ * stays on Settings with the undecided-spaces notice. This waits for the notice and presses
+ * "Keep all spaces", for suites that want the joined device to hold everything.
  */
 export async function keepAllSpaces(page) {
   const button = page.getByRole('button', { name: 'Keep all spaces' });
-  // A joined device lands on the first tab: Home (F-33p), or Time when Home is off.
-  const onTimer = () => page.evaluate(() => location.hash.startsWith('#/time') || location.hash.startsWith('#/home')).catch(() => false);
-  const deadline = Date.now() + 30000;
-  let pressedAt = 0;
-  while (Date.now() < deadline) {
-    if (await onTimer()) return;
-    if (!pressedAt && (await button.isVisible().catch(() => false))) {
-      // The app keeps the spaces by itself a moment after the notice shows, which removes the button mid-click:
-      // a default click then waits out its whole 30 s timeout for a button that is gone. Short timeout, then look again.
-      pressedAt = Date.now();
-      await button.click({ timeout: 2000 }).catch(() => undefined);
-    }
-    // A join that was not approved by a one-time code (the keyless tests) never goes to the Timer; an approved one may show the notice for a moment and still does.
-    if (pressedAt && Date.now() - pressedAt > 4000) return;
-    await new Promise((r) => setTimeout(r, 200));
-  }
-  throw new Error('The joined device neither kept the spaces nor opened its first page');
+  await button.waitFor({ timeout: 30000 });
+  await button.click({ timeout: 5000 });
+  await button.waitFor({ state: 'detached', timeout: 10000 }).catch(() => undefined);
 }
 
 /** Open a page header's Filters panel unless it is open. The panel closes with Escape, a click elsewhere or Tab away. */

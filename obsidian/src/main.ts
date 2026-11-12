@@ -7,7 +7,7 @@ import { accountDocId, accountOfDoc, readSpaces } from '../../src/core/account';
 import { deviceName, isRemoved, readDevices, setDeviceName } from '../../src/core/devices';
 import { DocumentStore } from '../../src/core/doc-store';
 import { uuid } from '../../src/core/ids';
-import { setKeeps } from '../../src/core/keeps';
+import { keeps, setKeeps } from '../../src/core/keeps';
 import { liveRecords } from '../../src/core/schema';
 import { emptyState } from '../../src/mirror/engine';
 import { MirrorService, mirrorSpaces, type FolderAccess, type MirrorStore, type Persisted, type SpaceInput } from '../../src/mirror/service';
@@ -26,6 +26,7 @@ import { deviceFingerprint } from '../../src/core/account-keys';
 import { formatFingerprint } from '../../src/core/keys';
 import { PluginKeys, type KeyData } from './plugin-keys';
 import { defaultDeviceName, syncStatusLine } from './device-name';
+import { deviceRows, spaceRows } from './overview';
 
 /**
  * The Yak plugin (#64): this vault is a device of the account. It joins with the sync code,
@@ -344,11 +345,31 @@ export default class YakPlugin extends Plugin {
 
   /** The owner chose to stop keeping the space on this device. */
   async stopKeeping(space: RuleSpace): Promise<void> {
+    await this.keepSpace(space.id, false);
+  }
+
+  /**
+   * The one place this vault changes its own keeps cell (#170, docs/design/space-grants.md): the problems dialog and the
+   * settings tab both come here. Only this vault's cell is written, never another device's.
+   */
+  async keepSpace(spaceId: string, on: boolean): Promise<void> {
     if (!this.account) return;
-    setKeeps(this.account.doc, this.data.deviceId, space.id, false);
-    delete this.data.mirror.state.spaces[space.id];
+    setKeeps(this.account.doc, this.data.deviceId, spaceId, on);
+    if (!on) delete this.data.mirror.state.spaces[spaceId];
     await this.saveData(this.data);
     await this.mirror.run();
+  }
+
+  /** The spaces and other devices of the account, as the settings tab lists them. */
+  overview(): { spaces: ReturnType<typeof spaceRows>; devices: ReturnType<typeof deviceRows> } {
+    const account = this.accountDoc();
+    if (!account) return { spaces: [], devices: [] };
+    const spaces = readSpaces(account.doc).map((s) => ({ id: s.id, name: s.name, archived: s.archived }));
+    const me = this.data.deviceId;
+    return {
+      spaces: spaceRows({ spaces, keeps: (id) => keeps(account.doc, me, id), loaded: new Set((this.account?.current.spaces ?? []).filter((s) => this.account?.current.spaceDocs.has(s.id)).map((s) => s.id)), held: new Set(this.analysis.held.map((h) => h.id)) }),
+      devices: deviceRows({ me, devices: readDevices(account.doc), spaces, keeps: (d, id) => keeps(account.doc, d, id), peers: this.sync.status.peers, now: Date.now() }),
+    };
   }
 
   /** Change the root folder; the mirror starts clean and deletes nothing. */
@@ -417,6 +438,28 @@ class YakSettings extends PluginSettingTab {
     });
   }
 
+  /** Spaces this vault keeps (toggles write only its own cell) and the other devices, read-only (#170). */
+  private drawOverview(el: HTMLElement, o: ReturnType<YakPlugin['overview']>): void {
+    el.textContent = '';
+    el.setAttribute('data-overview', '');
+    if (o.spaces.length === 0 && o.devices.length === 0) return;
+    new Setting(el).setName('Spaces kept in this vault').setHeading();
+    for (const row of o.spaces) {
+      new Setting(el)
+        .setName(row.name)
+        .setDesc(row.status || 'Not kept here')
+        .addToggle((t) =>
+          t.setValue(row.kept).onChange((v) => {
+            void this.plugin.keepSpace(row.id, v);
+          }),
+        );
+    }
+    new Setting(el).setName('Other devices').setHeading();
+    if (o.devices.length === 0) new Setting(el).setName('No other device').setDesc('Approving, removing and passphrases are managed in the Yak app.');
+    for (const d of o.devices) new Setting(el).setName(d.name).setDesc(`${d.presence}. ${d.kept}.`);
+    if (o.devices.length > 0) new Setting(el).setDesc('Approving, removing and passphrases are managed in the Yak app.');
+  }
+
   display(): void {
     const el = this.containerEl;
     this.off?.();
@@ -432,11 +475,29 @@ class YakSettings extends PluginSettingTab {
       if (shape() !== rendered) this.display();
       else status.setDesc(this.statusText());
     };
-    const offSync = p.sync.subscribe(update);
-    const offKeys = p.keys.subscribe(update);
+    // The spaces and devices block is redrawn only when what it shows changes, so a click is never lost to a redraw.
+    const overview = document.createElement('div');
+    let drawn = '';
+    const drawOverview = (): void => {
+      const o = p.overview();
+      const sig = JSON.stringify(o);
+      if (sig === drawn) return;
+      drawn = sig;
+      this.drawOverview(overview, o);
+    };
+    const refresh = (): void => {
+      update();
+      drawOverview();
+    };
+    const offSync = p.sync.subscribe(refresh);
+    const offKeys = p.keys.subscribe(refresh);
+    const offAccount = p.account?.subscribe(refresh);
+    const tick = window.setInterval(drawOverview, 5000);
     this.off = () => {
       offSync();
       offKeys();
+      offAccount?.();
+      window.clearInterval(tick);
     };
     new Setting(el)
       .setName('Device name')
@@ -516,6 +577,8 @@ class YakSettings extends PluginSettingTab {
             new Notice('Sync code forgotten.');
           }),
         );
+    el.append(overview);
+    drawOverview();
     new Setting(el).setName('Advanced').setHeading();
     new Setting(el)
       .setName('Root folder')

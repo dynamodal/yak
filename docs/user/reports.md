@@ -9,6 +9,11 @@
 - **Previous** and **Next** move to the period before or after: a day, week, month or year by itself, a custom range by its own length. **Next** is off while the period includes today.
 - The space menu at the top is the same one as on List and Week.
 - The page remembers its range on this device. When it is not **This week**, the dates are highlighted and **This week ×** takes you back.
+- **Table | Timesheet** switches the layout for weekly billing. The Timesheet has a row per project (or client, when you group by client) and a column per day. It uses the same range and filters.
+  - Each day is rounded to the nearest 0.1 h, always in decimals, and totals add the rounded days.
+  - A day's note is its descriptions, once each, in the order you started them, joined with `; `.
+  - Click the hours or the note to copy it. Under the grid, **Invoice lines** gives `date - note` and hours per day, with **Copy** for a line and **Copy all** for tab-separated lines. Days that round to 0.0 are left out.
+  - The layout is remembered on this device.
 
 ## Known limits
 

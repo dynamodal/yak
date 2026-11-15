@@ -118,6 +118,24 @@ check((await page.locator('.rp-table tbody .rp-name[title="Website · Work"] .rp
 await spaceFilter('Personal');
 await settle();
 
+// ---- Timesheet layout (#180)
+await page.getByRole('button', { name: 'Timesheet', exact: true }).click();
+await settle();
+const sheetRow = (name) => page.locator('.rp-ts-grid tbody tr', { hasText: name }).first();
+check((await sheetRow('Website').locator('td.rp-total').innerText()).trim() === '2.0', 'timesheet: Website total 2.0 h in tenths');
+check((await sheetRow('Audit').locator('.rp-ts-hours', { hasText: '1.5' }).count()) === 1, 'timesheet: Audit shows 1.5 on its day');
+check((await sheetRow('(No project)').locator('.rp-ts-note', { hasText: 'Overnight' }).count()) === 2, 'timesheet: the day note holds the description on both days of the overnight entry');
+check((await sheetRow('(No project)').locator('.rp-ts-hours', { hasText: '6.0' }).count()) === 1, 'timesheet: the clock-change day shows 6.0');
+await sheetRow('Website').locator('.rp-ts-hours', { hasText: '2.0' }).click();
+await settle();
+check((await page.evaluate(() => navigator.clipboard.readText())) === '2.0', 'timesheet: click copies the hours');
+await page.locator('.rp-ts-lines', { hasText: 'Website' }).getByRole('button', { name: 'Copy all' }).click();
+await settle();
+check((await page.evaluate(() => navigator.clipboard.readText())) === '2025-03-24 - Design\t2.0', 'timesheet: Copy all gives tab-separated lines');
+await page.getByRole('button', { name: 'Table', exact: true }).click();
+await settle();
+check((await page.locator('.rp-ts-grid').count()) === 0 && (await page.locator('.rp-grid-table').count()) === 1, 'timesheet: back to the table');
+
 // ---- Detailed (a foldable section of the same page; an old link opens it)
 check(await page.locator('.rp-detail').count() === 0, 'the entries section starts folded');
 await page.evaluate(() => { location.hash = '#/time/reports/detailed'; });
@@ -270,10 +288,12 @@ check((await longName.evaluate((th) => th.getBoundingClientRect().width)) < 200,
 check((await longName.locator('.rp-name').getAttribute('title')).includes('very long sample project code'), 'the long name is in the title');
 check(await longName.locator('.rp-name-text').evaluate((el) => el.scrollWidth > el.clientWidth), 'the long name is truncated');
 check((await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0, 'a long name causes no page scrolling at 375 px');
-// folds are remembered on this device
+// folds and the layout are remembered on this device
 await page.getByRole('button', { name: 'Chart', exact: true }).click();
+await page.getByRole('button', { name: 'Timesheet', exact: true }).click();
 await page.reload();
 await page.waitForFunction(() => window.__reports);
+check((await page.getByRole('button', { name: 'Timesheet', exact: true }).getAttribute('aria-pressed')) === 'true', 'timesheet: the layout is remembered after a reload');
 check((await page.locator('#rp-controls .rp-fold').getAttribute('aria-expanded')) === 'false' && /·/.test(await page.locator('#rp-controls .rp-fold').innerText()), 'the filters are one line after a reload');
 check(await page.locator('svg.rp-svg').count() === 0 && await page.locator('.rp-detail').count() === 1, 'a folded chart stays folded and an opened entries section stays open after a reload');
 check(await page.locator('[style]').evaluateAll((els) => els.filter((e) => e.closest('.rp') && !e.classList.contains('rp-dot') && !e.classList.contains('rp-share')).length) === 0, 'no unexpected inline style attributes in the module');

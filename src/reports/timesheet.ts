@@ -26,6 +26,8 @@ export function formatTenths(tenths: number): string {
 
 export interface TimesheetDay {
   day: string;
+  /** Tracked milliseconds of the day (0 when nothing was tracked). */
+  ms: number;
   /** Rounded hours of the day in tenths. */
   tenths: number;
   note: string;
@@ -73,7 +75,8 @@ export function buildTimesheet(report: Pick<Report, 'days' | 'segments'>, groupB
     const mine = report.segments.filter((s) => keyOf(s) === g.key);
     const days = report.days.map((day): TimesheetDay => {
       const segs = mine.filter((s) => s.day === day);
-      return { day, tenths: roundTenths(segs.reduce((n, s) => n + s.ms, 0)), note: dayNote(segs) };
+      const ms = segs.reduce((n, s) => n + s.ms, 0);
+      return { day, ms, tenths: roundTenths(ms), note: dayNote(segs) };
     });
     return { key: g.key, label: g.label, space: g.space, color: g.color, days, totalTenths: days.reduce((n, d) => n + d.tenths, 0) };
   });

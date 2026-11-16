@@ -32,10 +32,9 @@ export function TimesheetView({ report, groupBy, onCopy }: TimesheetViewProps) {
 
   return (
     <>
-      <p class="hint">Hours are rounded to 0.1 h per day and row; totals add the rounded days. Click hours or a note to copy it.</p>
+      <p class="hint">Hours are rounded to 0.1 h per day and row; totals add the rounded days. Every day of the range is listed; click the hours or use the buttons to copy.</p>
       {sheet.rows.map((r) => {
         const lines = invoiceLines(r);
-        const days = r.days.filter((d) => d.ms > 0);
         return (
           <section class="card rp-ts-lines" key={r.key} aria-label={`Timesheet for ${r.label}`}>
             <div class="row rp-ts-head">
@@ -44,24 +43,26 @@ export function TimesheetView({ report, groupBy, onCopy }: TimesheetViewProps) {
               {lines.length > 0 && <Button onClick={() => onCopy(copyAllText(lines), 'all lines')}>Copy all</Button>}
             </div>
             <ul class="rp-ts-list">
-              {days.map((d) => {
+              {r.days.map((d) => {
                 const hours = formatTenths(d.tenths);
-                const line = d.note ? `${d.day} - ${d.note}` : d.day;
+                const copyable = d.tenths > 0;
+                const dated = d.note ? `${d.day} - ${d.note}` : d.day;
                 return (
-                  <li key={d.day} class={`rp-ts-line${d.tenths === 0 ? ' rp-zero' : ''}`}>
+                  <li key={d.day} class={`rp-ts-line${copyable ? '' : ' rp-zero'}`}>
                     <span class="rp-ts-day">{dayLabel(d.day)}</span>
-                    {d.note ? (
-                      <button type="button" class="rp-ts-note" title="Copy note" onClick={() => onCopy(d.note, `the note for ${d.day}`)}>
-                        {d.note}
+                    <span class="rp-ts-note">{d.note}</span>
+                    {copyable ? (
+                      <button type="button" class="rp-ts-hours" title="Copy hours" onClick={() => onCopy(hours, `${hours} h`)}>
+                        {hours}
                       </button>
                     ) : (
-                      <span class="rp-ts-note rp-sub">No description</span>
+                      <span class="rp-ts-hours" aria-label={d.ms > 0 ? '0.0, rounds to nothing' : 'nothing tracked'}>{d.ms > 0 ? hours : '–'}</span>
                     )}
-                    <button type="button" class="rp-ts-hours" title="Copy hours" onClick={() => onCopy(hours, `${hours} h`)}>
-                      {hours}
-                    </button>
-                    {d.tenths > 0 && (
-                      <Button aria-label={`Copy line ${d.day}`} onClick={() => onCopy(`${line}\t${hours}`.replace(/[\r\n]+/g, ' '), `the line for ${d.day}`)}>Copy</Button>
+                    {copyable && (
+                      <span class="rp-ts-btns">
+                        <Button aria-label={`Copy description for ${d.day}`} disabled={!d.note} onClick={() => onCopy(d.note, `the description for ${d.day}`)}>Copy description</Button>
+                        <Button aria-label={`Copy description and date for ${d.day}`} onClick={() => onCopy(dated.replace(/[\r\n]+/g, ' '), `the description and date for ${d.day}`)}>Copy description and date</Button>
+                      </span>
                     )}
                   </li>
                 );

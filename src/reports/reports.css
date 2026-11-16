@@ -109,13 +109,17 @@
 .rp-ts-list { list-style: none; margin: 0.5rem 0 0; padding: 0; }
 .rp-ts-line { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr) 3rem auto; gap: 0.25rem 0.75rem; align-items: start; padding: 0.4rem 0; border-top: 1px solid var(--border); }
 .rp-ts-day { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.rp-ts-note, .rp-ts-hours { background: transparent; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: left; overflow-wrap: anywhere; }
+.rp-ts-note { overflow-wrap: anywhere; }
+.rp-ts-hours { background: transparent; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; overflow-wrap: anywhere; }
+.rp-ts-btns { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; justify-content: flex-end; }
+span.rp-ts-hours { cursor: default; }
 .rp-ts-hours { text-align: right; font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); }
-span.rp-ts-note { cursor: default; }
 .rp-ts-line.rp-zero .rp-ts-hours, .rp-ts-line.rp-zero .rp-ts-note { color: var(--muted); font-weight: normal; opacity: 0.7; }
 .rp-ts-grand { display: flex; justify-content: space-between; gap: 1rem; margin: 1rem 0 0; padding: 0.5rem 0; border-top: 2px solid var(--border); }
 .rp-ts-grand-val { font-variant-numeric: tabular-nums; }
 @media (max-width: 40rem) {
-  .rp-ts-line { grid-template-columns: minmax(0, 1fr) 3rem auto; }
+  .rp-ts-line { grid-template-columns: minmax(0, 1fr) 3rem; }
   .rp-ts-note { grid-column: 1 / -1; grid-row: 2; }
+  .rp-ts-btns { grid-column: 1 / -1; justify-content: flex-start; }
+  .rp-ts-note:empty { display: none; }
 }

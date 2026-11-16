@@ -30,6 +30,8 @@ import { loadSource, readHoursFormat, readWeekStart, settingsMap } from './sourc
 import { BarChart } from './BarChart';
 import { ReportTable } from './ReportTable';
 import { Disclosure, Totals } from './parts';
+import { TimesheetView } from './TimesheetView';
+import { copyText as appCopy } from '../app/clipboard';
 import { seedSpace, type SeedData } from './testhook';
 
 /** The sections of the page; old links (`#/reports/detailed`, `#/reports/weekly`) open it at one. */
@@ -62,6 +64,18 @@ function useFold(id: string, initial: boolean): [boolean, (open: boolean) => voi
     }
   };
   return [open, setOpen];
+}
+
+const LAYOUT_KEY = 'app-reports-layout';
+type Layout = 'table' | 'timesheet';
+
+/** The layout used last on this device (UI-only, like the range). */
+function readLayout(): Layout {
+  try {
+    return localStorage.getItem(LAYOUT_KEY) === 'timesheet' ? 'timesheet' : 'table';
+  } catch {
+    return 'table';
+  }
 }
 
 const RANGE_KEY = 'app-reports-range';
@@ -116,6 +130,16 @@ export function ReportsView({ params }: ViewProps) {
   const [now, setNow] = useState(Date.now());
   const [notice, setNotice] = useState('');
   const [fallbackText, setFallbackText] = useState('');
+  const [layout, setLayoutState] = useState<Layout>(readLayout);
+  const setLayout = (l: Layout): void => {
+    setLayoutState(l);
+    setFallbackText('');
+    try {
+      localStorage.setItem(LAYOUT_KEY, l);
+    } catch {
+      // ignore
+    }
+  };
 
 
   // The documents in scope, and the Yjs maps whose changes should re-render the report.
@@ -230,6 +254,17 @@ export function ReportsView({ params }: ViewProps) {
       setNotice('Copied the summary as Markdown.');
     } else {
       setFallbackText(md);
+      setNotice('The browser blocked copying. Select the text below and copy it.');
+    }
+  };
+
+  /** Timesheet copies: the clipboard when allowed, else the text in a box to copy by hand (as R16). */
+  const copyPiece = async (text: string, what: string): Promise<void> => {
+    if (await appCopy(text)) {
+      setFallbackText('');
+      setNotice(`Copied ${what}.`);
+    } else {
+      setFallbackText(text);
       setNotice('The browser blocked copying. Select the text below and copy it.');
     }
   };
@@ -358,16 +393,28 @@ export function ReportsView({ params }: ViewProps) {
       <section class="rp-section" id="rp-table" aria-labelledby="rp-table-h">
         <div class="row rp-section-head">
           <h2 id="rp-table-h">
-            By {GROUP_BY_OPTIONS.find((o) => o.id === groupBy)?.label.toLowerCase()}
-            {thenEffective ? `, then ${GROUP_BY_OPTIONS.find((o) => o.id === thenEffective)?.label.toLowerCase()}` : ''}
+            {layout === 'timesheet'
+              ? `Timesheet by ${groupBy === 'client' ? 'client' : 'project'}`
+              : `By ${GROUP_BY_OPTIONS.find((o) => o.id === groupBy)?.label.toLowerCase()}${thenEffective ? `, then ${GROUP_BY_OPTIONS.find((o) => o.id === thenEffective)?.label.toLowerCase()}` : ''}`}
           </h2>
           <span class="row">
-            <Button onClick={() => void doCopy()}>Copy as Markdown</Button>
+            <span class="rp-layout" role="group" aria-label="Layout">
+              {(['table', 'timesheet'] as const).map((l) => (
+                <Button key={l} class={layout === l ? 'rp-layout-on' : ''} aria-pressed={layout === l} onClick={() => setLayout(l)}>
+                  {l === 'table' ? 'Table' : 'Timesheet'}
+                </Button>
+              ))}
+            </span>
+            {layout === 'table' && <Button onClick={() => void doCopy()}>Copy as Markdown</Button>}
             <Button onClick={doCsv}>Download CSV</Button>
           </span>
         </div>
-        {fallbackText ? <textarea class="rp-fallback" readOnly rows={8} aria-label="Markdown summary" value={fallbackText} onFocus={(e) => (e.target as HTMLTextAreaElement).select()} /> : null}
-        <ReportTable report={report} format={format} groupBy={groupBy} thenBy={thenEffective} />
+        {fallbackText ? <textarea class="rp-fallback" readOnly rows={8} aria-label="Text to copy" value={fallbackText} onFocus={(e) => (e.target as HTMLTextAreaElement).select()} /> : null}
+        {layout === 'timesheet' ? (
+          <TimesheetView report={report} groupBy={groupBy} onCopy={(t, w) => void copyPiece(t, w)} />
+        ) : (
+          <ReportTable report={report} format={format} groupBy={groupBy} thenBy={thenEffective} />
+        )}
       </section>
 
       <Disclosure id="detailed" title="Entries" open={detailOpen} onToggle={setDetailOpen}>

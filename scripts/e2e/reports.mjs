@@ -118,6 +118,38 @@ check((await page.locator('.rp-table tbody .rp-name[title="Website · Work"] .rp
 await spaceFilter('Personal');
 await settle();
 
+// ---- Timesheet layout (#180)
+await page.getByRole('button', { name: 'Timesheet', exact: true }).click();
+await settle();
+const block = (name) => page.locator('.rp-ts-lines', { hasText: name }).first();
+check((await page.locator('.rp-ts-grid').count()) === 0, 'timesheet: no week grid');
+check((await block('Website').locator('.rp-ts-sum').innerText()).includes('2.0 h'), 'timesheet: Website group total 2.0 h in tenths');
+check((await block('Audit').locator('.rp-ts-line', { hasText: 'Tue 2025-03-25' }).locator('.rp-ts-hours').innerText()) === '1.5', 'timesheet: Audit day row shows weekday, date and 1.5');
+check((await block('(No project)').locator('.rp-ts-line', { hasText: 'Sun 2025-03-30' }).locator('.rp-ts-note').innerText()) === 'Overnight', 'timesheet: the day note holds the description');
+check((await block('(No project)').locator('.rp-ts-line', { hasText: 'Sun 2025-03-30' }).locator('.rp-ts-hours').innerText()) === '6.0', 'timesheet: the clock-change day shows 6.0');
+check((await block('Website').locator('.rp-ts-line').count()) === 8, 'timesheet: every day of the range gets a row, empty ones too');
+check((await block('Website').locator('.rp-ts-line', { hasText: 'Tue 2025-03-25' }).getByRole('button').count()) === 0, 'timesheet: an empty day has no copy buttons');
+check((await page.locator('.rp-ts-grand-val').innerText()) === '12.5 h', 'timesheet: one total for the period');
+await block('Website').locator('button.rp-ts-hours').click();
+await settle();
+check((await page.evaluate(() => navigator.clipboard.readText())) === '2.0', 'timesheet: click copies the hours');
+await block('Website').getByRole('button', { name: 'Copy description for 2025-03-24' }).click();
+await settle();
+check((await page.evaluate(() => navigator.clipboard.readText())) === 'Design', 'timesheet: Copy description copies just the note');
+await block('Website').getByRole('button', { name: 'Copy description and date for 2025-03-24' }).click();
+await settle();
+check((await page.evaluate(() => navigator.clipboard.readText())) === '2025-03-24 - Design', 'timesheet: Copy description and date has no weekday or hours');
+await block('Website').getByRole('button', { name: 'Copy all' }).click();
+await settle();
+check((await page.evaluate(() => navigator.clipboard.readText())) === '2025-03-24 - Design\t2.0', 'timesheet: Copy all gives tab-separated lines');
+await page.setViewportSize({ width: 375, height: 900 });
+await settle();
+check((await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0 && (await page.locator('.rp-ts-lines').first().evaluate((el) => el.scrollWidth <= el.clientWidth)), 'timesheet: no horizontal scrolling at 375 px');
+await page.setViewportSize({ width: 1100, height: 900 });
+await page.getByRole('button', { name: 'Table', exact: true }).click();
+await settle();
+check((await page.locator('.rp-ts-grid').count()) === 0 && (await page.locator('.rp-grid-table').count()) === 1, 'timesheet: back to the table');
+
 // ---- Detailed (a foldable section of the same page; an old link opens it)
 check(await page.locator('.rp-detail').count() === 0, 'the entries section starts folded');
 await page.evaluate(() => { location.hash = '#/time/reports/detailed'; });
@@ -270,10 +302,12 @@ check((await longName.evaluate((th) => th.getBoundingClientRect().width)) < 200,
 check((await longName.locator('.rp-name').getAttribute('title')).includes('very long sample project code'), 'the long name is in the title');
 check(await longName.locator('.rp-name-text').evaluate((el) => el.scrollWidth > el.clientWidth), 'the long name is truncated');
 check((await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0, 'a long name causes no page scrolling at 375 px');
-// folds are remembered on this device
+// folds and the layout are remembered on this device
 await page.getByRole('button', { name: 'Chart', exact: true }).click();
+await page.getByRole('button', { name: 'Timesheet', exact: true }).click();
 await page.reload();
 await page.waitForFunction(() => window.__reports);
+check((await page.getByRole('button', { name: 'Timesheet', exact: true }).getAttribute('aria-pressed')) === 'true', 'timesheet: the layout is remembered after a reload');
 check((await page.locator('#rp-controls .rp-fold').getAttribute('aria-expanded')) === 'false' && /·/.test(await page.locator('#rp-controls .rp-fold').innerText()), 'the filters are one line after a reload');
 check(await page.locator('svg.rp-svg').count() === 0 && await page.locator('.rp-detail').count() === 1, 'a folded chart stays folded and an opened entries section stays open after a reload');
 check(await page.locator('[style]').evaluateAll((els) => els.filter((e) => e.closest('.rp') && !e.classList.contains('rp-dot') && !e.classList.contains('rp-share')).length) === 0, 'no unexpected inline style attributes in the module');

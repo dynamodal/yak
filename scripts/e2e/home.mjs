@@ -8,7 +8,11 @@
 import { BASE, launch, check, watchPage, until, finish, newNote } from './lib.mjs';
 
 const browser = await launch();
-const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+// The page clock is pinned to a Wednesday midday (UTC), so "this week" and "today" hold whenever the suite runs.
+// Real time near a week boundary used to push the seeded entries into the previous week.
+const NOW = new Date('2026-11-18T12:00:00Z');
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, timezoneId: 'UTC', locale: 'en-US' });
+await ctx.clock.install({ time: NOW });
 const p = await ctx.newPage();
 watchPage(p, 'home', { consoleErrors: true });
 const go = (h) => p.evaluate((x) => (location.hash = x), h);
@@ -30,7 +34,7 @@ check(await p.locator('.hm-empty').isVisible(), 'Home with nothing yet says so')
 await go('#/time/reports');
 await p.waitForFunction(() => window.__reports);
 await p.evaluate(() => {
-  const now = Date.now();
+  const now = Date.now(); // the pinned page clock
   const iso = (ms) => new Date(ms).toISOString();
   return window.__reports.seed('personal', {
     projects: [{ ref: 'web', name: 'Website', color: '#2f6fde' }],
@@ -41,7 +45,7 @@ await p.evaluate(() => {
   });
 });
 await go('#/tasks');
-for (const t of ['Late job due:2020-01-01', 'Soon job due:' + new Date(Date.now() + 2 * 86400_000).toLocaleDateString('sv'), 'Someday job']) {
+for (const t of ['Late job due:2020-01-01', 'Soon job due:' + new Date(NOW.getTime() + 2 * 86400_000).toLocaleDateString('sv', { timeZone: 'UTC' }), 'Someday job']) {
   await p.locator('input[aria-label="New task"]').fill(t);
   await p.getByRole('button', { name: 'Add task' }).click();
 }

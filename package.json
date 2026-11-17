@@ -20,14 +20,14 @@
     "build:obsidian": "tsc --noEmit && vite build -c obsidian/vite.config.ts && cp obsidian/manifest.json obsidian/dist/manifest.json"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261109.1",
+    "@cloudflare/workers-types": "^5.20261114.1",
     "@types/ws": "^8.18.2",
     "axe-core": "^4.14.0",
-    "playwright-core": "^1.65.0",
+    "playwright-core": "^1.65.1",
     "typescript": "~7.0.2",
-    "vite": "^8.3.7",
+    "vite": "^8.3.8",
     "vitest": "^5.1.0",
-    "ws": "^8.22.2"
+    "ws": "^8.23.0"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",
